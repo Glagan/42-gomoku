@@ -1,6 +1,8 @@
 use board::{BOARD_SIZE, Board};
-use macroquad::{prelude::*, miniquad::gl::khronos_boolean_enum_t_KHRONOS_BOOLEAN_ENUM_FORCE_SIZE};
+use macroquad::{prelude::*};
 use player::Player;
+
+use crate::board::Move;
 
 const WINDOW_SIZE: usize = 800;
 const BORDER_OFFSET: usize = 22;
@@ -23,6 +25,28 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut board = Board::default();
+    println!("{}", board);
+    board.set_move(&Move {
+        index: 0,
+        player: Player::Black,
+    });
+    board.set_move(&Move {
+        index: 19,
+        player: Player::White,
+    });
+    board.set_move(&Move {
+        index: 20,
+        player: Player::Black,
+    });
+    board.set_move(&Move {
+        index: 360,
+        player: Player::White,
+    });
+    board.set_move(&Move {
+        index: 361,
+        player: Player::Black,
+    });
+    
     let p1 = Player::Black;
     let p2 = Player::White;
     let mut current_player: &Player = &p1;

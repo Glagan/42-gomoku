@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::player::Player;
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Pawn {
     None,
     Black,
@@ -69,21 +69,77 @@ impl Board {
         if x >= BOARD_SIZE || y >= BOARD_SIZE {
             return None;
         }
-        Some(self.pieces[(x as f64 / BOARD_SIZE as f64) as usize + (y * BOARD_SIZE)].clone())
+        Some(self.pieces[Board::coordinates_to_index(x, y)].clone())
+    }
+
+    pub fn index_to_coordinates(index: usize) -> usize {
+        (index as f64 / BOARD_SIZE as f64) as usize + (index * BOARD_SIZE)
+    }
+
+    pub fn coordinates_to_index(x: usize, y: usize) -> usize {
+        (y * BOARD_SIZE) + x
+    }
+
+    // All open intersections for the current Board
+    pub fn open_intersections(&self) -> Vec<usize> {
+        if self.moves.len() == 0 {
+            return vec![171]; // Only the center intersection is available if there is no previous moves
+        }
+        let mut intersections: Vec<usize> = vec![];
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                // If there is a piece on a case, check all 8 case around it
+                if let Some(_) = self.get(x, y) {
+                    for x_mov in [2, 0, 1] {
+                        for y_mov in [2, 0, 1] {
+                            if x_mov == 0 && y_mov == 0 {
+                                continue;
+                            }
+                            if (x_mov == 2 && x == 0) || (x_mov > 0 && x == BOARD_SIZE - 1) {
+                                continue;
+                            }
+                            if (y_mov == 2 && y == 0) || (y_mov > 0 && y == BOARD_SIZE - 1) {
+                                continue;
+                            }
+                            let (new_x, new_y) = (
+                                if x_mov == 2 { x - 1 } else { x + x_mov },
+                                if y_mov == 2 { y - 1 } else { y + y_mov },
+                            );
+                            if let Some(pawn) = &self.get(new_x, new_y) {
+                                if *pawn == Pawn::None {
+                                    let index = Board::coordinates_to_index(new_x, new_y);
+                                    if !intersections.contains(&index) {
+                                        intersections.push(index);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Check top row
+                    if x > 0 {
+                        if y > 0 {
+                            if let Some(_) = self.get(x - 1, y - 1) {}
+                        }
+                    }
+                }
+            }
+        }
+        intersections
     }
 
     // All possible movements for the given player
     pub fn legal_moves(&self, player: &Player) -> Vec<Move> {
-        vec![
-            Move {
-                index: 0,
+        // Analyze each intersections and check if a Pawn can be set on it for the current player
+        // -- according to the rules
+        let intersections = self.open_intersections();
+        let mut moves: Vec<Move> = vec![];
+        for index in intersections.iter() {
+            moves.push(Move {
                 player: *player,
-            },
-            Move {
-                index: 1,
-                player: *player,
-            },
-        ]
+                index: *index,
+            });
+        }
+        moves
     }
 
     // Apply a movement to the current Board
@@ -99,7 +155,9 @@ impl Board {
 
     // Apply a movement to a new copy of the current Board
     pub fn apply_move(&self, movement: &Move) -> Result<Board, String> {
-        Ok(self.clone())
+        let mut new_board = self.clone();
+        new_board.set_move(movement)?;
+        Ok(new_board)
     }
 
     // Calculate all patterns for a given player and return the board score

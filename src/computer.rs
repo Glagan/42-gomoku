@@ -83,6 +83,11 @@ impl Computer {
                 movement: None,
             });
         }
+        let other_player = if self.player == Player::Black {
+            &Player::White
+        } else {
+            &Player::Black
+        };
         if *player == self.player {
             let mut max_eval = MiniMaxEvaluation {
                 score: i64::min_value(),
@@ -90,15 +95,7 @@ impl Computer {
             };
             for movement in board.legal_moves(player).iter() {
                 let new_board = board.apply_move(movement)?;
-                let eval = self.minimax(
-                    &new_board,
-                    depth - 1,
-                    if self.player == Player::Black {
-                        &Player::White
-                    } else {
-                        &Player::Black
-                    },
-                )?;
+                let eval = self.minimax(&new_board, depth - 1, other_player)?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
                     max_eval.movement = Some(movement.clone());
@@ -116,7 +113,7 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board.legal_moves(player).iter() {
+            for movement in board.legal_moves(other_player).iter() {
                 let new_board = board.apply_move(movement)?;
                 let eval = self.minimax(&new_board, depth - 1, &self.player)?;
                 if eval.score < min_eval.score {
