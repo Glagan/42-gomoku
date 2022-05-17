@@ -1,4 +1,4 @@
-use board::{BOARD_SIZE, Board};
+use board::{BOARD_SIZE, Board, Pawn};
 use macroquad::{prelude::*};
 use player::Player;
 
@@ -25,7 +25,6 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut board = Board::default();
-    println!("{}", board);
     board.set_move(&Move {
         index: 0,
         player: Player::Black,
@@ -46,6 +45,7 @@ async fn main() {
         index: 361,
         player: Player::Black,
     });
+    println!("{}", board);
     
     let p1 = Player::Black;
     let p2 = Player::White;
@@ -75,17 +75,37 @@ async fn main() {
             }
         }
         //Draw board
+
+        for i in 0..board::BOARD_PIECES {
+            //println!("{}", i);
+            if board.pieces[i] != Pawn::None {
+                let (x, y) = Board::index_to_coordinates(i);
+                draw_circle((x * SQUARE_SIZE + BORDER_OFFSET) as f32, (y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., if board.pieces[i] == Pawn::Black {BLACK} else {WHITE});
+            }
+        }
+        
         if is_mouse_button_down(MouseButton::Left) && !b_mouse_pressed {
             b_mouse_pressed = true;
             
         }
         if is_mouse_button_released(MouseButton::Left){
             b_mouse_pressed = false;
-            if current_player == &p1 {
-                current_player = &p2;
-            }
-            else {
-                current_player = &p1;
+            let (mouse_x, mouse_y) = mouse_position();
+            if mouse_x < WINDOW_SIZE as f32 && mouse_y < WINDOW_SIZE as f32 {
+                let rock_x = mouse_x as usize / SQUARE_SIZE;
+                let rock_y = mouse_y as usize/ SQUARE_SIZE;
+                if Board::coordinates_to_index(rock_x, rock_y) < board::BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+                    board.set_move(&Move {
+                        index: Board::coordinates_to_index(rock_x, rock_y),
+                        player: *current_player,
+                    });
+                    if current_player == &p1 {
+                        current_player = &p2;
+                    }
+                    else {
+                        current_player = &p1;
+                    }
+                }
             }
         }
 
@@ -94,10 +114,11 @@ async fn main() {
         {
             let (mouse_x, mouse_y) = mouse_position();
             if mouse_x < WINDOW_SIZE as f32 && mouse_y < WINDOW_SIZE as f32 {
-
                 let rock_x = mouse_x as usize / SQUARE_SIZE;
                 let rock_y = mouse_y as usize/ SQUARE_SIZE;
-                draw_circle((rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32, (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., if current_player == &p1 {BLACK} else {WHITE});
+                if Board::coordinates_to_index(rock_x, rock_y) < board::BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+                    draw_circle((rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32, (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., if current_player == &p1 {BLACK} else {WHITE});
+                }
             }
         }
         next_frame().await

@@ -26,7 +26,7 @@ pub struct Move {
 }
 
 pub const BOARD_SIZE: usize = 19;
-const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
+pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 
 #[derive(Clone)]
 pub struct Board {
@@ -72,8 +72,8 @@ impl Board {
         Some(self.pieces[Board::coordinates_to_index(x, y)].clone())
     }
 
-    pub fn index_to_coordinates(index: usize) -> usize {
-        (index as f64 / BOARD_SIZE as f64) as usize + (index * BOARD_SIZE)
+    pub fn index_to_coordinates(index: usize) -> (usize, usize) {
+        ((index as f64 % BOARD_SIZE as f64) as usize, index / BOARD_SIZE)
     }
 
     pub fn coordinates_to_index(x: usize, y: usize) -> usize {
