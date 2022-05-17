@@ -1,20 +1,5 @@
+use crate::Player;
 use std::fmt::Display;
-
-#[derive(PartialEq, Clone, Copy)]
-pub enum Player {
-    Black,
-    White,
-}
-
-impl Player {
-    pub fn pawn(&self) -> Pawn {
-        if *self == Player::Black {
-            Pawn::Black
-        } else {
-            Pawn::White
-        }
-    }
-}
 
 #[derive(Clone, Copy)]
 pub enum Pawn {
@@ -33,7 +18,7 @@ impl ToString for Pawn {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Move {
     pub player: Player,
     pub index: usize, // Index of the piece to place
@@ -42,6 +27,7 @@ pub struct Move {
 const BOARD_SIZE: usize = 19;
 const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 
+#[derive(Clone)]
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
     pub moves: Vec<Move>,
@@ -87,7 +73,16 @@ impl Board {
 
     // All possible movements for the given player
     pub fn legal_moves(&self, player: &Player) -> Vec<Move> {
-        todo!()
+        vec![
+            Move {
+                index: 0,
+                player: *player,
+            },
+            Move {
+                index: 1,
+                player: *player,
+            },
+        ]
     }
 
     // Apply a movement to the current Board
@@ -103,11 +98,11 @@ impl Board {
 
     // Apply a movement to a new copy of the current Board
     pub fn apply_move(&self, movement: &Move) -> Result<Board, String> {
-        todo!()
+        Ok(self.clone())
     }
 
     // Calculate all patterns for a given player and return the board score
-    pub fn evaluate(&self, player: &Player) -> u64 {
-        todo!()
+    pub fn evaluate(&self, player: &Player) -> i64 {
+        1
     }
 }

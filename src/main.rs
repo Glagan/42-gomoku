@@ -1,11 +1,16 @@
 use board::Board;
 
-use crate::board::{Move, Pawn, Player};
+use crate::{
+    board::{Move, Pawn},
+    computer::Computer,
+    player::Player,
+};
 
 mod board;
 mod computer;
 mod game;
 mod interface;
+mod player;
 
 fn main() {
     let mut board = Board::default();
@@ -32,4 +37,9 @@ fn main() {
     });
     println!("---");
     println!("{}", board);
+    println!("---");
+    let player = Player::Black;
+    let computer = Computer::new(&player);
+    let play_result = computer.play(&board, 4);
+    println!("play: {:#?}", play_result);
 }
