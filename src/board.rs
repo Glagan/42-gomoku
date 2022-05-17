@@ -1,4 +1,4 @@
-use crate::Player;
+use crate::{rules::RuleSet, Player};
 use std::fmt::Display;
 
 #[derive(PartialEq, Clone, Copy)]
@@ -22,6 +22,23 @@ impl ToString for Pawn {
 pub struct Move {
     pub player: Player,
     pub index: usize, // Index of the piece to place
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum PatternCategory {
+    FiveInRow,
+    LiveFour,
+    DeadFour,
+    LiveThree,
+    DeadThree,
+    LiveTwo,
+    DeadTwo,
+}
+
+#[derive(Debug, Clone)]
+pub struct Pattern {
+    pub pieces: Vec<usize>,
+    pub category: PatternCategory,
 }
 
 const BOARD_SIZE: usize = 19;
@@ -80,6 +97,7 @@ impl Board {
     }
 
     // All open intersections for the current Board
+    // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
         if self.moves.len() == 0 {
             return vec![171]; // Only the center intersection is available if there is no previous moves
@@ -126,41 +144,73 @@ impl Board {
         intersections
     }
 
-    // All possible movements for the given player
-    pub fn legal_moves(&self, player: &Player) -> Vec<Move> {
-        // Analyze each intersections and check if a Pawn can be set on it for the current player
-        // -- according to the rules
+    // Check if a move *can* be executed according to the rules
+    // TODO
+    pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
+        // Forbid movements that would create a "double three"
+        if rules.no_double_three {
+            // TODO
+        }
+        // Forbid movements that would put a pawn in a "capture" state
+        if rules.capture {
+            // TODO
+        }
+        true
+    }
+
+    // All possible movements from the intersections for a given player
+    pub fn intersections_legal_moves(&self, rules: &RuleSet, player: &Player) -> Vec<Move> {
+        // Analyze each intersections and check if a Pawn can be set on it
+        // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
         for index in intersections.iter() {
-            moves.push(Move {
+            let movement = Move {
                 player: *player,
                 index: *index,
-            });
+            };
+            if self.is_move_legal(rules, &movement) {
+                moves.push(movement);
+            }
         }
         moves
     }
 
     // Apply a movement to the current Board
-    pub fn set_move(&mut self, movement: &Move) -> Result<(), String> {
+    pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) -> Result<(), String> {
         if movement.index >= BOARD_PIECES {
             return Err("Invalid index for movement".to_string());
         }
-        // TODO capture
+        if rules.capture {
+            // TODO capture remove other pawns
+            // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
+        }
         self.pieces[movement.index] = movement.player.pawn();
         self.moves.push(movement.clone());
         Ok(())
     }
 
     // Apply a movement to a new copy of the current Board
-    pub fn apply_move(&self, movement: &Move) -> Result<Board, String> {
+    pub fn apply_move(&self, rules: &RuleSet, movement: &Move) -> Result<Board, String> {
         let mut new_board = self.clone();
-        new_board.set_move(movement)?;
+        new_board.set_move(rules, movement)?;
         Ok(new_board)
     }
 
+    // Get the list of *all* patterns on the board for a given player
+    pub fn get_patterns(&self, rules: &RuleSet, player: &Player) -> Vec<Pattern> {
+        todo!()
+    }
+
     // Calculate all patterns for a given player and return the board score
-    pub fn evaluate(&self, player: &Player) -> i64 {
+    // TODO
+    pub fn evaluate(&self, rules: &RuleSet, player: &Player) -> i64 {
         1
+    }
+
+    // Check if the given player is winning on the current board
+    // (Has an unbreakable winning position according to the rules)
+    pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
+        todo!()
     }
 }
