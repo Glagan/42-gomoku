@@ -40,6 +40,6 @@ fn main() {
     println!("---");
     let player = Player::Black;
     let computer = Computer::new(&player);
-    let play_result = computer.play(&board, 4);
+    let play_result = computer.play(&board, 2);
     println!("play: {:#?}", play_result);
 }
