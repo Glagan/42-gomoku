@@ -1,9 +1,19 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Player {
     Black,
     White,
+}
+
+impl Player {
+    pub fn pawn(&self) -> Pawn {
+        if *self == Player::Black {
+            Pawn::Black
+        } else {
+            Pawn::White
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -23,11 +33,10 @@ impl ToString for Pawn {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Move {
     pub player: Player,
-    pub x: usize,
-    pub y: usize,
-    pub piece: usize, // Index of the piece to place
+    pub index: usize, // Index of the piece to place
 }
 
 const BOARD_SIZE: usize = 19;
@@ -35,12 +44,14 @@ const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
+    pub moves: Vec<Move>,
 }
 
 impl Default for Board {
     fn default() -> Board {
         Board {
             pieces: [Pawn::None; BOARD_PIECES],
+            moves: vec![],
         }
     }
 }
@@ -68,7 +79,7 @@ impl Display for Board {
 impl Board {
     // Helper function to get a Board case with (x, y) coordinates
     pub fn get(&self, x: usize, y: usize) -> Option<Pawn> {
-        if x > BOARD_SIZE || y > BOARD_SIZE {
+        if x >= BOARD_SIZE || y >= BOARD_SIZE {
             return None;
         }
         Some(self.pieces[(x as f64 / BOARD_SIZE as f64) as usize + (y * BOARD_SIZE)].clone())
@@ -79,8 +90,19 @@ impl Board {
         todo!()
     }
 
-    // Apply a movement to a copy of the current Board
-    pub fn apply_move(&self, movement: Move) -> Board {
+    // Apply a movement to the current Board
+    pub fn set_move(&mut self, movement: &Move) -> Result<(), String> {
+        if movement.index >= BOARD_PIECES {
+            return Err("Invalid index for movement".to_string());
+        }
+        // TODO capture
+        self.pieces[movement.index] = movement.player.pawn();
+        self.moves.push(movement.clone());
+        Ok(())
+    }
+
+    // Apply a movement to a new copy of the current Board
+    pub fn apply_move(&self, movement: &Move) -> Result<Board, String> {
         todo!()
     }
 
