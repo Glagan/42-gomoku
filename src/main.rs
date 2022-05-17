@@ -1,9 +1,10 @@
-use macroquad::prelude::*;
+use board::{BOARD_SIZE, Board};
+use macroquad::{prelude::*, miniquad::gl::khronos_boolean_enum_t_KHRONOS_BOOLEAN_ENUM_FORCE_SIZE};
+use player::Player;
 
-const NB_LINES: i32 = 19;
-const WINDOW_SIZE: i32 = 800;
-const BORDER_OFFSET: i32 = 22;
-const SQUARE_SIZE: i32 = 42;
+const WINDOW_SIZE: usize = 800;
+const BORDER_OFFSET: usize = 22;
+const SQUARE_SIZE: usize = 42;
 
 mod board;
 mod computer;
@@ -12,8 +13,8 @@ mod player;
 fn window_conf() -> Conf {
     Conf {
         window_title: "Gomoku".to_owned(),
-        window_height: WINDOW_SIZE,
-        window_width: WINDOW_SIZE,
+        window_height: WINDOW_SIZE as i32,
+        window_width: WINDOW_SIZE as i32,
         window_resizable: false,
         ..Default::default()
     }
@@ -21,17 +22,24 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let mut board = Board::default();
+    let p1 = Player::Black;
+    let p2 = Player::White;
+    let mut current_player: &Player = &p1;
+    let mut b_mouse_pressed: bool = false;
+
     loop {
         clear_background(BEIGE);
         //Draw Board
         {
-        
-            for i in 0..NB_LINES {
+            //Draw line
+            for i in 0..BOARD_SIZE {
                 draw_line((i * SQUARE_SIZE + BORDER_OFFSET) as f32, (BORDER_OFFSET - 1) as f32, (i * SQUARE_SIZE + BORDER_OFFSET) as f32, (WINDOW_SIZE - BORDER_OFFSET + 1) as f32, 2., BLACK);
             }
-            for i in 0..NB_LINES {
+            for i in 0..BOARD_SIZE {
                 draw_line((BORDER_OFFSET - 1) as f32, (i * SQUARE_SIZE + BORDER_OFFSET) as f32,(WINDOW_SIZE - BORDER_OFFSET + 1) as f32,  (i * SQUARE_SIZE + BORDER_OFFSET) as f32, 2., BLACK);
             }
+            //Draw circle
             let mut y = BORDER_OFFSET + 3 * SQUARE_SIZE;
             while y < (17 * SQUARE_SIZE) {
                 let mut x = BORDER_OFFSET + 3 * SQUARE_SIZE;
@@ -42,12 +50,31 @@ async fn main() {
                 y += 6 * SQUARE_SIZE;
             }
         }
+        //Draw board
+        if is_mouse_button_down(MouseButton::Left) && !b_mouse_pressed {
+            b_mouse_pressed = true;
+            
+        }
+        if is_mouse_button_released(MouseButton::Left){
+            b_mouse_pressed = false;
+            if current_player == &p1 {
+                current_player = &p2;
+            }
+            else {
+                current_player = &p1;
+            }
+        }
+
+    
+        //Draw current rock
         {
             let (mouse_x, mouse_y) = mouse_position();
-            let rock_x = mouse_x as i32 / SQUARE_SIZE;
-            let rock_y = mouse_y as i32/ SQUARE_SIZE;
+            if mouse_x < WINDOW_SIZE as f32 && mouse_y < WINDOW_SIZE as f32 {
 
-            draw_circle((rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32, (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., BLACK);
+                let rock_x = mouse_x as usize / SQUARE_SIZE;
+                let rock_y = mouse_y as usize/ SQUARE_SIZE;
+                draw_circle((rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32, (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., if current_player == &p1 {BLACK} else {WHITE});
+            }
         }
         next_frame().await
     }

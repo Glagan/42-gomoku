@@ -1,5 +1,6 @@
-use crate::Player;
 use std::fmt::Display;
+
+use crate::player::Player;
 
 #[derive(Clone, Copy)]
 pub enum Pawn {
@@ -24,7 +25,7 @@ pub struct Move {
     pub index: usize, // Index of the piece to place
 }
 
-const BOARD_SIZE: usize = 19;
+pub const BOARD_SIZE: usize = 19;
 const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 
 #[derive(Clone)]
