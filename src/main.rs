@@ -5,6 +5,9 @@ const WINDOW_SIZE: i32 = 800;
 const BORDER_OFFSET: i32 = 22;
 const SQUARE_SIZE: i32 = 42;
 
+mod board;
+mod computer;
+mod player;
 
 fn window_conf() -> Conf {
     Conf {
