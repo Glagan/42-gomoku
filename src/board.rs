@@ -24,25 +24,8 @@ pub struct Move {
     pub index: usize, // Index of the piece to place
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum PatternCategory {
-    FiveInRow,
-    LiveFour,
-    DeadFour,
-    LiveThree,
-    DeadThree,
-    LiveTwo,
-    DeadTwo,
-}
-
-#[derive(Debug, Clone)]
-pub struct Pattern {
-    pub pieces: Vec<usize>,
-    pub category: PatternCategory,
-}
-
-const BOARD_SIZE: usize = 19;
-const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
+pub const BOARD_SIZE: usize = 19;
+pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 
 #[derive(Clone)]
 pub struct Board {
@@ -197,20 +180,10 @@ impl Board {
         Ok(new_board)
     }
 
-    // Get the list of *all* patterns on the board for a given player
-    pub fn get_patterns(&self, rules: &RuleSet, player: &Player) -> Vec<Pattern> {
-        todo!()
-    }
-
-    // Calculate all patterns for a given player and return the board score
-    // TODO
-    pub fn evaluate(&self, rules: &RuleSet, player: &Player) -> i64 {
-        1
-    }
-
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
+    // TODO
     pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
-        todo!()
+        false
     }
 }
