@@ -19,45 +19,45 @@ mod rules;
 fn main() {
     let rules = RuleSet::default();
     let mut board = Board::default();
-    println!("{}", board);
-    board.set_move(
-        &rules,
-        &Move {
-            index: 0,
-            player: Player::Black,
-        },
-    );
-    board.set_move(
-        &rules,
-        &Move {
-            index: 19,
-            player: Player::White,
-        },
-    );
-    board.set_move(
-        &rules,
-        &Move {
-            index: 20,
-            player: Player::Black,
-        },
-    );
-    board.set_move(
-        &rules,
-        &Move {
-            index: 360,
-            player: Player::White,
-        },
-    );
-    board.set_move(
-        &rules,
-        &Move {
-            index: 361,
-            player: Player::Black,
-        },
-    );
-    println!("---");
-    println!("{}", board);
-    println!("---");
+    // println!("{}", board);
+    // board.set_move(
+    //     &rules,
+    //     &Move {
+    //         index: 0,
+    //         player: Player::Black,
+    //     },
+    // );
+    // board.set_move(
+    //     &rules,
+    //     &Move {
+    //         index: 19,
+    //         player: Player::White,
+    //     },
+    // );
+    // board.set_move(
+    //     &rules,
+    //     &Move {
+    //         index: 20,
+    //         player: Player::Black,
+    //     },
+    // );
+    // board.set_move(
+    //     &rules,
+    //     &Move {
+    //         index: 360,
+    //         player: Player::White,
+    //     },
+    // );
+    // board.set_move(
+    //     &rules,
+    //     &Move {
+    //         index: 361,
+    //         player: Player::Black,
+    //     },
+    // );
+    // println!("---");
+    // println!("{}", board);
+    // println!("---");
     let player1 = Player::Black;
     let player2 = Player::White;
     let computer1 = Computer::new(&rules, &player1);
@@ -65,7 +65,7 @@ fn main() {
     for i in 0..20 {
         let now = Instant::now();
         if i % 2 == 0 {
-            let play_result = computer1.play(&board, 2);
+            let play_result = computer1.play(&board, 3);
             println!("play: {:#?}", play_result);
             if let Ok(play) = play_result {
                 if let Some(movement) = play.movement {
@@ -73,7 +73,7 @@ fn main() {
                 }
             }
         } else {
-            let play_result = computer2.play(&board, 2);
+            let play_result = computer2.play(&board, 3);
             println!("play: {:#?}", play_result);
             if let Ok(play) = play_result {
                 if let Some(movement) = play.movement {
@@ -83,7 +83,7 @@ fn main() {
         }
         let elapsed = now.elapsed();
         println!("Elapsed: {:.2?}", elapsed);
-        // println!("{}", board);
+        println!("{}", board);
         println!("---");
     }
 }

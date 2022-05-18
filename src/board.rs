@@ -71,54 +71,74 @@ impl Board {
         Some(self.pieces[Board::coordinates_to_index(x, y)].clone())
     }
 
-    pub fn index_to_coordinates(index: usize) -> usize {
-        (index as f64 / BOARD_SIZE as f64) as usize + (index * BOARD_SIZE)
+    pub fn index_to_coordinates(index: usize) -> (usize, usize) {
+        (
+            index % BOARD_SIZE,
+            (index as f64 / BOARD_SIZE as f64) as usize,
+        )
     }
 
     pub fn coordinates_to_index(x: usize, y: usize) -> usize {
-        (y * BOARD_SIZE) + x
+        x + (y * BOARD_SIZE)
     }
 
     // All open intersections for the current Board
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
         if self.moves.len() == 0 {
-            return vec![171]; // Only the center intersection is available if there is no previous moves
+            return vec![180]; // Only the center intersection is available if there is no previous moves
         }
         let mut intersections: Vec<usize> = vec![];
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {
-                // If there is a piece on a case, check all 8 case around it
-                if let Some(_) = self.get(x, y) {
-                    for x_mov in [2, 0, 1] {
-                        for y_mov in [2, 0, 1] {
-                            if x_mov == 0 && y_mov == 0 {
-                                continue;
-                            }
-                            if (x_mov == 2 && x == 0) || (x_mov > 0 && x == BOARD_SIZE - 1) {
-                                continue;
-                            }
-                            if (y_mov == 2 && y == 0) || (y_mov > 0 && y == BOARD_SIZE - 1) {
-                                continue;
-                            }
-                            let (new_x, new_y) = (
-                                if x_mov == 2 { x - 1 } else { x + x_mov },
-                                if y_mov == 2 { y - 1 } else { y + y_mov },
-                            );
-                            if let Some(pawn) = &self.get(new_x, new_y) {
-                                if *pawn == Pawn::None {
-                                    let index = Board::coordinates_to_index(new_x, new_y);
-                                    if !intersections.contains(&index) {
-                                        intersections.push(index);
-                                    }
-                                }
-                            }
-                        }
+        for (existing_pawn, _) in self
+            .pieces
+            .iter()
+            .enumerate()
+            .filter(|&pawn| pawn.1 != &Pawn::None)
+        {
+            let (x, y) = Board::index_to_coordinates(existing_pawn);
+            for x_mov in [4, 3, 0, 1, 2] {
+                for y_mov in [4, 3, 0, 1, 2] {
+                    if x_mov == 0 && y_mov == 0 {
+                        continue;
                     }
-                    // Check top row
-                    if x > 0 {
-                        if y > 0 {
-                            if let Some(_) = self.get(x - 1, y - 1) {}
+                    if (x_mov == 4 && x <= 1)
+                        || (x_mov == 3 && x <= 0)
+                        || (x_mov > 0 && x + x_mov >= BOARD_SIZE)
+                    {
+                        continue;
+                    }
+                    if (y_mov == 4 && y <= 1)
+                        || (y_mov == 3 && y <= 0)
+                        || (y_mov > 0 && y + y_mov >= BOARD_SIZE)
+                    {
+                        continue;
+                    }
+                    let (new_x, new_y) = (
+                        if x_mov == 3 {
+                            x - 1
+                        } else if x_mov == 4 {
+                            x - 2
+                        } else {
+                            x + x_mov
+                        },
+                        if y_mov == 3 {
+                            y - 1
+                        } else if y_mov == 4 {
+                            y - 2
+                        } else {
+                            y + y_mov
+                        },
+                    );
+                    if let Some(pawn) = &self.get(new_x, new_y) {
+                        if *pawn == Pawn::None {
+                            // println!(
+                            //     "x {} y {} -> new_x {} new_y {} ({} {})",
+                            //     x, y, new_x, new_y, x_mov, y_mov
+                            // );
+                            let index = Board::coordinates_to_index(new_x, new_y);
+                            if !intersections.contains(&index) {
+                                intersections.push(index);
+                            }
                         }
                     }
                 }
@@ -146,6 +166,7 @@ impl Board {
         // Analyze each intersections and check if a Pawn can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
+        // println!("---\n{}\n--- intersections {:#?}", self, intersections);
         let mut moves: Vec<Move> = vec![];
         for index in intersections.iter() {
             let movement = Move {

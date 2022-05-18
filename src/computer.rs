@@ -46,7 +46,8 @@ impl Default for PatternCount {
 }
 
 #[allow(dead_code)]
-const PATTERNS: [([usize; 6], PatternCategory); 77] = [
+// const PATTERNS: [([usize; 6], PatternCategory); 77] = [
+const PATTERNS: [([usize; 6], PatternCategory); 34] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
     ([1, 1, 1, 1, 1, 0], PatternCategory::FiveInRow),
@@ -80,33 +81,33 @@ const PATTERNS: [([usize; 6], PatternCategory); 77] = [
     ([0, 1, 0, 1, 1, 0], PatternCategory::LiveThree),
     ([0, 0, 1, 0, 1, 1], PatternCategory::LiveThree),
     // 1x2
-    ([1, 1, 1, 2, 0, 0], PatternCategory::DeadThree),
-    ([0, 1, 1, 1, 2, 0], PatternCategory::DeadThree),
-    ([0, 0, 1, 1, 1, 2], PatternCategory::DeadThree),
-    ([2, 1, 1, 1, 0, 0], PatternCategory::DeadThree),
-    ([0, 2, 1, 1, 1, 0], PatternCategory::DeadThree),
-    ([0, 0, 2, 1, 1, 1], PatternCategory::DeadThree),
-    // 2x2
-    ([1, 0, 1, 1, 2, 0], PatternCategory::DeadThree),
-    ([0, 1, 0, 1, 1, 2], PatternCategory::DeadThree),
-    ([2, 1, 1, 0, 1, 0], PatternCategory::DeadThree),
-    ([0, 2, 1, 1, 0, 1], PatternCategory::DeadThree),
-    // 3x2
-    ([2, 1, 0, 1, 1, 0], PatternCategory::DeadThree),
-    ([0, 2, 1, 0, 1, 1], PatternCategory::DeadThree),
-    ([1, 1, 0, 1, 2, 0], PatternCategory::DeadThree),
-    ([0, 1, 1, 0, 1, 2], PatternCategory::DeadThree),
-    // 4x2
-    ([1, 0, 0, 1, 1, 0], PatternCategory::DeadThree),
-    ([0, 1, 0, 0, 1, 1], PatternCategory::DeadThree),
-    ([1, 1, 0, 0, 1, 0], PatternCategory::DeadThree),
-    ([0, 1, 1, 0, 0, 1], PatternCategory::DeadThree),
-    // 5x2
-    ([1, 0, 1, 0, 1, 0], PatternCategory::DeadThree),
-    ([0, 1, 0, 1, 0, 1], PatternCategory::DeadThree),
-    // 6x2
-    // ([2, 0, 1, 1, 1, 0, 2], PatternCategory::DeadThree),
-    // 7x2
+    // ([1, 1, 1, 2, 0, 0], PatternCategory::DeadThree),
+    // ([0, 1, 1, 1, 2, 0], PatternCategory::DeadThree),
+    // ([0, 0, 1, 1, 1, 2], PatternCategory::DeadThree),
+    // ([2, 1, 1, 1, 0, 0], PatternCategory::DeadThree),
+    // ([0, 2, 1, 1, 1, 0], PatternCategory::DeadThree),
+    // ([0, 0, 2, 1, 1, 1], PatternCategory::DeadThree),
+    // // 2x2
+    // ([1, 0, 1, 1, 2, 0], PatternCategory::DeadThree),
+    // ([0, 1, 0, 1, 1, 2], PatternCategory::DeadThree),
+    // ([2, 1, 1, 0, 1, 0], PatternCategory::DeadThree),
+    // ([0, 2, 1, 1, 0, 1], PatternCategory::DeadThree),
+    // // 3x2
+    // ([2, 1, 0, 1, 1, 0], PatternCategory::DeadThree),
+    // ([0, 2, 1, 0, 1, 1], PatternCategory::DeadThree),
+    // ([1, 1, 0, 1, 2, 0], PatternCategory::DeadThree),
+    // ([0, 1, 1, 0, 1, 2], PatternCategory::DeadThree),
+    // // 4x2
+    // ([1, 0, 0, 1, 1, 0], PatternCategory::DeadThree),
+    // ([0, 1, 0, 0, 1, 1], PatternCategory::DeadThree),
+    // ([1, 1, 0, 0, 1, 0], PatternCategory::DeadThree),
+    // ([0, 1, 1, 0, 0, 1], PatternCategory::DeadThree),
+    // // 5x2
+    // ([1, 0, 1, 0, 1, 0], PatternCategory::DeadThree),
+    // ([0, 1, 0, 1, 0, 1], PatternCategory::DeadThree),
+    // // 6x2
+    // // ([2, 0, 1, 1, 1, 0, 2], PatternCategory::DeadThree),
+    // // 7x2
     ([1, 0, 0, 0, 1, 0], PatternCategory::LiveTwo),
     ([0, 1, 0, 0, 0, 1], PatternCategory::LiveTwo),
     // 1x3
@@ -118,33 +119,33 @@ const PATTERNS: [([usize; 6], PatternCategory); 77] = [
     ([1, 0, 0, 1, 0, 0], PatternCategory::LiveTwo),
     ([0, 1, 0, 0, 1, 0], PatternCategory::LiveTwo),
     ([0, 0, 1, 0, 0, 1], PatternCategory::LiveTwo),
-    // 3x3
-    ([1, 1, 2, 0, 0, 0], PatternCategory::DeadTwo),
-    ([0, 1, 1, 2, 0, 0], PatternCategory::DeadTwo),
-    ([0, 0, 1, 1, 2, 0], PatternCategory::DeadTwo),
-    ([0, 0, 0, 1, 1, 2], PatternCategory::DeadTwo),
-    ([2, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
-    ([0, 2, 1, 1, 0, 0], PatternCategory::DeadTwo),
-    ([0, 0, 2, 1, 1, 0], PatternCategory::DeadTwo),
-    ([0, 0, 0, 2, 1, 1], PatternCategory::DeadTwo),
-    // 4x3
-    ([1, 0, 1, 2, 0, 0], PatternCategory::DeadTwo),
-    ([0, 1, 0, 1, 2, 0], PatternCategory::DeadTwo),
-    ([0, 0, 1, 0, 1, 2], PatternCategory::DeadTwo),
-    ([2, 1, 0, 1, 0, 0], PatternCategory::DeadTwo),
-    ([0, 2, 1, 0, 1, 0], PatternCategory::DeadTwo),
-    ([0, 0, 2, 1, 0, 1], PatternCategory::DeadTwo),
-    // 5x3
-    ([1, 0, 0, 1, 2, 0], PatternCategory::DeadTwo),
-    ([0, 1, 0, 0, 1, 2], PatternCategory::DeadTwo),
-    ([2, 1, 0, 0, 1, 0], PatternCategory::DeadTwo),
-    ([0, 2, 1, 0, 0, 1], PatternCategory::DeadTwo),
-    // 6x3
-    ([1, 1, 0, 0, 0, 0], PatternCategory::DeadTwo),
-    ([0, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
-    ([0, 0, 1, 1, 0, 0], PatternCategory::DeadTwo),
-    ([0, 0, 0, 1, 1, 0], PatternCategory::DeadTwo),
-    ([0, 0, 0, 0, 1, 1], PatternCategory::DeadTwo),
+    // // 3x3
+    // ([1, 1, 2, 0, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 1, 1, 2, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 1, 1, 2, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 0, 1, 1, 2], PatternCategory::DeadTwo),
+    // ([2, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 2, 1, 1, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 2, 1, 1, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 0, 2, 1, 1], PatternCategory::DeadTwo),
+    // // 4x3
+    // ([1, 0, 1, 2, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 1, 0, 1, 2, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 1, 0, 1, 2], PatternCategory::DeadTwo),
+    // ([2, 1, 0, 1, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 2, 1, 0, 1, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 2, 1, 0, 1], PatternCategory::DeadTwo),
+    // // 5x3
+    // ([1, 0, 0, 1, 2, 0], PatternCategory::DeadTwo),
+    // ([0, 1, 0, 0, 1, 2], PatternCategory::DeadTwo),
+    // ([2, 1, 0, 0, 1, 0], PatternCategory::DeadTwo),
+    // ([0, 2, 1, 0, 0, 1], PatternCategory::DeadTwo),
+    // // 6x3
+    // ([1, 1, 0, 0, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 1, 1, 0, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 0, 1, 1, 0], PatternCategory::DeadTwo),
+    // ([0, 0, 0, 0, 1, 1], PatternCategory::DeadTwo),
 ];
 
 #[derive(Debug, Clone)]
@@ -166,28 +167,68 @@ impl Computer {
         }
     }
 
+    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> usize {
+        if let Some(pawn) = board.get(x, y) {
+            if pawn == Pawn::None {
+                0
+            } else if (pawn == Pawn::Black && *player == Player::Black)
+                || (pawn == Pawn::White && *player == Player::White)
+            {
+                1
+            } else {
+                2
+            }
+        } else {
+            0
+        }
+    }
+
     // Create an array of size 6 and compare it with all the patterns
     pub fn get_horizontal_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
-        let pawn_to_pattern_pawn = |x: usize, y: usize| {
-            if let Some(pawn) = board.get(x, y) {
-                if pawn == Pawn::Black && *player == Player::Black {
-                    1
-                } else if pawn == Pawn::White && *player == Player::White {
-                    2
-                } else {
-                    0
-                }
-            } else {
-                0
+        let mut patterns: Vec<Pattern> = vec![];
+        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        for y in 0..BOARD_SIZE {
+            // Go trough the first 5 with an offset of 1
+            // -- the next x loop will have the correct initial window
+            for i in 0..5 {
+                window[i + 1] = Computer::pawn_to_pattern_pawn(board, i, y, player);
             }
-        };
+            for x in 5..(BOARD_SIZE - 6) {
+                window[0] = window[1];
+                window[1] = window[2];
+                window[2] = window[3];
+                window[3] = window[4];
+                window[4] = window[5];
+                window[5] = Computer::pawn_to_pattern_pawn(board, x, y, player);
+                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
+                        patterns.push(Pattern {
+                            pieces: vec![
+                                // TODO
+                                Board::coordinates_to_index(x - 4, y),
+                                Board::coordinates_to_index(x - 3, y),
+                                Board::coordinates_to_index(x - 2, y),
+                                Board::coordinates_to_index(x - 1, y),
+                                Board::coordinates_to_index(x - 0, y),
+                            ],
+                            category: found.1,
+                        });
+                        continue;
+                    }
+                }
+            }
+        }
+        patterns
+    }
+
+    pub fn get_vertical_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
         for x in 0..BOARD_SIZE {
             // Go trough the first 5 with an offset of 1
             // -- the next y loop will have the correct initial window
             for i in 0..5 {
-                window[i + 1] = pawn_to_pattern_pawn(x, i);
+                window[i + 1] = Computer::pawn_to_pattern_pawn(board, x, i, player);
             }
             for y in 5..(BOARD_SIZE - 6) {
                 window[0] = window[1];
@@ -195,7 +236,7 @@ impl Computer {
                 window[2] = window[3];
                 window[3] = window[4];
                 window[4] = window[5];
-                window[5] = pawn_to_pattern_pawn(x, y);
+                window[5] = Computer::pawn_to_pattern_pawn(board, x, y, player);
                 if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
                     if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
                         patterns.push(Pattern {
@@ -216,26 +257,70 @@ impl Computer {
         patterns
     }
 
-    pub fn get_vertical_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
-        let patterns: Vec<Pattern> = vec![];
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {}
-        }
-        patterns
-    }
-
     pub fn get_diagonal_left_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
-        let patterns: Vec<Pattern> = vec![];
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {}
+        let mut patterns: Vec<Pattern> = vec![];
+        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        for y in 0..(BOARD_SIZE - 6) {
+            // Go trough the first 5 with an offset of 1
+            // -- the next x loop will have the correct initial window
+            for x in 0..(BOARD_SIZE - 6) {
+                window[0] = Computer::pawn_to_pattern_pawn(board, x, y, player);
+                window[1] = Computer::pawn_to_pattern_pawn(board, x + 1, y + 1, player);
+                window[2] = Computer::pawn_to_pattern_pawn(board, x + 2, y + 2, player);
+                window[3] = Computer::pawn_to_pattern_pawn(board, x + 3, y + 3, player);
+                window[4] = Computer::pawn_to_pattern_pawn(board, x + 4, y + 4, player);
+                window[5] = Computer::pawn_to_pattern_pawn(board, x + 5, y + 5, player);
+                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
+                        patterns.push(Pattern {
+                            pieces: vec![
+                                // TODO
+                                Board::coordinates_to_index(x, y - 4),
+                                Board::coordinates_to_index(x, y - 3),
+                                Board::coordinates_to_index(x, y - 2),
+                                Board::coordinates_to_index(x, y - 1),
+                                Board::coordinates_to_index(x, y - 0),
+                            ],
+                            category: found.1,
+                        });
+                        continue;
+                    }
+                }
+            }
         }
         patterns
     }
 
     pub fn get_diagonal_right_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
-        let patterns: Vec<Pattern> = vec![];
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {}
+        let mut patterns: Vec<Pattern> = vec![];
+        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        for y in (BOARD_SIZE - 1)..=6 {
+            // Go trough the first 5 with an offset of 1
+            // -- the next x loop will have the correct initial window
+            for x in (BOARD_SIZE - 1)..=6 {
+                window[0] = Computer::pawn_to_pattern_pawn(board, x, y, player);
+                window[1] = Computer::pawn_to_pattern_pawn(board, x - 1, y - 1, player);
+                window[2] = Computer::pawn_to_pattern_pawn(board, x - 2, y - 2, player);
+                window[3] = Computer::pawn_to_pattern_pawn(board, x - 3, y - 3, player);
+                window[4] = Computer::pawn_to_pattern_pawn(board, x - 4, y - 4, player);
+                window[5] = Computer::pawn_to_pattern_pawn(board, x - 5, y - 5, player);
+                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
+                        patterns.push(Pattern {
+                            pieces: vec![
+                                // TODO
+                                Board::coordinates_to_index(x, y - 4),
+                                Board::coordinates_to_index(x, y - 3),
+                                Board::coordinates_to_index(x, y - 2),
+                                Board::coordinates_to_index(x, y - 1),
+                                Board::coordinates_to_index(x, y - 0),
+                            ],
+                            category: found.1,
+                        });
+                        continue;
+                    }
+                }
+            }
         }
         patterns
     }
@@ -260,6 +345,9 @@ impl Computer {
     pub fn evaluate_board(&self, board: &Board, player: &Player) -> i64 {
         let patterns = self.get_patterns(board, player);
         if !patterns.is_empty() {
+            // println!("--- {} patterns", patterns.len());
+            // println!("patterns {:#?}", patterns);
+            let mut score: i64 = 0;
             let mut pattern_count = PatternCount::default();
             for pattern in patterns.iter() {
                 if pattern.category == PatternCategory::FiveInRow {
@@ -278,11 +366,10 @@ impl Computer {
                     pattern_count.dead_two += 1;
                 }
             }
-            let mut score: i64 = 0;
             if pattern_count.five_in_row > 0 {
                 score += 100000;
             }
-            if pattern_count.live_four > 1 {
+            if pattern_count.live_four >= 1 {
                 score += 15000;
             }
             if (pattern_count.live_three >= 2 && pattern_count.dead_four == 2)
@@ -291,7 +378,7 @@ impl Computer {
                 score += 10000;
             }
             // LiveThree + jLiveThree ? Other player LiveThree ?
-            if pattern_count.live_three > 1 {
+            if pattern_count.live_three >= 1 {
                 score += 5000;
             }
             if pattern_count.dead_four > 0 {
@@ -299,6 +386,10 @@ impl Computer {
             }
             // jDeadFour ? Other player DeadFour ?
             // CDeadfour ??
+            // Debug
+            if pattern_count.live_two > 0 {
+                score += 200;
+            }
             return score;
         }
         0
@@ -310,62 +401,12 @@ impl Computer {
         depth: usize,
         player: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
-        if depth == 0 {
-            return Ok(MiniMaxEvaluation {
-                score: self.evaluate_board(board, player),
-                movement: None,
-            });
-        }
-        if *player == self.player {
-            let mut max_eval = MiniMaxEvaluation {
-                score: i64::min_value(),
-                movement: None,
-            };
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
-                let new_board = board.apply_move(&self.rules, movement)?;
-                let eval = self.minimax(
-                    &new_board,
-                    depth - 1,
-                    if self.player == Player::Black {
-                        &Player::White
-                    } else {
-                        &Player::Black
-                    },
-                )?;
-                if eval.score > max_eval.score {
-                    max_eval.score = eval.score;
-                    max_eval.movement = Some(movement.clone());
-                }
-            }
-            return Ok(max_eval);
-        } else {
-            let mut min_eval = MiniMaxEvaluation {
-                score: i64::max_value(),
-                movement: None,
-            };
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
-                let new_board = board.apply_move(&self.rules, movement)?;
-                let eval = self.minimax(&new_board, depth - 1, &self.player)?;
-                if eval.score < min_eval.score {
-                    min_eval.score = eval.score;
-                    min_eval.movement = Some(movement.clone());
-                }
-            }
-            return Ok(min_eval);
-        }
-    }
-
-    fn minimax_alpha_beta(
-        &self,
-        board: &Board,
-        depth: usize,
-        alpha: &mut i64,
-        beta: &mut i64,
-        player: &Player,
-    ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(&self.rules, player) {
+            let score = self.evaluate_board(board, player);
+            // println!("{}", board);
+            // println!("--- {}", score);
             return Ok(MiniMaxEvaluation {
-                score: self.evaluate_board(board, player),
+                score: score,
                 movement: None,
             });
         }
@@ -381,17 +422,10 @@ impl Computer {
             };
             for movement in board.intersections_legal_moves(&self.rules, player).iter() {
                 let new_board = board.apply_move(&self.rules, movement)?;
-                let eval =
-                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, other_player)?;
+                let eval = self.minimax(&new_board, depth - 1, other_player)?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
                     max_eval.movement = Some(movement.clone());
-                }
-                if eval.score > *alpha {
-                    *alpha = eval.score;
-                }
-                if beta <= alpha {
-                    break;
                 }
             }
             return Ok(max_eval);
@@ -405,29 +439,139 @@ impl Computer {
                 .iter()
             {
                 let new_board = board.apply_move(&self.rules, movement)?;
-                let eval =
-                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, &self.player)?;
+                let eval = self.minimax(&new_board, depth - 1, &self.player)?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
                     min_eval.movement = Some(movement.clone());
-                }
-                if eval.score > *beta {
-                    *beta = eval.score;
-                }
-                if beta <= alpha {
-                    break;
                 }
             }
             return Ok(min_eval);
         }
     }
 
+    fn minimax_alpha_beta(
+        &self,
+        board: &Board,
+        depth: usize,
+        alpha: i64,
+        beta: i64,
+        player: &Player,
+    ) -> Result<MiniMaxEvaluation, String> {
+        if depth == 0 || board.is_winning(&self.rules, player) {
+            return Ok(MiniMaxEvaluation {
+                score: self.evaluate_board(board, player),
+                movement: None,
+            });
+        }
+        let other_player = if self.player == Player::Black {
+            &Player::White
+        } else {
+            &Player::Black
+        };
+        if *player == self.player {
+            let mut alpha = alpha;
+            let mut best_eval = MiniMaxEvaluation {
+                score: i64::min_value(),
+                movement: None,
+            };
+            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+                let new_board = board.apply_move(&self.rules, movement)?;
+                let eval =
+                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, other_player)?;
+                if eval.score >= alpha {
+                    alpha = eval.score;
+                    best_eval.score = eval.score;
+                    best_eval.movement = Some(movement.clone());
+                }
+                if beta <= alpha {
+                    break;
+                }
+            }
+            Ok(best_eval)
+        } else {
+            let mut beta = beta;
+            let mut best_eval = MiniMaxEvaluation {
+                score: 0,
+                movement: None,
+            };
+            for movement in board
+                .intersections_legal_moves(&self.rules, other_player)
+                .iter()
+            {
+                let new_board = board.apply_move(&self.rules, movement)?;
+                let eval =
+                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, &self.player)?;
+                if eval.score <= beta {
+                    beta = eval.score;
+                    best_eval.score = eval.score;
+                    best_eval.movement = Some(movement.clone());
+                }
+                if beta <= alpha {
+                    break;
+                }
+            }
+            Ok(best_eval)
+        }
+    }
+
+    fn negamax_alpha_beta(
+        &self,
+        board: &Board,
+        depth: usize,
+        alpha: i64,
+        beta: i64,
+        player: &Player,
+    ) -> Result<MiniMaxEvaluation, String> {
+        if depth == 0 || board.is_winning(&self.rules, player) {
+            // println!("{}\n---", board);
+            let color = if *player == self.player { 1 } else { -1 };
+            return Ok(MiniMaxEvaluation {
+                score: color * self.evaluate_board(board, player),
+                movement: None,
+            });
+        }
+        let mut best_eval = MiniMaxEvaluation {
+            score: i64::min_value(),
+            movement: None,
+        };
+        let mut alpha = alpha;
+        for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+            let new_board = board.apply_move(&self.rules, movement)?;
+            let mut eval = self.negamax_alpha_beta(
+                &new_board,
+                depth - 1,
+                -beta,
+                -alpha,
+                if self.player == Player::Black {
+                    &Player::White
+                } else {
+                    &Player::Black
+                },
+            )?;
+            eval.score = -eval.score;
+            if eval.score > alpha {
+                alpha = eval.score;
+                best_eval = MiniMaxEvaluation {
+                    score: eval.score,
+                    movement: Some(movement.clone()),
+                };
+            }
+            if alpha >= beta {
+                // return Ok(MiniMaxEvaluation {
+                //     score: i64::min_value(),
+                //     movement: None,
+                // });
+                break;
+            }
+        }
+        return Ok(best_eval);
+    }
+
     // Use the minimax algorithm to get the next best move
     pub fn play(&self, board: &Board, depth: usize) -> Result<MiniMaxEvaluation, String> {
-        let mut alpha = i64::min_value();
-        let mut beta = i64::max_value();
-        let best_move =
-            self.minimax_alpha_beta(board, depth, &mut alpha, &mut beta, &self.player)?;
+        let alpha = i64::min_value();
+        let beta = i64::max_value();
+        let best_move = self.negamax_alpha_beta(board, depth, alpha, beta, &self.player)?;
         Ok(best_move)
     }
 }
