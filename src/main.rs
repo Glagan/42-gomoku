@@ -1,8 +1,11 @@
-use board::{BOARD_SIZE, Board, Pawn};
 use macroquad::{prelude::*};
-use player::Player;
 
-use crate::board::Move;
+use crate::{
+    board::{Move, Pawn, BOARD_SIZE, BOARD_PIECES, Board},
+    computer::Computer,
+    player::Player,
+    rules::RuleSet,
+};
 
 const WINDOW_SIZE: usize = 800;
 const BORDER_OFFSET: usize = 22;
@@ -11,6 +14,7 @@ const SQUARE_SIZE: usize = 42;
 mod board;
 mod computer;
 mod player;
+mod rules;
 
 fn window_conf() -> Conf {
     Conf {
@@ -24,29 +28,52 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let rules = RuleSet::default();
     let mut board = Board::default();
-    board.set_move(&Move {
-        index: 0,
-        player: Player::Black,
-    });
-    board.set_move(&Move {
-        index: 19,
-        player: Player::White,
-    });
-    board.set_move(&Move {
-        index: 20,
-        player: Player::Black,
-    });
-    board.set_move(&Move {
-        index: 360,
-        player: Player::White,
-    });
-    board.set_move(&Move {
-        index: 361,
-        player: Player::Black,
-    });
     println!("{}", board);
+    board.set_move(
+        &rules,
+        &Move {
+            index: 0,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 19,
+            player: Player::White,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 20,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 360,
+            player: Player::White,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 361,
+            player: Player::Black,
+        },
+    );
+    println!("---");
+    println!("{}", board);
+    println!("---");
     
+    /*let player = Player::Black;
+    let computer = Computer::new(&rules, &player);
+    let play_result = computer.play(&board, 2);
+    println!("play: {:#?}", play_result);*/
     let p1 = Player::Black;
     let p2 = Player::White;
     let mut current_player: &Player = &p1;
@@ -76,7 +103,7 @@ async fn main() {
         }
         //Draw board
 
-        for i in 0..board::BOARD_PIECES {
+        for i in 0..BOARD_PIECES {
             //println!("{}", i);
             if board.pieces[i] != Pawn::None {
                 let (x, y) = Board::index_to_coordinates(i);
@@ -94,8 +121,10 @@ async fn main() {
             if mouse_x < WINDOW_SIZE as f32 && mouse_y < WINDOW_SIZE as f32 {
                 let rock_x = mouse_x as usize / SQUARE_SIZE;
                 let rock_y = mouse_y as usize/ SQUARE_SIZE;
-                if Board::coordinates_to_index(rock_x, rock_y) < board::BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
-                    board.set_move(&Move {
+                if Board::coordinates_to_index(rock_x, rock_y) < BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+                    board.set_move(
+                        &rules,
+                        &Move {
                         index: Board::coordinates_to_index(rock_x, rock_y),
                         player: *current_player,
                     });
@@ -116,7 +145,7 @@ async fn main() {
             if mouse_x < WINDOW_SIZE as f32 && mouse_y < WINDOW_SIZE as f32 {
                 let rock_x = mouse_x as usize / SQUARE_SIZE;
                 let rock_y = mouse_y as usize/ SQUARE_SIZE;
-                if Board::coordinates_to_index(rock_x, rock_y) < board::BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+                if Board::coordinates_to_index(rock_x, rock_y) < BOARD_PIECES && board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
                     draw_circle((rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32, (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32, 20., if current_player == &p1 {BLACK} else {WHITE});
                 }
             }
