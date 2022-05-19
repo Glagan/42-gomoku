@@ -1,4 +1,4 @@
-use crate::{board::Board, player::Player, rules::RuleSet};
+use crate::{board::Board, computer::Computer, player::Player, rules::RuleSet};
 use std::time::{Duration, Instant};
 
 #[derive(PartialEq, Copy, Clone)]
@@ -21,6 +21,7 @@ pub struct Game {
     pub board: Board,
     pub mode: GameMode,
     pub rules: RuleSet,
+    pub computer: Computer,
     pub play_time: Instant,
     pub previous_play_time: Duration,
     pub current_player: Player,
@@ -37,6 +38,7 @@ impl Default for Game {
             board: Board::default(),
             mode: GameMode::None,
             rules: RuleSet::default(),
+            computer: Computer::default(),
             play_time: now,
             previous_play_time: now - now,
             current_player: Player::Black,
@@ -53,6 +55,7 @@ impl Game {
         self.board = Board::default();
         self.mode = GameMode::None;
         self.rules = RuleSet::default();
+        self.computer = Computer::default();
         let now = Instant::now();
         self.play_time = now;
         self.previous_play_time = now - now;

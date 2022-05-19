@@ -26,7 +26,7 @@ fn find_pattern_live_two_horizontal() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }
 
@@ -60,8 +60,8 @@ fn find_pattern_live_three_horizontal() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
-    assert_eq!(computer.evaluate_board(&board, &Player::Black), 5000);
+    let computer = Computer::default();
+    assert_eq!(computer.evaluate_board(&board, &Player::Black), 15000);
 }
 
 #[test]
@@ -85,7 +85,7 @@ fn find_pattern_live_two_vertical() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }
 
@@ -119,8 +119,8 @@ fn find_pattern_live_three_vertical() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
-    assert_eq!(computer.evaluate_board(&board, &Player::Black), 5000);
+    let computer = Computer::default();
+    assert_eq!(computer.evaluate_board(&board, &Player::Black), 15000);
 }
 
 #[test]
@@ -153,8 +153,8 @@ fn find_pattern_live_three_vertical_border() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
-    assert_eq!(computer.evaluate_board(&board, &Player::Black), 5000);
+    let computer = Computer::default();
+    assert_eq!(computer.evaluate_board(&board, &Player::Black), 10000);
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn find_pattern_live_two_diagonal_left_down() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }
 
@@ -203,7 +203,7 @@ fn find_pattern_live_two_diagonal_right_down() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }
 
@@ -228,7 +228,7 @@ fn find_pattern_live_two_diagonal_left_up() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }
 
@@ -253,6 +253,6 @@ fn find_pattern_live_two_diagonal_right_up() {
             },
         )
         .is_ok());
-    let computer = Computer::new(&RuleSet::default(), &Player::Black);
+    let computer = Computer::default();
     assert_eq!(computer.evaluate_board(&board, &Player::Black), 200);
 }

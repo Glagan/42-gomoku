@@ -153,19 +153,15 @@ pub struct Pattern {
     pub category: PatternCategory,
 }
 
-pub struct Computer {
-    pub rules: RuleSet,
-    pub player: Player,
+pub struct Computer;
+
+impl Default for Computer {
+    fn default() -> Self {
+        Computer
+    }
 }
 
 impl Computer {
-    pub fn new(rules: &RuleSet, player: &Player) -> Computer {
-        Computer {
-            rules: *rules,
-            player: *player,
-        }
-    }
-
     pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> usize {
         if let Some(pawn) = board.get(x, y) {
             if pawn == Pawn::None {
@@ -412,11 +408,13 @@ impl Computer {
 
     fn minimax(
         &self,
+        rules: &RuleSet,
         board: &Board,
         depth: usize,
         player: &Player,
+        maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
-        if depth == 0 || board.is_winning(&self.rules, player) {
+        if depth == 0 || board.is_winning(rules, player) {
             let score = self.evaluate_board(board, player);
             // println!("{}", board);
             // println!("--- {}", score);
@@ -430,20 +428,20 @@ impl Computer {
         } else {
             &Player::Black
         };
-        if *player == self.player {
+        if player == maximize {
             let mut max_eval = MiniMaxEvaluation {
                 score: i64::min_value(),
                 movement: None,
             };
             // println!(
             //     "examining {} moves",
-            //     board.intersections_legal_moves(&self.rules, player).len()
+            //     board.intersections_legal_moves(rules, player).len()
             // );
             let mut moves: Vec<(Board, Move)> = board
-                .intersections_legal_moves(&self.rules, player)
+                .intersections_legal_moves(rules, player)
                 .iter()
                 .map(|movement| {
-                    let new_board = board.apply_move(&self.rules, movement).unwrap();
+                    let new_board = board.apply_move(rules, movement).unwrap();
                     (new_board, *movement)
                 })
                 .collect::<Vec<(Board, Move)>>();
@@ -458,7 +456,7 @@ impl Computer {
                 //     movement.index,
                 //     movement.player
                 // );
-                let eval = self.minimax(&new_board, depth - 1, other_player)?;
+                let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
                     max_eval.movement = Some(movement.clone());
@@ -470,9 +468,9 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
-                let new_board = board.apply_move(&self.rules, movement)?;
-                let eval = self.minimax(&new_board, depth - 1, other_player)?;
+            for movement in board.intersections_legal_moves(rules, player).iter() {
+                let new_board = board.apply_move(rules, movement)?;
+                let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
                     min_eval.movement = Some(movement.clone());
@@ -484,13 +482,15 @@ impl Computer {
 
     fn minimax_alpha_beta(
         &self,
+        rules: &RuleSet,
         board: &Board,
         depth: usize,
         alpha: i64,
         beta: i64,
         player: &Player,
+        maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
-        if depth == 0 || board.is_winning(&self.rules, player) {
+        if depth == 0 || board.is_winning(rules, player) {
             return Ok(MiniMaxEvaluation {
                 score: self.evaluate_board(board, player),
                 movement: None,
@@ -501,16 +501,23 @@ impl Computer {
         } else {
             &Player::Black
         };
-        if *player == self.player {
+        if player == maximize {
             let mut alpha = alpha;
             let mut best_eval = MiniMaxEvaluation {
                 score: i64::min_value(),
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
-                let new_board = board.apply_move(&self.rules, movement)?;
-                let eval =
-                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, other_player)?;
+            for movement in board.intersections_legal_moves(rules, player).iter() {
+                let new_board = board.apply_move(rules, movement)?;
+                let eval = self.minimax_alpha_beta(
+                    rules,
+                    &new_board,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    other_player,
+                    maximize,
+                )?;
                 if eval.score > alpha {
                     alpha = eval.score;
                     best_eval.score = eval.score;
@@ -527,10 +534,17 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
-                let new_board = board.apply_move(&self.rules, movement)?;
-                let eval =
-                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, other_player)?;
+            for movement in board.intersections_legal_moves(rules, player).iter() {
+                let new_board = board.apply_move(rules, movement)?;
+                let eval = self.minimax_alpha_beta(
+                    rules,
+                    &new_board,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    other_player,
+                    maximize,
+                )?;
                 if eval.score < beta {
                     beta = eval.score;
                     best_eval.score = eval.score;
@@ -546,15 +560,17 @@ impl Computer {
 
     fn negamax_alpha_beta(
         &self,
+        rules: &RuleSet,
         board: &Board,
         depth: usize,
         alpha: i64,
         beta: i64,
         player: &Player,
+        maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
-        if depth == 0 || board.is_winning(&self.rules, player) {
+        if depth == 0 || board.is_winning(rules, player) {
             // println!("{}", board);
-            let color = if *player == self.player { 1 } else { -1 };
+            let color = if player == maximize { 1 } else { -1 };
             return Ok(MiniMaxEvaluation {
                 score: color * self.evaluate_board(board, player),
                 movement: None,
@@ -565,10 +581,10 @@ impl Computer {
             movement: None,
         };
         let mut alpha = alpha;
-        for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+        for movement in board.intersections_legal_moves(rules, player).iter() {
             // println!(
             //     "examining {} moves",
-            //     board.intersections_legal_moves(&self.rules, player).len()
+            //     board.intersections_legal_moves(rules, player).len()
             // );
             // println!(
             //     "depth {} -- checking move {} for {:#?}",
@@ -576,8 +592,9 @@ impl Computer {
             //     movement.index,
             //     movement.player
             // );
-            let new_board = board.apply_move(&self.rules, movement)?;
+            let new_board = board.apply_move(rules, movement)?;
             let mut eval = self.negamax_alpha_beta(
+                rules,
                 &new_board,
                 depth - 1,
                 -beta,
@@ -587,6 +604,7 @@ impl Computer {
                 } else {
                     &Player::Black
                 },
+                maximize,
             )?;
             eval.score = -eval.score;
             if eval.score > alpha {
@@ -607,10 +625,17 @@ impl Computer {
     }
 
     // Use the minimax algorithm to get the next best move
-    pub fn play(&self, board: &Board, depth: usize) -> Result<MiniMaxEvaluation, String> {
+    pub fn play(
+        &self,
+        rules: &RuleSet,
+        board: &Board,
+        depth: usize,
+        player: &Player,
+    ) -> Result<MiniMaxEvaluation, String> {
         let alpha = i64::min_value();
         let beta = i64::max_value();
-        let best_move = self.negamax_alpha_beta(board, depth, alpha, beta, &self.player)?;
+        let best_move =
+            self.negamax_alpha_beta(rules, board, depth, alpha, beta, player, player)?;
         Ok(best_move)
     }
 }
