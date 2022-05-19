@@ -1,5 +1,6 @@
 use crate::{
     board::{Board, Pawn, BOARD_PIECES, BOARD_SIZE},
+    game::{Game, GameMode},
     player::Player,
     BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGHT, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
     SQUARE_SIZE,
@@ -71,17 +72,17 @@ pub fn draw_goban(board: &Board) {
     }
 }
 
-pub fn draw_current_rock(current_player: &Player, board: &Board) {
+pub fn draw_current_rock(game: &Game) {
     let (mouse_x, mouse_y) = mouse_position();
     if mouse_x < (GRID_WINDOW_SIZE - 2) as f32 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32 {
         let rock_x = (mouse_x - 1.) as usize / SQUARE_SIZE;
         let rock_y = (mouse_y - 1.) as usize / SQUARE_SIZE;
-        if board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+        if game.board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
             draw_circle(
                 (rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 20.,
-                if *current_player == Player::Black {
+                if game.current_player == Player::Black {
                     BLACK
                 } else {
                     WHITE
@@ -91,18 +92,47 @@ pub fn draw_current_rock(current_player: &Player, board: &Board) {
     }
 }
 
-pub fn display_panel_text(
-    last_move_time: Instant,
-    in_game: &mut bool,
-    p1_captured: &usize,
-    p2_captured: &usize,
-    current_player: &Player,
-    prev_time_play: &Duration,
-) {
+pub fn game_selector(game: &mut Game) {
+    let pvp_button = widgets::Button::new("Start PvP game")
+        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. - 100.,
+        ))
+        .ui(&mut root_ui());
+
+    let pva_button = widgets::Button::new("Start PvA game")
+        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
+        ))
+        .ui(&mut root_ui());
+
+    let ava_button = widgets::Button::new("Start AvA game")
+        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. + 100.,
+        ))
+        .ui(&mut root_ui());
+
+    if pvp_button || pva_button || ava_button {
+        game.start(if pvp_button {
+            GameMode::PvP
+        } else if pva_button {
+            GameMode::PvA
+        } else {
+            GameMode::AvA
+        });
+    }
+}
+
+pub fn display_panel_text(game: &mut Game) {
     draw_text(
         format!(
             "Elapsed time: {:.2}",
-            last_move_time.elapsed().as_secs_f32()
+            game.play_time.elapsed().as_secs_f32()
         )
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
@@ -111,7 +141,7 @@ pub fn display_panel_text(
         BLACK,
     );
     draw_text(
-        format!("Elapsed time: {:.2}", prev_time_play.as_secs_f32()).as_str(),
+        format!("Elapsed time: {:.2}", game.previous_play_time.as_secs_f32()).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 2.,
         POLICE_SIZE,
@@ -119,14 +149,14 @@ pub fn display_panel_text(
     );
 
     draw_text(
-        format!("P1 captured: {}", p1_captured).as_str(),
+        format!("Black capture: {}", game.black_capture).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 3.,
         POLICE_SIZE,
         BLACK,
     );
     draw_text(
-        format!("P2 captured: {}", p2_captured).as_str(),
+        format!("White capture: {}", game.white_capture).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 4.,
         POLICE_SIZE,
@@ -135,11 +165,11 @@ pub fn display_panel_text(
 
     draw_text(
         format!(
-            "Turn: {}",
-            if *current_player == Player::Black {
-                "Player 1"
+            "Player: {}",
+            if game.current_player == Player::Black {
+                "Black"
             } else {
-                "Player 2"
+                "White"
             }
         )
         .as_str(),
@@ -157,6 +187,6 @@ pub fn display_panel_text(
         .ui(&mut root_ui());
 
     if surrender_button {
-        *in_game = false;
+        game.playing = false;
     }
 }

@@ -1,14 +1,11 @@
 use crate::{
     board::{Board, Move, Pawn},
-    draw::{display_panel_text, draw_current_rock, draw_goban},
+    draw::{display_panel_text, draw_current_rock, draw_goban, game_selector},
+    game::{Game, GameMode},
     player::Player,
     rules::RuleSet,
 };
-use macroquad::{
-    prelude::*,
-    ui::{root_ui, widgets},
-};
-use std::time::{Duration, Instant};
+use macroquad::prelude::*;
 
 const GRID_WINDOW_SIZE: usize = 800;
 const PANEL_WINDOW_SIZE: usize = 200;
@@ -20,6 +17,7 @@ const BUTTTON_LENGHT: f32 = 200.;
 mod board;
 mod computer;
 mod draw;
+mod game;
 mod player;
 mod rules;
 
@@ -68,91 +66,46 @@ async fn main() {
     //     println!("---");
     // }
 
-    let mut now: Instant = Instant::now();
-    let mut prev_play_time: Duration = now - now;
-    let p1: Player = Player::Black;
-    let p2: Player = Player::White;
-    let mut current_player: &Player = &p1;
+    let mut game = Game::default();
     let mut b_mouse_pressed: bool = false;
-    let mut in_game: bool = false;
-
-    let mut p1_captured: usize = 0;
-    let mut p2_captured: usize = 0;
     loop {
         clear_background(BEIGE);
-        //Draw grid
-        if !in_game {
-            let pvp_button = widgets::Button::new("Start PvP game")
-                .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
-                .position(Vec2::new(
-                    ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
-                    (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. - 100.,
-                ))
-                .ui(&mut root_ui());
 
-            let pva_button = widgets::Button::new("Start PvA game")
-                .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
-                .position(Vec2::new(
-                    ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
-                    (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
-                ))
-                .ui(&mut root_ui());
-
-            let ava_button = widgets::Button::new("Start AvA game")
-                .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
-                .position(Vec2::new(
-                    ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
-                    (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. + 100.,
-                ))
-                .ui(&mut root_ui());
-            if pvp_button || pva_button || ava_button {
-                in_game = true;
-                now = Instant::now();
-                prev_play_time = now - now;
-            }
-        }
-
-        if in_game {
+        // Draw grid
+        if !game.playing {
+            game_selector(&mut game);
+        } else {
+            // Draw game
             draw_goban(&board);
-            draw_current_rock(current_player, &board);
-            display_panel_text(
-                now,
-                &mut in_game,
-                &p1_captured,
-                &p2_captured,
-                current_player,
-                &prev_play_time,
-            );
-            if !in_game {
-                board = Board::default();
-                current_player = &p1;
-            }
-            if is_mouse_button_released(MouseButton::Left) {
-                b_mouse_pressed = false;
-            }
-            if is_mouse_button_down(MouseButton::Left) && !b_mouse_pressed {
-                b_mouse_pressed = true;
-                let (mouse_x, mouse_y) = mouse_position();
-                if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
-                    && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
+            display_panel_text(&mut game);
+            draw_current_rock(&game);
+
+            // Handle Input
+            if game.mode != GameMode::AvA {
+                if is_mouse_button_released(MouseButton::Left) {
+                    b_mouse_pressed = false;
+                } else if is_mouse_button_down(MouseButton::Left)
+                    && !b_mouse_pressed
+                    && (game.mode == GameMode::PvP
+                        || (game.mode == GameMode::PvA && game.current_player == Player::White))
                 {
-                    let rock_x = mouse_x as usize / SQUARE_SIZE;
-                    let rock_y = mouse_y as usize / SQUARE_SIZE;
-                    if board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
-                        board.set_move(
-                            &rules,
-                            &Move {
-                                index: Board::coordinates_to_index(rock_x, rock_y),
-                                player: *current_player,
-                            },
-                        );
-                        if current_player == &p1 {
-                            current_player = &p2;
-                        } else {
-                            current_player = &p1;
+                    b_mouse_pressed = true;
+                    let (mouse_x, mouse_y) = mouse_position();
+                    if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
+                        && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
+                    {
+                        let rock_x = mouse_x as usize / SQUARE_SIZE;
+                        let rock_y = mouse_y as usize / SQUARE_SIZE;
+                        if board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+                            board.set_move(
+                                &rules,
+                                &Move {
+                                    index: Board::coordinates_to_index(rock_x, rock_y),
+                                    player: game.current_player,
+                                },
+                            );
+                            game.next_player();
                         }
-                        prev_play_time = now.elapsed();
-                        now = Instant::now();
                     }
                 }
             }
