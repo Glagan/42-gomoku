@@ -1,7 +1,7 @@
-use crate::{rules::RuleSet, Player};
+use crate::{player::Player, rules::RuleSet};
 use std::fmt::Display;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Pawn {
     None,
     Black,
@@ -96,45 +96,31 @@ impl Board {
             .filter(|&pawn| pawn.1 != &Pawn::None)
         {
             let (x, y) = Board::index_to_coordinates(existing_pawn);
-            for x_mov in [4, 3, 0, 1, 2] {
-                for y_mov in [4, 3, 0, 1, 2] {
+            // for x_mov in [-2, -1, 0, 1, 2] as [i8; 5] {
+            //     for y_mov in [-2, -1, 0, 1, 2] as [i8; 5] {
+            for x_mov in [-1, 0, 1] as [i8; 3] {
+                for y_mov in [-1, 0, 1] as [i8; 3] {
                     if x_mov == 0 && y_mov == 0 {
                         continue;
                     }
-                    if (x_mov == 4 && x <= 1)
-                        || (x_mov == 3 && x <= 0)
-                        || (x_mov > 0 && x + x_mov >= BOARD_SIZE)
+                    if (x < 2 && x_mov == -2)
+                        || (x < 1 && x_mov == -1)
+                        || (x_mov > 0 && x + x_mov as usize >= BOARD_SIZE)
                     {
                         continue;
                     }
-                    if (y_mov == 4 && y <= 1)
-                        || (y_mov == 3 && y <= 0)
-                        || (y_mov > 0 && y + y_mov >= BOARD_SIZE)
+                    if (y < 2 && y_mov == -2)
+                        || (y < 1 && y_mov == -1)
+                        || (y_mov > 0 && y + y_mov as usize >= BOARD_SIZE)
                     {
                         continue;
                     }
                     let (new_x, new_y) = (
-                        if x_mov == 3 {
-                            x - 1
-                        } else if x_mov == 4 {
-                            x - 2
-                        } else {
-                            x + x_mov
-                        },
-                        if y_mov == 3 {
-                            y - 1
-                        } else if y_mov == 4 {
-                            y - 2
-                        } else {
-                            y + y_mov
-                        },
+                        usize::try_from(x as i8 + x_mov).ok().unwrap(),
+                        usize::try_from(y as i8 + y_mov).ok().unwrap(),
                     );
                     if let Some(pawn) = &self.get(new_x, new_y) {
                         if *pawn == Pawn::None {
-                            // println!(
-                            //     "x {} y {} -> new_x {} new_y {} ({} {})",
-                            //     x, y, new_x, new_y, x_mov, y_mov
-                            // );
                             let index = Board::coordinates_to_index(new_x, new_y);
                             if !intersections.contains(&index) {
                                 intersections.push(index);
@@ -188,6 +174,9 @@ impl Board {
         if rules.capture {
             // TODO capture remove other pawns
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
+        }
+        if self.pieces[movement.index] != Pawn::None {
+            return Err("There is already on pawn on this case".to_string());
         }
         self.pieces[movement.index] = movement.player.pawn();
         self.moves.push(movement.clone());

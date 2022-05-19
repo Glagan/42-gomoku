@@ -46,7 +46,6 @@ impl Default for PatternCount {
 }
 
 #[allow(dead_code)]
-// const PATTERNS: [([usize; 6], PatternCategory); 77] = [
 const PATTERNS: [([usize; 6], PatternCategory); 34] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
@@ -105,9 +104,9 @@ const PATTERNS: [([usize; 6], PatternCategory); 34] = [
     // // 5x2
     // ([1, 0, 1, 0, 1, 0], PatternCategory::DeadThree),
     // ([0, 1, 0, 1, 0, 1], PatternCategory::DeadThree),
-    // // 6x2
-    // // ([2, 0, 1, 1, 1, 0, 2], PatternCategory::DeadThree),
-    // // 7x2
+    // 6x2
+    // ([2, 0, 1, 1, 1, 0, 2], PatternCategory::DeadThree),
+    // 7x2
     ([1, 0, 0, 0, 1, 0], PatternCategory::LiveTwo),
     ([0, 1, 0, 0, 0, 1], PatternCategory::LiveTwo),
     // 1x3
@@ -119,7 +118,7 @@ const PATTERNS: [([usize; 6], PatternCategory); 34] = [
     ([1, 0, 0, 1, 0, 0], PatternCategory::LiveTwo),
     ([0, 1, 0, 0, 1, 0], PatternCategory::LiveTwo),
     ([0, 0, 1, 0, 0, 1], PatternCategory::LiveTwo),
-    // // 3x3
+    // 3x3
     // ([1, 1, 2, 0, 0, 0], PatternCategory::DeadTwo),
     // ([0, 1, 1, 2, 0, 0], PatternCategory::DeadTwo),
     // ([0, 0, 1, 1, 2, 0], PatternCategory::DeadTwo),
@@ -193,7 +192,7 @@ impl Computer {
             for i in 0..5 {
                 window[i + 1] = Computer::pawn_to_pattern_pawn(board, i, y, player);
             }
-            for x in 5..(BOARD_SIZE - 6) {
+            for x in 5..BOARD_SIZE {
                 window[0] = window[1];
                 window[1] = window[2];
                 window[2] = window[3];
@@ -230,7 +229,7 @@ impl Computer {
             for i in 0..5 {
                 window[i + 1] = Computer::pawn_to_pattern_pawn(board, x, i, player);
             }
-            for y in 5..(BOARD_SIZE - 6) {
+            for y in 5..BOARD_SIZE {
                 window[0] = window[1];
                 window[1] = window[2];
                 window[2] = window[3];
@@ -241,6 +240,7 @@ impl Computer {
                     if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
                         patterns.push(Pattern {
                             pieces: vec![
+                                // TODO
                                 Board::coordinates_to_index(x, y - 4),
                                 Board::coordinates_to_index(x, y - 3),
                                 Board::coordinates_to_index(x, y - 2),
@@ -294,16 +294,16 @@ impl Computer {
     pub fn get_diagonal_right_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
-        for y in (BOARD_SIZE - 1)..=6 {
+        for y in 0..(BOARD_SIZE - 6) {
             // Go trough the first 5 with an offset of 1
             // -- the next x loop will have the correct initial window
-            for x in (BOARD_SIZE - 1)..=6 {
+            for x in 5..BOARD_SIZE {
                 window[0] = Computer::pawn_to_pattern_pawn(board, x, y, player);
-                window[1] = Computer::pawn_to_pattern_pawn(board, x - 1, y - 1, player);
-                window[2] = Computer::pawn_to_pattern_pawn(board, x - 2, y - 2, player);
-                window[3] = Computer::pawn_to_pattern_pawn(board, x - 3, y - 3, player);
-                window[4] = Computer::pawn_to_pattern_pawn(board, x - 4, y - 4, player);
-                window[5] = Computer::pawn_to_pattern_pawn(board, x - 5, y - 5, player);
+                window[1] = Computer::pawn_to_pattern_pawn(board, x - 1, y + 1, player);
+                window[2] = Computer::pawn_to_pattern_pawn(board, x - 2, y + 2, player);
+                window[3] = Computer::pawn_to_pattern_pawn(board, x - 3, y + 3, player);
+                window[4] = Computer::pawn_to_pattern_pawn(board, x - 4, y + 4, player);
+                window[5] = Computer::pawn_to_pattern_pawn(board, x - 5, y + 5, player);
                 if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
                     if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
                         patterns.push(Pattern {
@@ -386,10 +386,11 @@ impl Computer {
             }
             // jDeadFour ? Other player DeadFour ?
             // CDeadfour ??
-            // Debug
+            // > Debug
             if pattern_count.live_two > 0 {
                 score += 200;
             }
+            // < Debug
             return score;
         }
         0
@@ -403,14 +404,14 @@ impl Computer {
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(&self.rules, player) {
             let score = self.evaluate_board(board, player);
-            // println!("{}", board);
-            // println!("--- {}", score);
+            println!("{}", board);
+            println!("--- {}", score);
             return Ok(MiniMaxEvaluation {
                 score: score,
                 movement: None,
             });
         }
-        let other_player = if self.player == Player::Black {
+        let other_player = if *player == Player::Black {
             &Player::White
         } else {
             &Player::Black
@@ -420,7 +421,17 @@ impl Computer {
                 score: i64::min_value(),
                 movement: None,
             };
+            println!(
+                "examining {} moves",
+                board.intersections_legal_moves(&self.rules, player).len()
+            );
             for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+                println!(
+                    "depth {} -- checking move {} for {:#?}",
+                    depth - 1,
+                    movement.index,
+                    movement.player
+                );
                 let new_board = board.apply_move(&self.rules, movement)?;
                 let eval = self.minimax(&new_board, depth - 1, other_player)?;
                 if eval.score > max_eval.score {
@@ -434,12 +445,9 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board
-                .intersections_legal_moves(&self.rules, other_player)
-                .iter()
-            {
+            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
                 let new_board = board.apply_move(&self.rules, movement)?;
-                let eval = self.minimax(&new_board, depth - 1, &self.player)?;
+                let eval = self.minimax(&new_board, depth - 1, other_player)?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
                     min_eval.movement = Some(movement.clone());
@@ -463,7 +471,7 @@ impl Computer {
                 movement: None,
             });
         }
-        let other_player = if self.player == Player::Black {
+        let other_player = if *player == Player::Black {
             &Player::White
         } else {
             &Player::Black
@@ -491,16 +499,13 @@ impl Computer {
         } else {
             let mut beta = beta;
             let mut best_eval = MiniMaxEvaluation {
-                score: 0,
+                score: i64::max_value(),
                 movement: None,
             };
-            for movement in board
-                .intersections_legal_moves(&self.rules, other_player)
-                .iter()
-            {
+            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
                 let new_board = board.apply_move(&self.rules, movement)?;
                 let eval =
-                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, &self.player)?;
+                    self.minimax_alpha_beta(&new_board, depth - 1, alpha, beta, other_player)?;
                 if eval.score <= beta {
                     beta = eval.score;
                     best_eval.score = eval.score;
@@ -523,7 +528,7 @@ impl Computer {
         player: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(&self.rules, player) {
-            // println!("{}\n---", board);
+            println!("{}", board);
             let color = if *player == self.player { 1 } else { -1 };
             return Ok(MiniMaxEvaluation {
                 score: color * self.evaluate_board(board, player),
@@ -536,13 +541,23 @@ impl Computer {
         };
         let mut alpha = alpha;
         for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+            println!(
+                "examining {} moves",
+                board.intersections_legal_moves(&self.rules, player).len()
+            );
+            println!(
+                "depth {} -- checking move {} for {:#?}",
+                depth - 1,
+                movement.index,
+                movement.player
+            );
             let new_board = board.apply_move(&self.rules, movement)?;
             let mut eval = self.negamax_alpha_beta(
                 &new_board,
                 depth - 1,
                 -beta,
                 -alpha,
-                if self.player == Player::Black {
+                if *player == Player::Black {
                     &Player::White
                 } else {
                     &Player::Black
@@ -550,17 +565,16 @@ impl Computer {
             )?;
             eval.score = -eval.score;
             if eval.score > alpha {
+                println!(
+                    "Leaf of movement {:#?} has better alpha {}",
+                    movement, eval.score
+                );
                 alpha = eval.score;
-                best_eval = MiniMaxEvaluation {
-                    score: eval.score,
-                    movement: Some(movement.clone()),
-                };
+                best_eval.score = eval.score;
+                best_eval.movement = Some(movement.clone());
             }
             if alpha >= beta {
-                // return Ok(MiniMaxEvaluation {
-                //     score: i64::min_value(),
-                //     movement: None,
-                // });
+                println!("break off");
                 break;
             }
         }
@@ -571,7 +585,7 @@ impl Computer {
     pub fn play(&self, board: &Board, depth: usize) -> Result<MiniMaxEvaluation, String> {
         let alpha = i64::min_value();
         let beta = i64::max_value();
-        let best_move = self.negamax_alpha_beta(board, depth, alpha, beta, &self.player)?;
+        let best_move = self.minimax_alpha_beta(board, depth, alpha, beta, &self.player)?;
         Ok(best_move)
     }
 }

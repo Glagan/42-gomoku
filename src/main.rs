@@ -56,8 +56,8 @@ fn main() {
     //     },
     // );
     // println!("---");
-    // println!("{}", board);
-    // println!("---");
+    println!("{}", board);
+    println!("---");
     let player1 = Player::Black;
     let player2 = Player::White;
     let computer1 = Computer::new(&rules, &player1);
