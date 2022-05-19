@@ -46,7 +46,7 @@ impl Default for PatternCount {
 }
 
 #[allow(dead_code)]
-const PATTERNS: [([usize; 6], PatternCategory); 34] = [
+const PATTERNS: [([usize; 6], PatternCategory); 54] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
     ([1, 1, 1, 1, 1, 0], PatternCategory::FiveInRow),
@@ -80,30 +80,30 @@ const PATTERNS: [([usize; 6], PatternCategory); 34] = [
     ([0, 1, 0, 1, 1, 0], PatternCategory::LiveThree),
     ([0, 0, 1, 0, 1, 1], PatternCategory::LiveThree),
     // 1x2
-    // ([1, 1, 1, 2, 0, 0], PatternCategory::DeadThree),
-    // ([0, 1, 1, 1, 2, 0], PatternCategory::DeadThree),
-    // ([0, 0, 1, 1, 1, 2], PatternCategory::DeadThree),
-    // ([2, 1, 1, 1, 0, 0], PatternCategory::DeadThree),
-    // ([0, 2, 1, 1, 1, 0], PatternCategory::DeadThree),
-    // ([0, 0, 2, 1, 1, 1], PatternCategory::DeadThree),
-    // // 2x2
-    // ([1, 0, 1, 1, 2, 0], PatternCategory::DeadThree),
-    // ([0, 1, 0, 1, 1, 2], PatternCategory::DeadThree),
-    // ([2, 1, 1, 0, 1, 0], PatternCategory::DeadThree),
-    // ([0, 2, 1, 1, 0, 1], PatternCategory::DeadThree),
-    // // 3x2
-    // ([2, 1, 0, 1, 1, 0], PatternCategory::DeadThree),
-    // ([0, 2, 1, 0, 1, 1], PatternCategory::DeadThree),
-    // ([1, 1, 0, 1, 2, 0], PatternCategory::DeadThree),
-    // ([0, 1, 1, 0, 1, 2], PatternCategory::DeadThree),
-    // // 4x2
-    // ([1, 0, 0, 1, 1, 0], PatternCategory::DeadThree),
-    // ([0, 1, 0, 0, 1, 1], PatternCategory::DeadThree),
-    // ([1, 1, 0, 0, 1, 0], PatternCategory::DeadThree),
-    // ([0, 1, 1, 0, 0, 1], PatternCategory::DeadThree),
-    // // 5x2
-    // ([1, 0, 1, 0, 1, 0], PatternCategory::DeadThree),
-    // ([0, 1, 0, 1, 0, 1], PatternCategory::DeadThree),
+    ([1, 1, 1, 2, 0, 0], PatternCategory::DeadThree),
+    ([0, 1, 1, 1, 2, 0], PatternCategory::DeadThree),
+    ([0, 0, 1, 1, 1, 2], PatternCategory::DeadThree),
+    ([2, 1, 1, 1, 0, 0], PatternCategory::DeadThree),
+    ([0, 2, 1, 1, 1, 0], PatternCategory::DeadThree),
+    ([0, 0, 2, 1, 1, 1], PatternCategory::DeadThree),
+    // 2x2
+    ([1, 0, 1, 1, 2, 0], PatternCategory::DeadThree),
+    ([0, 1, 0, 1, 1, 2], PatternCategory::DeadThree),
+    ([2, 1, 1, 0, 1, 0], PatternCategory::DeadThree),
+    ([0, 2, 1, 1, 0, 1], PatternCategory::DeadThree),
+    // 3x2
+    ([2, 1, 0, 1, 1, 0], PatternCategory::DeadThree),
+    ([0, 2, 1, 0, 1, 1], PatternCategory::DeadThree),
+    ([1, 1, 0, 1, 2, 0], PatternCategory::DeadThree),
+    ([0, 1, 1, 0, 1, 2], PatternCategory::DeadThree),
+    // 4x2
+    ([1, 0, 0, 1, 1, 0], PatternCategory::DeadThree),
+    ([0, 1, 0, 0, 1, 1], PatternCategory::DeadThree),
+    ([1, 1, 0, 0, 1, 0], PatternCategory::DeadThree),
+    ([0, 1, 1, 0, 0, 1], PatternCategory::DeadThree),
+    // 5x2
+    ([1, 0, 1, 0, 1, 0], PatternCategory::DeadThree),
+    ([0, 1, 0, 1, 0, 1], PatternCategory::DeadThree),
     // 6x2
     // ([2, 0, 1, 1, 1, 0, 2], PatternCategory::DeadThree),
     // 7x2
@@ -340,60 +340,74 @@ impl Computer {
         patterns
     }
 
+    pub fn get_patterns_count(&self, board: &Board, player: &Player) -> PatternCount {
+        let mut pattern_count = PatternCount::default();
+        let patterns = self.get_patterns(board, player);
+        for pattern in patterns.iter() {
+            if pattern.category == PatternCategory::FiveInRow {
+                pattern_count.five_in_row += 1;
+            } else if pattern.category == PatternCategory::LiveFour {
+                pattern_count.live_four += 1;
+            } else if pattern.category == PatternCategory::DeadFour {
+                pattern_count.dead_four += 1;
+            } else if pattern.category == PatternCategory::LiveThree {
+                pattern_count.live_three += 1;
+            } else if pattern.category == PatternCategory::DeadThree {
+                pattern_count.dead_three += 1;
+            } else if pattern.category == PatternCategory::LiveTwo {
+                pattern_count.live_two += 1;
+            } else {
+                pattern_count.dead_two += 1;
+            }
+        }
+        pattern_count
+    }
+
     // Calculate all patterns for a given player and return the board score
     // TODO
     pub fn evaluate_board(&self, board: &Board, player: &Player) -> i64 {
-        let patterns = self.get_patterns(board, player);
-        if !patterns.is_empty() {
-            // println!("--- {} patterns", patterns.len());
-            // println!("patterns {:#?}", patterns);
-            let mut score: i64 = 0;
-            let mut pattern_count = PatternCount::default();
-            for pattern in patterns.iter() {
-                if pattern.category == PatternCategory::FiveInRow {
-                    pattern_count.five_in_row += 1;
-                } else if pattern.category == PatternCategory::LiveFour {
-                    pattern_count.live_four += 1;
-                } else if pattern.category == PatternCategory::DeadFour {
-                    pattern_count.dead_four += 1;
-                } else if pattern.category == PatternCategory::LiveThree {
-                    pattern_count.live_three += 1;
-                } else if pattern.category == PatternCategory::DeadThree {
-                    pattern_count.dead_three += 1;
-                } else if pattern.category == PatternCategory::LiveTwo {
-                    pattern_count.live_two += 1;
-                } else {
-                    pattern_count.dead_two += 1;
-                }
-            }
-            if pattern_count.five_in_row > 0 {
-                score += 100000;
-            }
-            if pattern_count.live_four >= 1 {
-                score += 15000;
-            }
-            if (pattern_count.live_three >= 2 && pattern_count.dead_four == 2)
-                || (pattern_count.live_three == 1 && pattern_count.dead_four == 1)
-            {
-                score += 10000;
-            }
-            // LiveThree + jLiveThree ? Other player LiveThree ?
-            if pattern_count.live_three >= 1 {
-                score += 5000;
-            }
-            if pattern_count.dead_four > 0 {
-                score += 1000;
-            }
-            // jDeadFour ? Other player DeadFour ?
-            // CDeadfour ??
-            // > Debug
-            if pattern_count.live_two > 0 {
-                score += 200;
-            }
-            // < Debug
-            return score;
+        let self_patterns = self.get_patterns_count(board, player);
+        let other_patterns = self.get_patterns_count(
+            board,
+            if player == &Player::Black {
+                &Player::White
+            } else {
+                &Player::Black
+            },
+        );
+        // println!("--- {} patterns", patterns.len());
+        // println!("patterns {:#?}", patterns);
+        let mut score: i64 = 0;
+        if self_patterns.five_in_row > 0 {
+            score += 100000;
         }
-        0
+        if self_patterns.live_four >= 1 {
+            score += 15000;
+        }
+        if self_patterns.live_three >= 1
+            || self_patterns.dead_four == 2
+            || self_patterns.dead_four == 1
+        {
+            score += 10000;
+        }
+        if self_patterns.live_three + other_patterns.dead_three >= 2 {
+            score += 5000;
+        }
+        if self_patterns.dead_four > 0 {
+            score += 1000;
+        }
+        if other_patterns.dead_four != 0 {
+            score += 300
+        }
+        if self_patterns.dead_four > 0 {
+            score += self_patterns.dead_four as i64 * 50;
+        }
+        // > Debug
+        if self_patterns.live_two > 0 {
+            score += 200;
+        }
+        // < Debug
+        score
     }
 
     fn minimax(
@@ -425,14 +439,25 @@ impl Computer {
             //     "examining {} moves",
             //     board.intersections_legal_moves(&self.rules, player).len()
             // );
-            for movement in board.intersections_legal_moves(&self.rules, player).iter() {
+            let mut moves: Vec<(Board, Move)> = board
+                .intersections_legal_moves(&self.rules, player)
+                .iter()
+                .map(|movement| {
+                    let new_board = board.apply_move(&self.rules, movement).unwrap();
+                    (new_board, *movement)
+                })
+                .collect::<Vec<(Board, Move)>>();
+            moves.sort_by(|a, b| {
+                self.evaluate_board(&a.0, player)
+                    .cmp(&self.evaluate_board(&b.0, player))
+            });
+            for (new_board, movement) in moves.iter() {
                 // println!(
                 //     "depth {} -- checking move {} for {:#?}",
                 //     depth - 1,
                 //     movement.index,
                 //     movement.player
                 // );
-                let new_board = board.apply_move(&self.rules, movement)?;
                 let eval = self.minimax(&new_board, depth - 1, other_player)?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
