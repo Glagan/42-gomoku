@@ -441,7 +441,7 @@ impl Computer {
                 .intersections_legal_moves(rules, player)
                 .iter()
                 .map(|movement| {
-                    let new_board = board.apply_move(rules, movement).unwrap();
+                    let new_board = board.apply_move(rules, movement);
                     (new_board, *movement)
                 })
                 .collect::<Vec<(Board, Move)>>();
@@ -469,7 +469,7 @@ impl Computer {
                 movement: None,
             };
             for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement)?;
+                let new_board = board.apply_move(rules, movement);
                 let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
@@ -508,7 +508,7 @@ impl Computer {
                 movement: None,
             };
             for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement)?;
+                let new_board = board.apply_move(rules, movement);
                 let eval = self.minimax_alpha_beta(
                     rules,
                     &new_board,
@@ -535,7 +535,7 @@ impl Computer {
                 movement: None,
             };
             for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement)?;
+                let new_board = board.apply_move(rules, movement);
                 let eval = self.minimax_alpha_beta(
                     rules,
                     &new_board,
@@ -592,7 +592,7 @@ impl Computer {
             //     movement.index,
             //     movement.player
             // );
-            let new_board = board.apply_move(rules, movement)?;
+            let new_board = board.apply_move(rules, movement);
             let mut eval = self.negamax_alpha_beta(
                 rules,
                 &new_board,

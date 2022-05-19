@@ -167,27 +167,20 @@ impl Board {
     }
 
     // Apply a movement to the current Board
-    pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) -> Result<(), String> {
-        if movement.index >= BOARD_PIECES {
-            return Err("Invalid index for movement".to_string());
-        }
+    pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
         if rules.capture {
             // TODO capture remove other pawns
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
-        if self.pieces[movement.index] != Pawn::None {
-            return Err("There is already on pawn on this case".to_string());
-        }
         self.pieces[movement.index] = movement.player.pawn();
         self.moves.push(movement.clone());
-        Ok(())
     }
 
     // Apply a movement to a new copy of the current Board
-    pub fn apply_move(&self, rules: &RuleSet, movement: &Move) -> Result<Board, String> {
+    pub fn apply_move(&self, rules: &RuleSet, movement: &Move) -> Board {
         let mut new_board = self.clone();
-        new_board.set_move(rules, movement)?;
-        Ok(new_board)
+        new_board.set_move(rules, movement);
+        new_board
     }
 
     // Check if the given player is winning on the current board
