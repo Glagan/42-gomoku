@@ -11,8 +11,6 @@ use crate::{
 
 mod board;
 mod computer;
-mod game;
-mod interface;
 mod player;
 mod rules;
 
