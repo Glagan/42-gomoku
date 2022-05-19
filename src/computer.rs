@@ -179,7 +179,7 @@ impl Computer {
     }
 
     // Create an array of size 6 and compare it with all the patterns
-    pub fn get_horizontal_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
+    pub fn get_horizontal_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..BOARD_SIZE {
@@ -216,7 +216,7 @@ impl Computer {
         patterns
     }
 
-    pub fn get_vertical_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
+    pub fn get_vertical_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
         for x in 0..BOARD_SIZE {
@@ -253,7 +253,7 @@ impl Computer {
         patterns
     }
 
-    pub fn get_diagonal_left_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
+    pub fn get_diagonal_left_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..(BOARD_SIZE - 6) {
@@ -287,7 +287,7 @@ impl Computer {
         patterns
     }
 
-    pub fn get_diagonal_right_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
+    pub fn get_diagonal_right_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..(BOARD_SIZE - 6) {
@@ -327,18 +327,18 @@ impl Computer {
     // -- patterns are ordered by size
     // TODO Get vertical patterns
     // TODO Get diagonal left and right patterns
-    pub fn get_patterns(&self, board: &Board, player: &Player) -> Vec<Pattern> {
+    pub fn get_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        patterns.append(&mut self.get_horizontal_patterns(board, player));
-        patterns.append(&mut self.get_vertical_patterns(board, player));
-        patterns.append(&mut self.get_diagonal_left_patterns(board, player));
-        patterns.append(&mut self.get_diagonal_right_patterns(board, player));
+        patterns.append(&mut Computer::get_horizontal_patterns(board, player));
+        patterns.append(&mut Computer::get_vertical_patterns(board, player));
+        patterns.append(&mut Computer::get_diagonal_left_patterns(board, player));
+        patterns.append(&mut Computer::get_diagonal_right_patterns(board, player));
         patterns
     }
 
-    pub fn get_patterns_count(&self, board: &Board, player: &Player) -> PatternCount {
+    pub fn get_patterns_count(board: &Board, player: &Player) -> PatternCount {
         let mut pattern_count = PatternCount::default();
-        let patterns = self.get_patterns(board, player);
+        let patterns = Computer::get_patterns(board, player);
         for pattern in patterns.iter() {
             if pattern.category == PatternCategory::FiveInRow {
                 pattern_count.five_in_row += 1;
@@ -361,9 +361,9 @@ impl Computer {
 
     // Calculate all patterns for a given player and return the board score
     // TODO
-    pub fn evaluate_board(&self, board: &Board, player: &Player) -> i64 {
-        let self_patterns = self.get_patterns_count(board, player);
-        let other_patterns = self.get_patterns_count(
+    pub fn evaluate_board(board: &Board, player: &Player) -> i64 {
+        let self_patterns = Computer::get_patterns_count(board, player);
+        let other_patterns = Computer::get_patterns_count(
             board,
             if player == &Player::Black {
                 &Player::White
@@ -415,7 +415,7 @@ impl Computer {
         maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
-            let score = self.evaluate_board(board, player);
+            let score = Computer::evaluate_board(board, player);
             // println!("{}", board);
             // println!("--- {}", score);
             return Ok(MiniMaxEvaluation {
@@ -446,8 +446,7 @@ impl Computer {
                 })
                 .collect::<Vec<(Board, Move)>>();
             moves.sort_by(|a, b| {
-                self.evaluate_board(&a.0, player)
-                    .cmp(&self.evaluate_board(&b.0, player))
+                Computer::evaluate_board(&a.0, player).cmp(&Computer::evaluate_board(&b.0, player))
             });
             for (new_board, movement) in moves.iter() {
                 // println!(
@@ -468,7 +467,18 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(rules, player).iter() {
+            let mut moves: Vec<(Board, Move)> = board
+                .intersections_legal_moves(rules, player)
+                .iter()
+                .map(|movement| {
+                    let new_board = board.apply_move(rules, movement);
+                    (new_board, *movement)
+                })
+                .collect::<Vec<(Board, Move)>>();
+            moves.sort_by(|a, b| {
+                Computer::evaluate_board(&b.0, player).cmp(&Computer::evaluate_board(&a.0, player))
+            });
+            for (new_board, movement) in moves.iter() {
                 let new_board = board.apply_move(rules, movement);
                 let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score < min_eval.score {
@@ -492,7 +502,7 @@ impl Computer {
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
             return Ok(MiniMaxEvaluation {
-                score: self.evaluate_board(board, player),
+                score: Computer::evaluate_board(board, player),
                 movement: None,
             });
         }
@@ -572,7 +582,7 @@ impl Computer {
             // println!("{}", board);
             let color = if player == maximize { 1 } else { -1 };
             return Ok(MiniMaxEvaluation {
-                score: color * self.evaluate_board(board, player),
+                score: color * Computer::evaluate_board(board, player),
                 movement: None,
             });
         }
@@ -581,6 +591,19 @@ impl Computer {
             movement: None,
         };
         let mut alpha = alpha;
+        // let mut moves: Vec<(Board, Move)> = board
+        //     .intersections_legal_moves(rules, player)
+        //     .iter()
+        //     .map(|movement| {
+        //         let new_board = board.apply_move(rules, movement);
+        //         (new_board, *movement)
+        //     })
+        //     .collect::<Vec<(Board, Move)>>();
+        // moves.sort_by(|a, b| {
+        //     Computer::evaluate_board(&a.0, player)
+        //         .cmp(&Computer::evaluate_board(&b.0, player))
+        // });
+        // for (new_board, movement) in moves.iter() {
         for movement in board.intersections_legal_moves(rules, player).iter() {
             // println!(
             //     "examining {} moves",

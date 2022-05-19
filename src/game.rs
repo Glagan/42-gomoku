@@ -9,6 +9,7 @@ pub enum GameMode {
     AvA,
 }
 
+#[derive(PartialEq, Copy, Clone)]
 pub enum Winner {
     None,
     Black,
@@ -25,8 +26,6 @@ pub struct Game {
     pub play_time: Instant,
     pub previous_play_time: Duration,
     pub current_player: Player,
-    pub black_capture: usize,
-    pub white_capture: usize,
     pub winner: Winner,
 }
 
@@ -42,8 +41,6 @@ impl Default for Game {
             play_time: now,
             previous_play_time: now - now,
             current_player: Player::Black,
-            black_capture: 0,
-            white_capture: 0,
             winner: Winner::None,
         }
     }
@@ -60,8 +57,6 @@ impl Game {
         self.play_time = now;
         self.previous_play_time = now - now;
         self.current_player = Player::Black;
-        self.black_capture = 0;
-        self.white_capture = 0;
         self.winner = Winner::None;
     }
 
@@ -69,6 +64,13 @@ impl Game {
         self.reset();
         self.mode = mode;
         self.playing = true;
+    }
+
+    pub fn player_won(&mut self) {
+        self.winner = match self.current_player {
+            Player::Black => Winner::Black,
+            Player::White => Winner::White,
+        };
     }
 
     pub fn next_player(&mut self) {

@@ -1,4 +1,8 @@
-use crate::{player::Player, rules::RuleSet};
+use crate::{
+    computer::{Computer, PatternCategory, PatternCount},
+    player::Player,
+    rules::RuleSet,
+};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -31,6 +35,8 @@ pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
     pub moves: Vec<Move>,
+    pub black_capture: usize,
+    pub white_capture: usize,
 }
 
 impl Default for Board {
@@ -38,6 +44,8 @@ impl Default for Board {
         Board {
             pieces: [Pawn::None; BOARD_PIECES],
             moves: vec![],
+            black_capture: 0,
+            white_capture: 0,
         }
     }
 }
@@ -183,10 +191,27 @@ impl Board {
         new_board
     }
 
+    pub fn has_five_in_a_row(&self, player: &Player) -> bool {
+        let mut pattern_count = PatternCount::default();
+        let patterns = Computer::get_patterns(&self, player);
+        for pattern in patterns.iter() {
+            if pattern.category == PatternCategory::FiveInRow {
+                pattern_count.five_in_row += 1;
+            }
+        }
+        pattern_count.five_in_row > 0
+    }
+
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
-    // TODO
     pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
-        false
+        if rules.game_ending_capture
+            && ((player == &Player::Black && self.black_capture >= 10)
+                || (player == &Player::White && self.white_capture >= 10))
+        {
+            return true;
+        }
+        // TODO if game.capture -> check if five in a row can't be captured
+        self.has_five_in_a_row(player)
     }
 }

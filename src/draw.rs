@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, Pawn, BOARD_PIECES, BOARD_SIZE},
-    game::{Game, GameMode},
+    game::{Game, GameMode, Winner},
     player::Player,
     BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGHT, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
     SQUARE_SIZE,
@@ -9,7 +9,6 @@ use macroquad::{
     prelude::{draw_circle, draw_line, draw_text, mouse_position, Vec2, BLACK, WHITE},
     ui::{root_ui, widgets},
 };
-use std::time::{Duration, Instant};
 
 const TEXT_OFFSET: f32 = 20.;
 const POLICE_SIZE: f32 = 20.;
@@ -132,7 +131,11 @@ pub fn display_panel_text(game: &mut Game) {
     draw_text(
         format!(
             "Elapsed time: {:.2}",
-            game.play_time.elapsed().as_secs_f32()
+            if game.winner != Winner::None {
+                0.
+            } else {
+                game.play_time.elapsed().as_secs_f32()
+            }
         )
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
@@ -149,14 +152,14 @@ pub fn display_panel_text(game: &mut Game) {
     );
 
     draw_text(
-        format!("Black capture: {}", game.black_capture).as_str(),
+        format!("Black capture: {}", game.board.black_capture).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 3.,
         POLICE_SIZE,
         BLACK,
     );
     draw_text(
-        format!("White capture: {}", game.white_capture).as_str(),
+        format!("White capture: {}", game.board.white_capture).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 4.,
         POLICE_SIZE,
