@@ -325,8 +325,6 @@ impl Computer {
     // Create a sliding window of length 6 and advance by 1 case at a time
     // Check each patterns inside the window and returns the first one
     // -- patterns are ordered by size
-    // TODO Get vertical patterns
-    // TODO Get diagonal left and right patterns
     pub fn get_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
         patterns.append(&mut Computer::get_horizontal_patterns(board, player));

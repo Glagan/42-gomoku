@@ -44,12 +44,13 @@ async fn main() {
             // Draw game
             draw_goban(&game.board);
             display_panel_text(&mut game);
-            draw_current_rock(&game);
 
             // Winner
             if game.winner != Winner::None {
                 // TODO "Winner"
             } else {
+                draw_current_rock(&game);
+
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
                     // Player play

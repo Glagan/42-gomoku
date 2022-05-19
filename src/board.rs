@@ -93,8 +93,9 @@ impl Board {
     // All open intersections for the current Board
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
+        // Only the center intersection is available if there is no previous moves
         if self.moves.len() == 0 {
-            return vec![180]; // Only the center intersection is available if there is no previous moves
+            return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
         }
         let mut intersections: Vec<usize> = vec![];
         for (existing_pawn, _) in self
