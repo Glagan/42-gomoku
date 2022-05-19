@@ -65,7 +65,7 @@ fn main() {
     for i in 0..20 {
         let now = Instant::now();
         if i % 2 == 0 {
-            let play_result = computer1.play(&board, 3);
+            let play_result = computer1.play(&board, 4);
             println!("play: {:#?}", play_result);
             if let Ok(play) = play_result {
                 if let Some(movement) = play.movement {
@@ -73,7 +73,7 @@ fn main() {
                 }
             }
         } else {
-            let play_result = computer2.play(&board, 3);
+            let play_result = computer2.play(&board, 4);
             println!("play: {:#?}", play_result);
             if let Ok(play) = play_result {
                 if let Some(movement) = play.movement {
