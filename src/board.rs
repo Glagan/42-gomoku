@@ -5,11 +5,11 @@ use crate::{
 };
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Pawn {
-    None,
-    Black,
-    White,
+    None = 0,
+    Black = 1,
+    White = 2,
 }
 
 impl ToString for Pawn {
@@ -35,8 +35,8 @@ pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
     pub moves: Vec<Move>,
-    pub black_capture: usize,
-    pub white_capture: usize,
+    pub black_capture: u8,
+    pub white_capture: u8,
 }
 
 impl Default for Board {

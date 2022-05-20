@@ -49,10 +49,10 @@ async fn main() {
             if game.winner != Winner::None {
                 // TODO "Winner"
             } else {
-                draw_current_rock(&game);
-
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
+                    draw_current_rock(&game);
+
                     // Player play
                     if is_mouse_button_released(MouseButton::Left) {
                         b_mouse_pressed = false;
@@ -68,7 +68,6 @@ async fn main() {
                         {
                             let rock_x = mouse_x as usize / SQUARE_SIZE;
                             let rock_y = mouse_y as usize / SQUARE_SIZE;
-                            println!("checking {} {}", rock_x, rock_y);
                             if game.board.pieces[Board::coordinates_to_index(rock_x, rock_y)]
                                 == Pawn::None
                             {

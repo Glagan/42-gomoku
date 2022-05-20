@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::{
-    board::{Board, Move, Pawn, BOARD_SIZE},
+    board::{Board, Move, Pawn, BOARD_PIECES, BOARD_SIZE},
     player::Player,
     rules::RuleSet,
 };
@@ -46,7 +48,7 @@ impl Default for PatternCount {
 }
 
 #[allow(dead_code)]
-const PATTERNS: [([usize; 6], PatternCategory); 54] = [
+const PATTERNS: [([u8; 6], PatternCategory); 54] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
     ([1, 1, 1, 1, 1, 0], PatternCategory::FiveInRow),
@@ -153,16 +155,26 @@ pub struct Pattern {
     pub category: PatternCategory,
 }
 
-pub struct Computer;
+pub struct Computer {
+    // (black_heuristic, white_heuristic)
+    pub cache: HashMap<[Pawn; BOARD_PIECES as usize], (i64, i64)>,
+}
 
 impl Default for Computer {
     fn default() -> Self {
-        Computer
+        Computer {
+            cache: HashMap::new(),
+        }
     }
 }
 
 impl Computer {
-    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> usize {
+    pub fn clean(&mut self) {
+        // TODO: Pre-calculate first three rounds cache to avoid slow startups ?
+        self.cache = HashMap::new();
+    }
+
+    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
         if let Some(pawn) = board.get(x, y) {
             if pawn == Pawn::None {
                 0
@@ -181,7 +193,7 @@ impl Computer {
     // Create an array of size 6 and compare it with all the patterns
     pub fn get_horizontal_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..BOARD_SIZE {
             // Go trough the first 5 with an offset of 1
             // -- the next x loop will have the correct initial window
@@ -218,7 +230,7 @@ impl Computer {
 
     pub fn get_vertical_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
         for x in 0..BOARD_SIZE {
             // Go trough the first 5 with an offset of 1
             // -- the next y loop will have the correct initial window
@@ -255,7 +267,7 @@ impl Computer {
 
     pub fn get_diagonal_left_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..(BOARD_SIZE - 6) {
             // Go trough the first 5 with an offset of 1
             // -- the next x loop will have the correct initial window
@@ -289,7 +301,7 @@ impl Computer {
 
     pub fn get_diagonal_right_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [usize; 6] = [0, 0, 0, 0, 0, 0];
+        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
         for y in 0..(BOARD_SIZE - 6) {
             // Go trough the first 5 with an offset of 1
             // -- the next x loop will have the correct initial window
@@ -357,55 +369,57 @@ impl Computer {
         pattern_count
     }
 
-    // Calculate all patterns for a given player and return the board score
     // TODO
-    pub fn evaluate_board(board: &Board, player: &Player) -> i64 {
-        let self_patterns = Computer::get_patterns_count(board, player);
-        let other_patterns = Computer::get_patterns_count(
-            board,
-            if player == &Player::Black {
-                &Player::White
-            } else {
-                &Player::Black
-            },
-        );
-        // println!("--- {} patterns", patterns.len());
-        // println!("patterns {:#?}", patterns);
+    pub fn compute_pattern_score(
+        self_patterns: &PatternCount,
+        other_patterns: &PatternCount,
+    ) -> i64 {
         let mut score: i64 = 0;
         if self_patterns.five_in_row > 0 {
             score += 100000;
         }
-        if self_patterns.live_four >= 1 {
+        // ?
+        // if other_patterns.dead_four > 0 {
+        //     score += 25000;
+        // }
+        if self_patterns.live_four > 0 {
             score += 15000;
         }
         if self_patterns.live_three >= 1
-            || self_patterns.dead_four == 2
-            || self_patterns.dead_four == 1
+            || other_patterns.dead_four == 2
+            || other_patterns.dead_four == 1
         {
             score += 10000;
         }
         if self_patterns.live_three + other_patterns.dead_three >= 2 {
             score += 5000;
+        } else if self_patterns.live_three > 0 {
+            score += 2000;
         }
-        if self_patterns.dead_four > 0 {
-            score += 1000;
-        }
-        if other_patterns.dead_four != 0 {
-            score += 300
+        if other_patterns.dead_three > 0 {
+            score += 1500;
         }
         if self_patterns.dead_four > 0 {
             score += self_patterns.dead_four as i64 * 50;
         }
-        // > Debug
         if self_patterns.live_two > 0 {
             score += 200;
         }
-        // < Debug
         score
     }
 
-    fn minimax(
-        &self,
+    // Calculate all patterns for a both players and return the board score
+    pub fn evaluate_board(board: &Board) -> (i64, i64) {
+        let black_patterns = Computer::get_patterns_count(board, &Player::Black);
+        let white_patterns = Computer::get_patterns_count(board, &Player::White);
+        (
+            Computer::compute_pattern_score(&black_patterns, &white_patterns),
+            Computer::compute_pattern_score(&white_patterns, &black_patterns),
+        )
+    }
+
+    /*fn minimax(
+        &mut self,
         rules: &RuleSet,
         board: &Board,
         depth: usize,
@@ -413,11 +427,15 @@ impl Computer {
         maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
-            let score = Computer::evaluate_board(board, player);
+            let scores = Computer::evaluate_board(board);
             // println!("{}", board);
             // println!("--- {}", score);
             return Ok(MiniMaxEvaluation {
-                score: score,
+                score: if player == &Player::Black {
+                    scores.0
+                } else {
+                    scores.1
+                },
                 movement: None,
             });
         }
@@ -444,7 +462,7 @@ impl Computer {
                 })
                 .collect::<Vec<(Board, Move)>>();
             moves.sort_by(|a, b| {
-                Computer::evaluate_board(&a.0, player).cmp(&Computer::evaluate_board(&b.0, player))
+                Computer::evaluate_board(&a.0).cmp(&Computer::evaluate_board(&b.0))
             });
             for (new_board, movement) in moves.iter() {
                 // println!(
@@ -474,7 +492,7 @@ impl Computer {
                 })
                 .collect::<Vec<(Board, Move)>>();
             moves.sort_by(|a, b| {
-                Computer::evaluate_board(&b.0, player).cmp(&Computer::evaluate_board(&a.0, player))
+                Computer::evaluate_board(&b.0).cmp(&Computer::evaluate_board(&a.0))
             });
             for (new_board, movement) in moves.iter() {
                 let new_board = board.apply_move(rules, movement);
@@ -489,7 +507,7 @@ impl Computer {
     }
 
     fn minimax_alpha_beta(
-        &self,
+        &mut self,
         rules: &RuleSet,
         board: &Board,
         depth: usize,
@@ -499,8 +517,13 @@ impl Computer {
         maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
+            let scores = Computer::evaluate_board(board);
             return Ok(MiniMaxEvaluation {
-                score: Computer::evaluate_board(board, player),
+                score: if player == &Player::Black {
+                    scores.0
+                } else {
+                    scores.1
+                },
                 movement: None,
             });
         }
@@ -564,10 +587,10 @@ impl Computer {
             }
             Ok(best_eval)
         }
-    }
+    }*/
 
     fn negamax_alpha_beta(
-        &self,
+        &mut self,
         rules: &RuleSet,
         board: &Board,
         depth: usize,
@@ -576,44 +599,99 @@ impl Computer {
         player: &Player,
         maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
+        let alpha_orig = alpha;
+        let mut alpha = alpha;
+        let mut beta = beta;
+
+        // Check cache to see if the board was already computed
+        // if self.cache.contains_key(&board.pieces) {
+        //     let (black_heuristic, white_heuristic) = self.cache.get(&board.pieces).unwrap();
+        //     if player == &Player::Black {
+        //         if *black_heuristic > alpha {
+        //             alpha = *black_heuristic;
+        //         }
+        //         if *white_heuristic < beta {
+        //             beta = *white_heuristic;
+        //         }
+        //         if alpha >= beta {
+        //             let color = if player == maximize { 1 } else { -1 };
+        //             return Ok(MiniMaxEvaluation {
+        //                 score: color * black_heuristic,
+        //                 movement: None,
+        //             });
+        //         }
+        //     } else {
+        //         // ?
+        //     }
+        // }
+
+        // Check if it's a leaf and compute it's value
         if depth == 0 || board.is_winning(rules, player) {
             // println!("{}", board);
             let color = if player == maximize { 1 } else { -1 };
+            let scores = self.cache.get(&board.pieces).unwrap();
             return Ok(MiniMaxEvaluation {
-                score: color * Computer::evaluate_board(board, player),
+                score: color
+                    * if player == &Player::Black {
+                        scores.0
+                    } else {
+                        scores.1
+                    },
                 movement: None,
             });
         }
+
+        // Only the best evaluation is returned
         let mut best_eval = MiniMaxEvaluation {
             score: i64::min_value(),
             movement: None,
         };
-        let mut alpha = alpha;
-        // let mut moves: Vec<(Board, Move)> = board
-        //     .intersections_legal_moves(rules, player)
-        //     .iter()
-        //     .map(|movement| {
-        //         let new_board = board.apply_move(rules, movement);
-        //         (new_board, *movement)
-        //     })
-        //     .collect::<Vec<(Board, Move)>>();
-        // moves.sort_by(|a, b| {
-        //     Computer::evaluate_board(&a.0, player)
-        //         .cmp(&Computer::evaluate_board(&b.0, player))
-        // });
-        // for (new_board, movement) in moves.iter() {
-        for movement in board.intersections_legal_moves(rules, player).iter() {
-            // println!(
-            //     "examining {} moves",
-            //     board.intersections_legal_moves(rules, player).len()
-            // );
-            // println!(
-            //     "depth {} -- checking move {} for {:#?}",
-            //     depth - 1,
-            //     movement.index,
-            //     movement.player
-            // );
-            let new_board = board.apply_move(rules, movement);
+
+        // Sort each neighbors movements and add them to the cache
+        let mut moves: Vec<(Board, Move)> = board
+            .intersections_legal_moves(rules, player)
+            .iter()
+            .map(|movement| {
+                let new_board = board.apply_move(rules, movement);
+                (new_board, *movement)
+            })
+            .collect::<Vec<(Board, Move)>>();
+        if player == &Player::Black {
+            moves.sort_by(|a, b| {
+                if !self.cache.contains_key(&a.0.pieces) {
+                    let scores = Computer::evaluate_board(&a.0);
+                    self.cache.insert(a.0.pieces.clone(), scores);
+                }
+                if !self.cache.contains_key(&b.0.pieces) {
+                    let scores = Computer::evaluate_board(&b.0);
+                    self.cache.insert(b.0.pieces.clone(), scores);
+                }
+                self.cache
+                    .get(&a.0.pieces)
+                    .unwrap()
+                    .0
+                    .cmp(&self.cache.get(&b.0.pieces).unwrap().0)
+            });
+        } else {
+            moves.sort_by(|a, b| {
+                if !self.cache.contains_key(&a.0.pieces) {
+                    let scores = Computer::evaluate_board(&a.0);
+                    self.cache.insert(a.0.pieces.clone(), scores);
+                }
+                if !self.cache.contains_key(&b.0.pieces) {
+                    let scores = Computer::evaluate_board(&b.0);
+                    self.cache.insert(b.0.pieces.clone(), scores);
+                }
+                self.cache
+                    .get(&a.0.pieces)
+                    .unwrap()
+                    .1
+                    .cmp(&self.cache.get(&b.0.pieces).unwrap().1)
+            });
+        }
+
+        // Iterate each (sorted) moves
+        for (new_board, movement) in moves.iter() {
             let mut eval = self.negamax_alpha_beta(
                 rules,
                 &new_board,
@@ -629,25 +707,20 @@ impl Computer {
             )?;
             eval.score = -eval.score;
             if eval.score > alpha {
-                // println!(
-                //     "Leaf of movement {:#?} has better alpha {}",
-                //     movement, eval.score
-                // );
                 alpha = eval.score;
                 best_eval.score = eval.score;
                 best_eval.movement = Some(movement.clone());
             }
             if alpha >= beta {
-                // println!("break off");
                 break;
             }
         }
         return Ok(best_eval);
     }
 
-    // Use the minimax algorithm to get the next best move
+    // Use the negamax algorithm (minimax variant) to get the next best move
     pub fn play(
-        &self,
+        &mut self,
         rules: &RuleSet,
         board: &Board,
         depth: usize,

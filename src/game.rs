@@ -58,6 +58,7 @@ impl Game {
         self.previous_play_time = now - now;
         self.current_player = Player::Black;
         self.winner = Winner::None;
+        self.computer.clean();
     }
 
     pub fn start(&mut self, mode: GameMode) {
