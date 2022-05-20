@@ -225,13 +225,16 @@ impl Board {
             let pos = Board::index_to_coordinates(*rock);
             let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
             // Check all 8 directions from the rock to see if there is five in a row
-            for (orig_x, orig_y) in DIRECTIONS {
+            for (dir_x, dir_y) in DIRECTIONS {
                 // Create a window of length 5 and update it on each move
                 // If there is five in a row in the window, return true
+                let mut length = 0;
+                // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
+                // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
                 let mut buf = FixedVecDeque::<[usize; 5]>::new();
-                let mut mov_x = orig_x * -4;
-                let mut mov_y = orig_y * -4;
-                for _ in 0..8 {
+                let mut mov_x = dir_x * -5;
+                let mut mov_y = dir_y * -5;
+                for _ in 0..10 {
                     let (new_x, new_y) = (x + mov_x, y + mov_y);
                     // Check Board boundaries
                     if new_x >= 0
@@ -246,12 +249,13 @@ impl Board {
                             } else {
                                 0
                             };
-                        if buf == [1, 1, 1, 1, 1] {
+                        length += 1;
+                        if length >= 5 && buf == [1, 1, 1, 1, 1] {
                             return true;
                         }
                     }
-                    mov_x += orig_x;
-                    mov_y += orig_y;
+                    mov_x += dir_x;
+                    mov_y += dir_y;
                 }
             }
         }

@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
-use fixed_vec_deque::FixedVecDeque;
-
 use crate::{
     board::{Board, Move, Pawn, BOARD_PIECES, BOARD_SIZE, DIRECTIONS},
     player::Player,
     rules::RuleSet,
 };
+use fixed_vec_deque::FixedVecDeque;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug)]
 pub struct MiniMaxEvaluation {
@@ -50,7 +48,7 @@ impl Default for PatternCount {
 }
 
 #[allow(dead_code)]
-const PATTERNS: [([u8; 6], PatternCategory); 54] = [
+const PATTERNS: [([u8; 6], PatternCategory); 77] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
     ([1, 1, 1, 1, 1, 0], PatternCategory::FiveInRow),
@@ -123,32 +121,32 @@ const PATTERNS: [([u8; 6], PatternCategory); 54] = [
     ([0, 1, 0, 0, 1, 0], PatternCategory::LiveTwo),
     ([0, 0, 1, 0, 0, 1], PatternCategory::LiveTwo),
     // 3x3
-    // ([1, 1, 2, 0, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 1, 1, 2, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 1, 1, 2, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 0, 1, 1, 2], PatternCategory::DeadTwo),
-    // ([2, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 2, 1, 1, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 2, 1, 1, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 0, 2, 1, 1], PatternCategory::DeadTwo),
-    // // 4x3
-    // ([1, 0, 1, 2, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 1, 0, 1, 2, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 1, 0, 1, 2], PatternCategory::DeadTwo),
-    // ([2, 1, 0, 1, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 2, 1, 0, 1, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 2, 1, 0, 1], PatternCategory::DeadTwo),
-    // // 5x3
-    // ([1, 0, 0, 1, 2, 0], PatternCategory::DeadTwo),
-    // ([0, 1, 0, 0, 1, 2], PatternCategory::DeadTwo),
-    // ([2, 1, 0, 0, 1, 0], PatternCategory::DeadTwo),
-    // ([0, 2, 1, 0, 0, 1], PatternCategory::DeadTwo),
-    // // 6x3
-    // ([1, 1, 0, 0, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 1, 1, 0, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 0, 1, 1, 0], PatternCategory::DeadTwo),
-    // ([0, 0, 0, 0, 1, 1], PatternCategory::DeadTwo),
+    ([1, 1, 2, 0, 0, 0], PatternCategory::DeadTwo),
+    ([0, 1, 1, 2, 0, 0], PatternCategory::DeadTwo),
+    ([0, 0, 1, 1, 2, 0], PatternCategory::DeadTwo),
+    ([0, 0, 0, 1, 1, 2], PatternCategory::DeadTwo),
+    ([2, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
+    ([0, 2, 1, 1, 0, 0], PatternCategory::DeadTwo),
+    ([0, 0, 2, 1, 1, 0], PatternCategory::DeadTwo),
+    ([0, 0, 0, 2, 1, 1], PatternCategory::DeadTwo),
+    // 4x3
+    ([1, 0, 1, 2, 0, 0], PatternCategory::DeadTwo),
+    ([0, 1, 0, 1, 2, 0], PatternCategory::DeadTwo),
+    ([0, 0, 1, 0, 1, 2], PatternCategory::DeadTwo),
+    ([2, 1, 0, 1, 0, 0], PatternCategory::DeadTwo),
+    ([0, 2, 1, 0, 1, 0], PatternCategory::DeadTwo),
+    ([0, 0, 2, 1, 0, 1], PatternCategory::DeadTwo),
+    // 5x3
+    ([1, 0, 0, 1, 2, 0], PatternCategory::DeadTwo),
+    ([0, 1, 0, 0, 1, 2], PatternCategory::DeadTwo),
+    ([2, 1, 0, 0, 1, 0], PatternCategory::DeadTwo),
+    ([0, 2, 1, 0, 0, 1], PatternCategory::DeadTwo),
+    // 6x3
+    ([1, 1, 0, 0, 0, 0], PatternCategory::DeadTwo),
+    ([0, 1, 1, 0, 0, 0], PatternCategory::DeadTwo),
+    ([0, 0, 1, 1, 0, 0], PatternCategory::DeadTwo),
+    ([0, 0, 0, 1, 1, 0], PatternCategory::DeadTwo),
+    ([0, 0, 0, 0, 1, 1], PatternCategory::DeadTwo),
 ];
 
 #[derive(Debug, Clone)]
@@ -202,29 +200,17 @@ impl Computer {
         for existing_pawn in board.black_rocks.iter() {
             let (x, y) = Board::index_to_coordinates(*existing_pawn);
             let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-            for (orig_x, orig_y) in DIRECTIONS {
-                // Initialize to -5 + -5 so the first 5 elements
-                // -- can be set and the 6 one is the initial rock
-                let mut mov_x = orig_x * -10;
-                let mut mov_y = orig_y * -10;
-                // Initialize the window with the first 5 values
-                // [x x x x x ?] ? ? ? ? I
-                //               > > > > ^
-                for _ in 0..5 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
-                    *buf.push_front() = Computer::pawn_to_pattern_pawn(
-                        board,
-                        new_x as usize,
-                        new_y as usize,
-                        player,
-                    );
-                    mov_x += orig_x;
-                    mov_y += orig_y;
-                }
-                // Loop until the sliding window first element is the current rock
-                // [? ? ? ? ? I] ? ? ? ? ?
-                //               > > > > ^
-                for _ in 0..5 {
+            for (dir_x, dir_y) in DIRECTIONS {
+                // Initialize to -6 so the first 6 elements
+                // -- can be set and the last one is the initial rock
+                let mut length = 0;
+                let best_pattern_index: RefCell<Option<usize>> = RefCell::new(None);
+                let best_pattern_value: RefCell<Option<Pattern>> = RefCell::new(None);
+                // from [x x x x x x] ? ? ? ? ? I  ? ? ? ? ?
+                // to    x x x x x x  ? ? ? ? ? [I ? ? ? ? ?]
+                let mut mov_x = dir_x * -6;
+                let mut mov_y = dir_y * -6;
+                for _ in 0..11 {
                     let (new_x, new_y) = (x + mov_x, y + mov_y);
                     // Check Board boundaries
                     if new_x >= 0
@@ -238,30 +224,44 @@ impl Computer {
                             new_y as usize,
                             player,
                         );
-                        if let Some(found) = PATTERNS.iter().find(|pattern| {
-                            for i in 0..6 {
-                                if pattern.0[i] != buf[i] {
-                                    return false;
+                        length += 1;
+                        if length >= 6 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                            if let Some((index, (_, category))) =
+                                PATTERNS.iter().enumerate().find(|(_, (pattern, _))| {
+                                    for i in 0..6 {
+                                        if pattern[i] != buf[i] {
+                                            return false;
+                                        }
+                                    }
+                                    true
+                                })
+                            {
+                                if best_pattern_index.borrow().is_none()
+                                    || best_pattern_index.borrow().unwrap() > index
+                                {
+                                    *best_pattern_index.borrow_mut() = Some(index);
+                                    *best_pattern_value.borrow_mut() = Some(Pattern {
+                                        pieces: vec![
+                                            // TODO
+                                            // Board::coordinates_to_index(x - 4, y),
+                                            // Board::coordinates_to_index(x - 3, y),
+                                            // Board::coordinates_to_index(x - 2, y),
+                                            // Board::coordinates_to_index(x - 1, y),
+                                            // Board::coordinates_to_index(x - 0, y),
+                                        ],
+                                        category: *category,
+                                    });
                                 }
                             }
-                            true
-                        }) {
-                            patterns.push(Pattern {
-                                pieces: vec![
-                                    // TODO
-                                    // Board::coordinates_to_index(x - 4, y),
-                                    // Board::coordinates_to_index(x - 3, y),
-                                    // Board::coordinates_to_index(x - 2, y),
-                                    // Board::coordinates_to_index(x - 1, y),
-                                    // Board::coordinates_to_index(x - 0, y),
-                                ],
-                                category: found.1,
-                            });
-                            continue;
                         }
                     }
-                    mov_x += orig_x;
-                    mov_y += orig_y;
+                    mov_x += dir_x;
+                    mov_y += dir_y;
+                }
+                // Save the pattern if there was one
+                let best_pattern = best_pattern_value.borrow().to_owned();
+                if let Some(best_pattern) = best_pattern {
+                    patterns.push(best_pattern);
                 }
             }
         }
@@ -270,29 +270,17 @@ impl Computer {
         for existing_pawn in board.white_rocks.iter() {
             let (x, y) = Board::index_to_coordinates(*existing_pawn);
             let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-            for (orig_x, orig_y) in DIRECTIONS {
-                // Initialize to -5 + -5 so the first 5 elements
-                // -- can be set and the 6 one is the initial rock
-                let mut mov_x = orig_x * -10;
-                let mut mov_y = orig_y * -10;
-                // Initialize the window with the first 5 values
-                // [x x x x x ?] ? ? ? ? I
-                //               > > > > ^
-                for _ in 0..5 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
-                    *buf.push_front() = Computer::pawn_to_pattern_pawn(
-                        board,
-                        new_x as usize,
-                        new_y as usize,
-                        player,
-                    );
-                    mov_x += orig_x;
-                    mov_y += orig_y;
-                }
-                // Loop until the sliding window first element is the current rock
-                // [? ? ? ? ? I] ? ? ? ? ?
-                //               > > > > ^
-                for _ in 0..5 {
+            for (dir_x, dir_y) in DIRECTIONS {
+                // Initialize to -6 so the first 6 elements
+                // -- can be set and the last one is the initial rock
+                let mut length = 0;
+                let best_pattern_index: RefCell<Option<usize>> = RefCell::new(None);
+                let best_pattern_value: RefCell<Option<Pattern>> = RefCell::new(None);
+                // from [x x x x x x] ? ? ? ? ? I  ? ? ? ? ?
+                // to    x x x x x x  ? ? ? ? ? [I ? ? ? ? ?]
+                let mut mov_x = dir_x * -6;
+                let mut mov_y = dir_y * -6;
+                for _ in 0..11 {
                     let (new_x, new_y) = (x + mov_x, y + mov_y);
                     // Check Board boundaries
                     if new_x >= 0
@@ -306,30 +294,44 @@ impl Computer {
                             new_y as usize,
                             player,
                         );
-                        if let Some(found) = PATTERNS.iter().find(|pattern| {
-                            for i in 0..6 {
-                                if pattern.0[i] != buf[i] {
-                                    return false;
+                        length += 1;
+                        if length >= 6 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                            if let Some((index, (_, category))) =
+                                PATTERNS.iter().enumerate().find(|(_, (pattern, _))| {
+                                    for i in 0..6 {
+                                        if pattern[i] != buf[i] {
+                                            return false;
+                                        }
+                                    }
+                                    true
+                                })
+                            {
+                                if best_pattern_index.borrow().is_none()
+                                    || best_pattern_index.borrow().unwrap() > index
+                                {
+                                    *best_pattern_index.borrow_mut() = Some(index);
+                                    *best_pattern_value.borrow_mut() = Some(Pattern {
+                                        pieces: vec![
+                                            // TODO
+                                            // Board::coordinates_to_index(x - 4, y),
+                                            // Board::coordinates_to_index(x - 3, y),
+                                            // Board::coordinates_to_index(x - 2, y),
+                                            // Board::coordinates_to_index(x - 1, y),
+                                            // Board::coordinates_to_index(x - 0, y),
+                                        ],
+                                        category: *category,
+                                    });
                                 }
                             }
-                            true
-                        }) {
-                            patterns.push(Pattern {
-                                pieces: vec![
-                                    // TODO
-                                    // Board::coordinates_to_index(x - 4, y),
-                                    // Board::coordinates_to_index(x - 3, y),
-                                    // Board::coordinates_to_index(x - 2, y),
-                                    // Board::coordinates_to_index(x - 1, y),
-                                    // Board::coordinates_to_index(x - 0, y),
-                                ],
-                                category: found.1,
-                            });
-                            continue;
                         }
                     }
-                    mov_x += orig_x;
-                    mov_y += orig_y;
+                    mov_x += dir_x;
+                    mov_y += dir_y;
+                }
+                // Save the pattern if there was one
+                let best_pattern = best_pattern_value.borrow().to_owned();
+                if let Some(best_pattern) = best_pattern {
+                    patterns.push(best_pattern);
                 }
             }
         }
