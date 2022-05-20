@@ -27,7 +27,7 @@ pub struct Move {
 
 pub const BOARD_SIZE: usize = 19;
 pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
-const DIRECTIONS: [(i16, i16); 8] = [
+pub const DIRECTIONS: [(i16, i16); 8] = [
     (-1, -1),
     (-1, 0),
     (-1, 1),
@@ -133,6 +133,7 @@ impl Board {
             }
         }
         // White rocks
+        // TODO de-duplicate logic
         for existing_pawn in self.black_rocks.iter() {
             let (x, y) = Board::index_to_coordinates(*existing_pawn);
             let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
@@ -224,36 +225,33 @@ impl Board {
             let pos = Board::index_to_coordinates(*rock);
             let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
             // Check all 8 directions from the rock to see if there is five in a row
-            for direction in DIRECTIONS {
+            for (orig_x, orig_y) in DIRECTIONS {
                 // Create a window of length 5 and update it on each move
                 // If there is five in a row in the window, return true
                 let mut buf = FixedVecDeque::<[usize; 5]>::new();
-                let mut mov_x = direction.0 * -4;
-                let mut mov_y = direction.1 * -4;
+                let mut mov_x = orig_x * -4;
+                let mut mov_y = orig_y * -4;
                 for _ in 0..8 {
-                    let current_pos = (x + mov_x, y + mov_y);
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
                     // Check Board boundaries
-                    if current_pos.0 >= 0
-                        && current_pos.1 >= 0
-                        && (current_pos.0 as usize) < BOARD_SIZE
-                        && (current_pos.1 as usize) < BOARD_SIZE
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
                     {
                         // 1 for player pawn and 0 for anything else
-                        *buf.push_front() = if self
-                            .get(current_pos.0 as usize, current_pos.1 as usize)
-                            .unwrap()
-                            == player_pawn
-                        {
-                            1
-                        } else {
-                            0
-                        };
+                        *buf.push_front() =
+                            if self.get(new_x as usize, new_y as usize).unwrap() == player_pawn {
+                                1
+                            } else {
+                                0
+                            };
                         if buf == [1, 1, 1, 1, 1] {
                             return true;
                         }
                     }
-                    mov_x += direction.0;
-                    mov_y += direction.1;
+                    mov_x += orig_x;
+                    mov_y += orig_y;
                 }
             }
         }

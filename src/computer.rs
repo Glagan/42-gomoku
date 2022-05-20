@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use fixed_vec_deque::FixedVecDeque;
+
 use crate::{
-    board::{Board, Move, Pawn, BOARD_PIECES, BOARD_SIZE},
+    board::{Board, Move, Pawn, BOARD_PIECES, BOARD_SIZE, DIRECTIONS},
     player::Player,
     rules::RuleSet,
 };
@@ -190,163 +192,151 @@ impl Computer {
         }
     }
 
-    // Create an array of size 6 and compare it with all the patterns
-    pub fn get_horizontal_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
-        let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
-        for y in 0..BOARD_SIZE {
-            // Go trough the first 5 with an offset of 1
-            // -- the next x loop will have the correct initial window
-            for i in 0..5 {
-                window[i + 1] = Computer::pawn_to_pattern_pawn(board, i, y, player);
-            }
-            for x in 5..BOARD_SIZE {
-                window[0] = window[1];
-                window[1] = window[2];
-                window[2] = window[3];
-                window[3] = window[4];
-                window[4] = window[5];
-                window[5] = Computer::pawn_to_pattern_pawn(board, x, y, player);
-                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
-                        patterns.push(Pattern {
-                            pieces: vec![
-                                // TODO
-                                Board::coordinates_to_index(x - 4, y),
-                                Board::coordinates_to_index(x - 3, y),
-                                Board::coordinates_to_index(x - 2, y),
-                                Board::coordinates_to_index(x - 1, y),
-                                Board::coordinates_to_index(x - 0, y),
-                            ],
-                            category: found.1,
-                        });
-                        continue;
-                    }
-                }
-            }
-        }
-        patterns
-    }
-
-    pub fn get_vertical_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
-        let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
-        for x in 0..BOARD_SIZE {
-            // Go trough the first 5 with an offset of 1
-            // -- the next y loop will have the correct initial window
-            for i in 0..5 {
-                window[i + 1] = Computer::pawn_to_pattern_pawn(board, x, i, player);
-            }
-            for y in 5..BOARD_SIZE {
-                window[0] = window[1];
-                window[1] = window[2];
-                window[2] = window[3];
-                window[3] = window[4];
-                window[4] = window[5];
-                window[5] = Computer::pawn_to_pattern_pawn(board, x, y, player);
-                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
-                        patterns.push(Pattern {
-                            pieces: vec![
-                                // TODO
-                                Board::coordinates_to_index(x, y - 4),
-                                Board::coordinates_to_index(x, y - 3),
-                                Board::coordinates_to_index(x, y - 2),
-                                Board::coordinates_to_index(x, y - 1),
-                                Board::coordinates_to_index(x, y - 0),
-                            ],
-                            category: found.1,
-                        });
-                        continue;
-                    }
-                }
-            }
-        }
-        patterns
-    }
-
-    pub fn get_diagonal_left_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
-        let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
-        for y in 0..(BOARD_SIZE - 6) {
-            // Go trough the first 5 with an offset of 1
-            // -- the next x loop will have the correct initial window
-            for x in 0..(BOARD_SIZE - 6) {
-                window[0] = Computer::pawn_to_pattern_pawn(board, x, y, player);
-                window[1] = Computer::pawn_to_pattern_pawn(board, x + 1, y + 1, player);
-                window[2] = Computer::pawn_to_pattern_pawn(board, x + 2, y + 2, player);
-                window[3] = Computer::pawn_to_pattern_pawn(board, x + 3, y + 3, player);
-                window[4] = Computer::pawn_to_pattern_pawn(board, x + 4, y + 4, player);
-                window[5] = Computer::pawn_to_pattern_pawn(board, x + 5, y + 5, player);
-                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
-                        patterns.push(Pattern {
-                            pieces: vec![
-                                // TODO
-                                Board::coordinates_to_index(x, y - 4),
-                                Board::coordinates_to_index(x, y - 3),
-                                Board::coordinates_to_index(x, y - 2),
-                                Board::coordinates_to_index(x, y - 1),
-                                Board::coordinates_to_index(x, y - 0),
-                            ],
-                            category: found.1,
-                        });
-                        continue;
-                    }
-                }
-            }
-        }
-        patterns
-    }
-
-    pub fn get_diagonal_right_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
-        let mut patterns: Vec<Pattern> = vec![];
-        let mut window: [u8; 6] = [0, 0, 0, 0, 0, 0];
-        for y in 0..(BOARD_SIZE - 6) {
-            // Go trough the first 5 with an offset of 1
-            // -- the next x loop will have the correct initial window
-            for x in 5..BOARD_SIZE {
-                window[0] = Computer::pawn_to_pattern_pawn(board, x, y, player);
-                window[1] = Computer::pawn_to_pattern_pawn(board, x - 1, y + 1, player);
-                window[2] = Computer::pawn_to_pattern_pawn(board, x - 2, y + 2, player);
-                window[3] = Computer::pawn_to_pattern_pawn(board, x - 3, y + 3, player);
-                window[4] = Computer::pawn_to_pattern_pawn(board, x - 4, y + 4, player);
-                window[5] = Computer::pawn_to_pattern_pawn(board, x - 5, y + 5, player);
-                if window.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                    if let Some(found) = PATTERNS.iter().find(|pattern| pattern.0 == window) {
-                        patterns.push(Pattern {
-                            pieces: vec![
-                                // TODO
-                                Board::coordinates_to_index(x, y - 4),
-                                Board::coordinates_to_index(x, y - 3),
-                                Board::coordinates_to_index(x, y - 2),
-                                Board::coordinates_to_index(x, y - 1),
-                                Board::coordinates_to_index(x, y - 0),
-                            ],
-                            category: found.1,
-                        });
-                        continue;
-                    }
-                }
-            }
-        }
-        patterns
-    }
-
-    // Get the list of *all* patterns on the board for a given player
-    // Create a sliding window of length 6 and advance by 1 case at a time
-    // Check each patterns inside the window and returns the first one
-    // -- patterns are ordered by size
+    // For each rocks on the board check all 8 directions to count all patterns
+    // -- in a sliding window of 6 around the rock
     pub fn get_patterns(board: &Board, player: &Player) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        patterns.append(&mut Computer::get_horizontal_patterns(board, player));
-        patterns.append(&mut Computer::get_vertical_patterns(board, player));
-        patterns.append(&mut Computer::get_diagonal_left_patterns(board, player));
-        patterns.append(&mut Computer::get_diagonal_right_patterns(board, player));
+        // Sliding window of 6 (patterns length)
+        let mut buf = FixedVecDeque::<[u8; 6]>::new();
+        // Black rocks
+        for existing_pawn in board.black_rocks.iter() {
+            let (x, y) = Board::index_to_coordinates(*existing_pawn);
+            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+            for (orig_x, orig_y) in DIRECTIONS {
+                // Initialize to -5 + -5 so the first 5 elements
+                // -- can be set and the 6 one is the initial rock
+                let mut mov_x = orig_x * -10;
+                let mut mov_y = orig_y * -10;
+                // Initialize the window with the first 5 values
+                // [x x x x x ?] ? ? ? ? I
+                //               > > > > ^
+                for _ in 0..5 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    *buf.push_front() = Computer::pawn_to_pattern_pawn(
+                        board,
+                        new_x as usize,
+                        new_y as usize,
+                        player,
+                    );
+                    mov_x += orig_x;
+                    mov_y += orig_y;
+                }
+                // Loop until the sliding window first element is the current rock
+                // [? ? ? ? ? I] ? ? ? ? ?
+                //               > > > > ^
+                for _ in 0..5 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
+                    {
+                        *buf.push_front() = Computer::pawn_to_pattern_pawn(
+                            board,
+                            new_x as usize,
+                            new_y as usize,
+                            player,
+                        );
+                        if let Some(found) = PATTERNS.iter().find(|pattern| {
+                            for i in 0..6 {
+                                if pattern.0[i] != buf[i] {
+                                    return false;
+                                }
+                            }
+                            true
+                        }) {
+                            patterns.push(Pattern {
+                                pieces: vec![
+                                    // TODO
+                                    // Board::coordinates_to_index(x - 4, y),
+                                    // Board::coordinates_to_index(x - 3, y),
+                                    // Board::coordinates_to_index(x - 2, y),
+                                    // Board::coordinates_to_index(x - 1, y),
+                                    // Board::coordinates_to_index(x - 0, y),
+                                ],
+                                category: found.1,
+                            });
+                            continue;
+                        }
+                    }
+                    mov_x += orig_x;
+                    mov_y += orig_y;
+                }
+            }
+        }
+        // White rocks
+        // TODO de-duplicate logic
+        for existing_pawn in board.white_rocks.iter() {
+            let (x, y) = Board::index_to_coordinates(*existing_pawn);
+            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+            for (orig_x, orig_y) in DIRECTIONS {
+                // Initialize to -5 + -5 so the first 5 elements
+                // -- can be set and the 6 one is the initial rock
+                let mut mov_x = orig_x * -10;
+                let mut mov_y = orig_y * -10;
+                // Initialize the window with the first 5 values
+                // [x x x x x ?] ? ? ? ? I
+                //               > > > > ^
+                for _ in 0..5 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    *buf.push_front() = Computer::pawn_to_pattern_pawn(
+                        board,
+                        new_x as usize,
+                        new_y as usize,
+                        player,
+                    );
+                    mov_x += orig_x;
+                    mov_y += orig_y;
+                }
+                // Loop until the sliding window first element is the current rock
+                // [? ? ? ? ? I] ? ? ? ? ?
+                //               > > > > ^
+                for _ in 0..5 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
+                    {
+                        *buf.push_front() = Computer::pawn_to_pattern_pawn(
+                            board,
+                            new_x as usize,
+                            new_y as usize,
+                            player,
+                        );
+                        if let Some(found) = PATTERNS.iter().find(|pattern| {
+                            for i in 0..6 {
+                                if pattern.0[i] != buf[i] {
+                                    return false;
+                                }
+                            }
+                            true
+                        }) {
+                            patterns.push(Pattern {
+                                pieces: vec![
+                                    // TODO
+                                    // Board::coordinates_to_index(x - 4, y),
+                                    // Board::coordinates_to_index(x - 3, y),
+                                    // Board::coordinates_to_index(x - 2, y),
+                                    // Board::coordinates_to_index(x - 1, y),
+                                    // Board::coordinates_to_index(x - 0, y),
+                                ],
+                                category: found.1,
+                            });
+                            continue;
+                        }
+                    }
+                    mov_x += orig_x;
+                    mov_y += orig_y;
+                }
+            }
+        }
         patterns
     }
 
-    pub fn get_patterns_count(board: &Board, player: &Player) -> PatternCount {
+    pub fn count_patterns(board: &Board, player: &Player) -> PatternCount {
         let mut pattern_count = PatternCount::default();
         let patterns = Computer::get_patterns(board, player);
         for pattern in patterns.iter() {
@@ -370,18 +360,14 @@ impl Computer {
     }
 
     // TODO
-    pub fn compute_pattern_score(
-        self_patterns: &PatternCount,
-        other_patterns: &PatternCount,
-    ) -> i64 {
+    pub fn patterns_score(self_patterns: &PatternCount, other_patterns: &PatternCount) -> i64 {
         let mut score: i64 = 0;
         if self_patterns.five_in_row > 0 {
             score += 100000;
         }
-        // ?
-        // if other_patterns.dead_four > 0 {
-        //     score += 25000;
-        // }
+        if other_patterns.dead_four > 0 {
+            score += 25000;
+        }
         if self_patterns.live_four > 0 {
             score += 15000;
         }
@@ -410,11 +396,11 @@ impl Computer {
 
     // Calculate all patterns for a both players and return the board score
     pub fn evaluate_board(board: &Board) -> (i64, i64) {
-        let black_patterns = Computer::get_patterns_count(board, &Player::Black);
-        let white_patterns = Computer::get_patterns_count(board, &Player::White);
+        let black_patterns = Computer::count_patterns(board, &Player::Black);
+        let white_patterns = Computer::count_patterns(board, &Player::White);
         (
-            Computer::compute_pattern_score(&black_patterns, &white_patterns),
-            Computer::compute_pattern_score(&white_patterns, &black_patterns),
+            Computer::patterns_score(&black_patterns, &white_patterns),
+            Computer::patterns_score(&white_patterns, &black_patterns),
         )
     }
 
@@ -599,9 +585,9 @@ impl Computer {
         player: &Player,
         maximize: &Player,
     ) -> Result<MiniMaxEvaluation, String> {
-        let alpha_orig = alpha;
+        // let alpha_orig = alpha;
         let mut alpha = alpha;
-        let mut beta = beta;
+        // let mut beta = beta;
 
         // Check cache to see if the board was already computed
         // if self.cache.contains_key(&board.pieces) {
@@ -629,7 +615,8 @@ impl Computer {
         if depth == 0 || board.is_winning(rules, player) {
             // println!("{}", board);
             let color = if player == maximize { 1 } else { -1 };
-            let scores = self.cache.get(&board.pieces).unwrap();
+            // let scores = self.cache.get(&board.pieces).unwrap();
+            let scores = Computer::evaluate_board(&board);
             return Ok(MiniMaxEvaluation {
                 score: color
                     * if player == &Player::Black {
@@ -648,50 +635,52 @@ impl Computer {
         };
 
         // Sort each neighbors movements and add them to the cache
-        let mut moves: Vec<(Board, Move)> = board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|movement| {
-                let new_board = board.apply_move(rules, movement);
-                (new_board, *movement)
-            })
-            .collect::<Vec<(Board, Move)>>();
-        if player == &Player::Black {
-            moves.sort_by(|a, b| {
-                if !self.cache.contains_key(&a.0.pieces) {
-                    let scores = Computer::evaluate_board(&a.0);
-                    self.cache.insert(a.0.pieces.clone(), scores);
-                }
-                if !self.cache.contains_key(&b.0.pieces) {
-                    let scores = Computer::evaluate_board(&b.0);
-                    self.cache.insert(b.0.pieces.clone(), scores);
-                }
-                self.cache
-                    .get(&a.0.pieces)
-                    .unwrap()
-                    .0
-                    .cmp(&self.cache.get(&b.0.pieces).unwrap().0)
-            });
-        } else {
-            moves.sort_by(|a, b| {
-                if !self.cache.contains_key(&a.0.pieces) {
-                    let scores = Computer::evaluate_board(&a.0);
-                    self.cache.insert(a.0.pieces.clone(), scores);
-                }
-                if !self.cache.contains_key(&b.0.pieces) {
-                    let scores = Computer::evaluate_board(&b.0);
-                    self.cache.insert(b.0.pieces.clone(), scores);
-                }
-                self.cache
-                    .get(&a.0.pieces)
-                    .unwrap()
-                    .1
-                    .cmp(&self.cache.get(&b.0.pieces).unwrap().1)
-            });
-        }
+        // let mut moves: Vec<(Board, Move)> = board
+        //     .intersections_legal_moves(rules, player)
+        //     .iter()
+        //     .map(|movement| {
+        //         let new_board = board.apply_move(rules, movement);
+        //         (new_board, *movement)
+        //     })
+        //     .collect::<Vec<(Board, Move)>>();
+        // if player == &Player::Black {
+        //     moves.sort_by(|a, b| {
+        //         if !self.cache.contains_key(&a.0.pieces) {
+        //             let scores = Computer::evaluate_board(&a.0);
+        //             self.cache.insert(a.0.pieces.clone(), scores);
+        //         }
+        //         if !self.cache.contains_key(&b.0.pieces) {
+        //             let scores = Computer::evaluate_board(&b.0);
+        //             self.cache.insert(b.0.pieces.clone(), scores);
+        //         }
+        //         self.cache
+        //             .get(&a.0.pieces)
+        //             .unwrap()
+        //             .0
+        //             .cmp(&self.cache.get(&b.0.pieces).unwrap().0)
+        //     });
+        // } else {
+        //     moves.sort_by(|a, b| {
+        //         if !self.cache.contains_key(&a.0.pieces) {
+        //             let scores = Computer::evaluate_board(&a.0);
+        //             self.cache.insert(a.0.pieces.clone(), scores);
+        //         }
+        //         if !self.cache.contains_key(&b.0.pieces) {
+        //             let scores = Computer::evaluate_board(&b.0);
+        //             self.cache.insert(b.0.pieces.clone(), scores);
+        //         }
+        //         self.cache
+        //             .get(&a.0.pieces)
+        //             .unwrap()
+        //             .1
+        //             .cmp(&self.cache.get(&b.0.pieces).unwrap().1)
+        //     });
+        // }
 
         // Iterate each (sorted) moves
-        for (new_board, movement) in moves.iter() {
+        // for (new_board, movement) in moves.iter() {
+        for movement in board.intersections_legal_moves(rules, player).iter() {
+            let new_board = board.apply_move(rules, movement);
             let mut eval = self.negamax_alpha_beta(
                 rules,
                 &new_board,
