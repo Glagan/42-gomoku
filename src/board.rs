@@ -1,8 +1,5 @@
-use crate::{
-    computer::{Computer, PatternCategory, PatternCount},
-    player::Player,
-    rules::RuleSet,
-};
+use crate::{player::Player, rules::RuleSet};
+use fixed_vec_deque::FixedVecDeque;
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -30,11 +27,23 @@ pub struct Move {
 
 pub const BOARD_SIZE: usize = 19;
 pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
+const DIRECTIONS: [(i16, i16); 8] = [
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
+];
 
 #[derive(Clone)]
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
     pub moves: Vec<Move>,
+    pub black_rocks: Vec<usize>,
+    pub white_rocks: Vec<usize>,
     pub black_capture: u8,
     pub white_capture: u8,
 }
@@ -44,6 +53,8 @@ impl Default for Board {
         Board {
             pieces: [Pawn::None; BOARD_PIECES],
             moves: vec![],
+            black_rocks: vec![],
+            white_rocks: vec![],
             black_capture: 0,
             white_capture: 0,
         }
@@ -98,39 +109,44 @@ impl Board {
             return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
         }
         let mut intersections: Vec<usize> = vec![];
-        for (existing_pawn, _) in self
-            .pieces
-            .iter()
-            .enumerate()
-            .filter(|&pawn| pawn.1 != &Pawn::None)
-        {
-            let (x, y) = Board::index_to_coordinates(existing_pawn);
-            // for x_mov in [-2, -1, 0, 1, 2] as [i8; 5] {
-            //     for y_mov in [-2, -1, 0, 1, 2] as [i8; 5] {
-            for x_mov in [-1, 0, 1] as [i8; 3] {
-                for y_mov in [-1, 0, 1] as [i8; 3] {
-                    if x_mov == 0 && y_mov == 0 {
-                        continue;
-                    }
-                    if (x < 2 && x_mov == -2)
-                        || (x < 1 && x_mov == -1)
-                        || (x_mov > 0 && x + x_mov as usize >= BOARD_SIZE)
-                    {
-                        continue;
-                    }
-                    if (y < 2 && y_mov == -2)
-                        || (y < 1 && y_mov == -1)
-                        || (y_mov > 0 && y + y_mov as usize >= BOARD_SIZE)
-                    {
-                        continue;
-                    }
-                    let (new_x, new_y) = (
-                        usize::try_from(x as i8 + x_mov).ok().unwrap(),
-                        usize::try_from(y as i8 + y_mov).ok().unwrap(),
-                    );
-                    if let Some(pawn) = &self.get(new_x, new_y) {
+        // Black rocks
+        for existing_pawn in self.black_rocks.iter() {
+            let (x, y) = Board::index_to_coordinates(*existing_pawn);
+            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+            for (mov_x, mov_y) in DIRECTIONS {
+                let (new_x, new_y) = (x + mov_x, y + mov_y);
+                // Check Board boundaries
+                if new_x >= 0
+                    && new_y >= 0
+                    && (new_x as usize) < BOARD_SIZE
+                    && (new_y as usize) < BOARD_SIZE
+                {
+                    if let Some(pawn) = &self.get(new_x as usize, new_y as usize) {
                         if *pawn == Pawn::None {
-                            let index = Board::coordinates_to_index(new_x, new_y);
+                            let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
+                            if !intersections.contains(&index) {
+                                intersections.push(index);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // White rocks
+        for existing_pawn in self.black_rocks.iter() {
+            let (x, y) = Board::index_to_coordinates(*existing_pawn);
+            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+            for (mov_x, mov_y) in DIRECTIONS {
+                let (new_x, new_y) = (x + mov_x, y + mov_y);
+                // Check Board boundaries
+                if new_x >= 0
+                    && new_y >= 0
+                    && (new_x as usize) < BOARD_SIZE
+                    && (new_y as usize) < BOARD_SIZE
+                {
+                    if let Some(pawn) = &self.get(new_x as usize, new_y as usize) {
+                        if *pawn == Pawn::None {
+                            let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
                             if !intersections.contains(&index) {
                                 intersections.push(index);
                             }
@@ -182,6 +198,11 @@ impl Board {
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
         self.pieces[movement.index] = movement.player.pawn();
+        if movement.player == Player::Black {
+            self.black_rocks.push(movement.index);
+        } else {
+            self.white_rocks.push(movement.index);
+        }
         self.moves.push(movement.clone());
     }
 
@@ -193,14 +214,50 @@ impl Board {
     }
 
     pub fn has_five_in_a_row(&self, player: &Player) -> bool {
-        let mut pattern_count = PatternCount::default();
-        let patterns = Computer::get_patterns(&self, player);
-        for pattern in patterns.iter() {
-            if pattern.category == PatternCategory::FiveInRow {
-                pattern_count.five_in_row += 1;
+        let rocks = if player == &Player::Black {
+            &self.black_rocks
+        } else {
+            &self.white_rocks
+        };
+        let player_pawn = player.pawn();
+        for rock in rocks.iter() {
+            let pos = Board::index_to_coordinates(*rock);
+            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+            // Check all 8 directions from the rock to see if there is five in a row
+            for direction in DIRECTIONS {
+                // Create a window of length 5 and update it on each move
+                // If there is five in a row in the window, return true
+                let mut buf = FixedVecDeque::<[usize; 5]>::new();
+                let mut mov_x = direction.0 * -4;
+                let mut mov_y = direction.1 * -4;
+                for _ in 0..8 {
+                    let current_pos = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if current_pos.0 >= 0
+                        && current_pos.1 >= 0
+                        && (current_pos.0 as usize) < BOARD_SIZE
+                        && (current_pos.1 as usize) < BOARD_SIZE
+                    {
+                        // 1 for player pawn and 0 for anything else
+                        *buf.push_front() = if self
+                            .get(current_pos.0 as usize, current_pos.1 as usize)
+                            .unwrap()
+                            == player_pawn
+                        {
+                            1
+                        } else {
+                            0
+                        };
+                        if buf == [1, 1, 1, 1, 1] {
+                            return true;
+                        }
+                    }
+                    mov_x += direction.0;
+                    mov_y += direction.1;
+                }
             }
         }
-        pattern_count.five_in_row > 0
+        false
     }
 
     // Check if the given player is winning on the current board
