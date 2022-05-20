@@ -115,6 +115,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fixed-vec-deque"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c0bc0a5a14538da76b4127910be3eca0df0fb8fd6dc893fe620ecf583dda71"
+
+[[package]]
 name = "fontdue"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,6 +140,7 @@ checksum = "333928d5eb103c5d4050533cec0384302db6be8ef7d3cebd30ec6a35350353da"
 name = "gomoku"
 version = "0.1.0"
 dependencies = [
+ "fixed-vec-deque",
  "macroquad",
 ]
 
