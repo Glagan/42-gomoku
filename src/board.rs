@@ -71,6 +71,7 @@ pub struct Board {
     pub rocks: u16,
     pub black_rocks: Vec<usize>,
     pub white_rocks: Vec<usize>,
+    pub all_rocks: Vec<usize>,
     pub black_capture: u8,
     pub white_capture: u8,
 }
@@ -83,6 +84,7 @@ impl Default for Board {
             rocks: 0,
             black_rocks: vec![],
             white_rocks: vec![],
+            all_rocks: vec![],
             black_capture: 0,
             white_capture: 0,
         }
@@ -137,32 +139,7 @@ impl Board {
             return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
         }
         let mut intersections: Vec<usize> = vec![];
-        // Black rocks
-        for existing_pawn in self.black_rocks.iter() {
-            let (x, y) = Board::index_to_coordinates(*existing_pawn);
-            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-            for (mov_x, mov_y) in DIRECTIONS {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
-                // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
-                {
-                    if let Some(pawn) = &self.get(new_x as usize, new_y as usize) {
-                        if *pawn == Pawn::None {
-                            let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
-                            if !intersections.contains(&index) {
-                                intersections.push(index);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // White rocks
-        // TODO de-duplicate logic
-        for existing_pawn in self.black_rocks.iter() {
+        for existing_pawn in self.all_rocks.iter() {
             let (x, y) = Board::index_to_coordinates(*existing_pawn);
             let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
             for (mov_x, mov_y) in DIRECTIONS {
@@ -232,6 +209,7 @@ impl Board {
         } else {
             self.white_rocks.push(movement.index);
         }
+        self.all_rocks.push(movement.index);
         self.rocks += 1;
         self.moves.push(movement.clone());
     }
@@ -246,6 +224,7 @@ impl Board {
                 self.white_rocks.pop();
             }
             self.pieces[last_move.index] = Pawn::None;
+            self.all_rocks.pop();
         }
     }
 

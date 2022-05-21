@@ -91,7 +91,7 @@ async fn main() {
                     if game.mode == GameMode::PvA && game.current_player == Player::Black {
                         let play_result =
                             game.computer
-                                .play(&game.rules, &game.board, 4, &game.current_player);
+                                .play(&game.rules, &game.board, 3, &game.current_player);
                         if let Ok(play) = play_result {
                             println!(
                                 "computer play: {} in {}ms",
@@ -115,7 +115,7 @@ async fn main() {
                 else {
                     let play_result =
                         game.computer
-                            .play(&game.rules, &game.board, 4, &game.current_player);
+                            .play(&game.rules, &game.board, 3, &game.current_player);
                     if let Ok(play) = play_result {
                         println!(
                             "computer play: {} in {}ms",
