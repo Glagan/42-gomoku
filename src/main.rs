@@ -4,6 +4,7 @@ use crate::{
     game::{Game, GameMode, Winner},
     player::Player,
 };
+use colored::Colorize;
 use macroquad::prelude::*;
 
 const GRID_WINDOW_SIZE: usize = 800;
@@ -91,8 +92,12 @@ async fn main() {
                         let play_result =
                             game.computer
                                 .play(&game.rules, &game.board, 4, &game.current_player);
-                        println!("computer play: {:#?}", play_result);
                         if let Ok(play) = play_result {
+                            println!(
+                                "computer play: {} in {}ms",
+                                play,
+                                game.play_time.elapsed().as_millis()
+                            );
                             if let Some(movement) = play.movement {
                                 game.board.set_move(&game.rules, &movement);
                                 if game.board.is_winning(&game.rules, &game.current_player) {
@@ -101,6 +106,8 @@ async fn main() {
                                     game.next_player();
                                 }
                             }
+                        } else {
+                            println!("{}", "computer returned an empty play result".red());
                         }
                     }
                 }
@@ -108,9 +115,13 @@ async fn main() {
                 else {
                     let play_result =
                         game.computer
-                            .play(&game.rules, &game.board, 4, &game.current_player);
-                    println!("computer play: {:#?}", play_result);
+                            .play(&game.rules, &game.board, 3, &game.current_player);
                     if let Ok(play) = play_result {
+                        println!(
+                            "computer play: {} in {}ms",
+                            play,
+                            game.play_time.elapsed().as_millis()
+                        );
                         if let Some(movement) = play.movement {
                             game.board.set_move(&game.rules, &movement);
                             if game.board.is_winning(&game.rules, &game.current_player) {
@@ -119,6 +130,8 @@ async fn main() {
                                 game.next_player();
                             }
                         }
+                    } else {
+                        println!("{}", "computer returned an empty play result".red());
                     }
                 }
             }

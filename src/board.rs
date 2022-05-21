@@ -1,6 +1,7 @@
 use crate::{player::Player, rules::RuleSet};
+use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
-use std::fmt::Display;
+use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Pawn {
@@ -25,6 +26,31 @@ pub struct Move {
     pub index: usize, // Index of the piece to place
 }
 
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (x, y) = Board::index_to_coordinates(self.index);
+        if self.player == Player::Black {
+            write!(
+                f,
+                "{} {} ({}x{})",
+                "black".white().on_black(),
+                self.index,
+                x,
+                y
+            )
+        } else {
+            write!(
+                f,
+                "{} {} ({}x{})",
+                "white".black().on_white(),
+                self.index,
+                x,
+                y
+            )
+        }
+    }
+}
+
 pub const BOARD_SIZE: usize = 19;
 pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 pub const DIRECTIONS: [(i16, i16); 8] = [
@@ -42,6 +68,7 @@ pub const DIRECTIONS: [(i16, i16); 8] = [
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
     pub moves: Vec<Move>,
+    pub rocks: u16,
     pub black_rocks: Vec<usize>,
     pub white_rocks: Vec<usize>,
     pub black_capture: u8,
@@ -53,6 +80,7 @@ impl Default for Board {
         Board {
             pieces: [Pawn::None; BOARD_PIECES],
             moves: vec![],
+            rocks: 0,
             black_rocks: vec![],
             white_rocks: vec![],
             black_capture: 0,
@@ -61,8 +89,8 @@ impl Default for Board {
     }
 }
 
-impl Display for Board {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for row in 0..BOARD_SIZE {
             write!(
                 f,
@@ -198,12 +226,14 @@ impl Board {
             // TODO capture remove other pawns
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
+        self.rocks += 1;
         self.pieces[movement.index] = movement.player.pawn();
         if movement.player == Player::Black {
             self.black_rocks.push(movement.index);
         } else {
             self.white_rocks.push(movement.index);
         }
+        self.rocks += 1;
         self.moves.push(movement.clone());
     }
 

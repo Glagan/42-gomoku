@@ -3,13 +3,24 @@ use crate::{
     player::Player,
     rules::RuleSet,
 };
+use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, fmt};
 
 #[derive(Debug)]
-pub struct MiniMaxEvaluation {
+pub struct Evaluation {
     pub score: i64,
     pub movement: Option<Move>,
+}
+
+impl fmt::Display for Evaluation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(movement) = self.movement {
+            write!(f, "score {} movement {}", self.score, movement)
+        } else {
+            write!(f, "score {} {}", self.score, "without movement !".red())
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -47,7 +58,6 @@ impl Default for PatternCount {
     }
 }
 
-#[allow(dead_code)]
 const PATTERNS: [([u8; 6], PatternCategory); 77] = [
     // 1x1
     ([0, 1, 1, 1, 1, 1], PatternCategory::FiveInRow),
@@ -155,15 +165,41 @@ pub struct Pattern {
     pub category: PatternCategory,
 }
 
+#[derive(PartialEq)]
+pub enum CacheFlag {
+    Exact = 0,
+    Upperbound = 1,
+    Lowerbound = 2,
+}
+
+pub struct CacheEntry {
+    pub score: i64,
+    pub rocks: u16,
+    pub flag: CacheFlag,
+    pub movement: Option<Move>,
+}
+
+// impl CacheEntry {
+//     pub fn for_player(&self, player: &Player) -> i64 {
+//         if player == &Player::Black {
+//             self.black
+//         } else {
+//             self.white
+//         }
+//     }
+// }
+
 pub struct Computer {
     // (black_heuristic, white_heuristic)
-    pub cache: HashMap<[Pawn; BOARD_PIECES as usize], (i64, i64)>,
+    pub black_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
+    pub white_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
 }
 
 impl Default for Computer {
     fn default() -> Self {
         Computer {
-            cache: HashMap::new(),
+            black_cache: HashMap::new(),
+            white_cache: HashMap::new(),
         }
     }
 }
@@ -171,7 +207,8 @@ impl Default for Computer {
 impl Computer {
     pub fn clean(&mut self) {
         // TODO: Pre-calculate first three rounds cache to avoid slow startups ?
-        self.cache = HashMap::new();
+        self.black_cache = HashMap::new();
+        self.white_cache = HashMap::new();
     }
 
     pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
@@ -397,13 +434,25 @@ impl Computer {
     }
 
     // Calculate all patterns for a both players and return the board score
-    pub fn evaluate_board(board: &Board) -> (i64, i64) {
+    pub fn evaluate_board(board: &Board, player: &Player) -> i64 {
         let black_patterns = Computer::count_patterns(board, &Player::Black);
         let white_patterns = Computer::count_patterns(board, &Player::White);
-        (
-            Computer::patterns_score(&black_patterns, &white_patterns),
-            Computer::patterns_score(&white_patterns, &black_patterns),
-        )
+        if player == &Player::Black {
+            Computer::patterns_score(&black_patterns, &white_patterns)
+        } else {
+            Computer::patterns_score(&white_patterns, &black_patterns)
+        }
+    }
+
+    pub fn cache(
+        &mut self,
+        player: &Player,
+    ) -> &mut HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry> {
+        if player == &Player::Black {
+            &mut self.black_cache
+        } else {
+            &mut self.white_cache
+        }
     }
 
     /*fn minimax(
@@ -413,12 +462,12 @@ impl Computer {
         depth: usize,
         player: &Player,
         maximize: &Player,
-    ) -> Result<MiniMaxEvaluation, String> {
+    ) -> Result<Evaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
             let scores = Computer::evaluate_board(board);
             // println!("{}", board);
             // println!("--- {}", score);
-            return Ok(MiniMaxEvaluation {
+            return Ok(Evaluation {
                 score: if player == &Player::Black {
                     scores.0
                 } else {
@@ -433,7 +482,7 @@ impl Computer {
             &Player::Black
         };
         if player == maximize {
-            let mut max_eval = MiniMaxEvaluation {
+            let mut max_eval = Evaluation {
                 score: i64::min_value(),
                 movement: None,
             };
@@ -467,7 +516,7 @@ impl Computer {
             }
             return Ok(max_eval);
         } else {
-            let mut min_eval = MiniMaxEvaluation {
+            let mut min_eval = Evaluation {
                 score: i64::max_value(),
                 movement: None,
             };
@@ -503,10 +552,10 @@ impl Computer {
         beta: i64,
         player: &Player,
         maximize: &Player,
-    ) -> Result<MiniMaxEvaluation, String> {
+    ) -> Result<Evaluation, String> {
         if depth == 0 || board.is_winning(rules, player) {
             let scores = Computer::evaluate_board(board);
-            return Ok(MiniMaxEvaluation {
+            return Ok(Evaluation {
                 score: if player == &Player::Black {
                     scores.0
                 } else {
@@ -522,7 +571,7 @@ impl Computer {
         };
         if player == maximize {
             let mut alpha = alpha;
-            let mut best_eval = MiniMaxEvaluation {
+            let mut best_eval = Evaluation {
                 score: i64::min_value(),
                 movement: None,
             };
@@ -549,7 +598,7 @@ impl Computer {
             Ok(best_eval)
         } else {
             let mut beta = beta;
-            let mut best_eval = MiniMaxEvaluation {
+            let mut best_eval = Evaluation {
                 score: i64::max_value(),
                 movement: None,
             };
@@ -586,52 +635,52 @@ impl Computer {
         beta: i64,
         player: &Player,
         maximize: &Player,
-    ) -> Result<MiniMaxEvaluation, String> {
-        // let alpha_orig = alpha;
+    ) -> Result<Evaluation, String> {
+        let alpha_orig = alpha;
         let mut alpha = alpha;
-        // let mut beta = beta;
+        let mut beta = beta;
 
         // Check cache to see if the board was already computed
-        // if self.cache.contains_key(&board.pieces) {
-        //     let (black_heuristic, white_heuristic) = self.cache.get(&board.pieces).unwrap();
-        //     if player == &Player::Black {
-        //         if *black_heuristic > alpha {
-        //             alpha = *black_heuristic;
-        //         }
-        //         if *white_heuristic < beta {
-        //             beta = *white_heuristic;
-        //         }
-        //         if alpha >= beta {
-        //             let color = if player == maximize { 1 } else { -1 };
-        //             return Ok(MiniMaxEvaluation {
-        //                 score: color * black_heuristic,
-        //                 movement: None,
-        //             });
-        //         }
-        //     } else {
-        //         // ?
-        //     }
-        // }
+        if self.cache(player).contains_key(&board.pieces) {
+            let cache_entry = self.cache(player).get(&board.pieces).unwrap();
+            if cache_entry.rocks >= board.rocks {
+                if cache_entry.flag == CacheFlag::Exact {
+                    return Ok(Evaluation {
+                        score: cache_entry.score,
+                        movement: cache_entry.movement,
+                    });
+                } else if cache_entry.flag == CacheFlag::Lowerbound {
+                    if cache_entry.score > alpha {
+                        alpha = cache_entry.score
+                    }
+                } else if cache_entry.flag == CacheFlag::Upperbound {
+                    if cache_entry.score < beta {
+                        beta = cache_entry.score
+                    }
+                }
+
+                if alpha >= beta {
+                    return Ok(Evaluation {
+                        score: cache_entry.score,
+                        movement: cache_entry.movement,
+                    });
+                }
+            }
+        }
 
         // Check if it's a leaf and compute it's value
         if depth == 0 || board.is_winning(rules, player) {
             // println!("{}", board);
             let color = if player == maximize { 1 } else { -1 };
-            // let scores = self.cache.get(&board.pieces).unwrap();
-            let scores = Computer::evaluate_board(&board);
-            return Ok(MiniMaxEvaluation {
-                score: color
-                    * if player == &Player::Black {
-                        scores.0
-                    } else {
-                        scores.1
-                    },
+            let score = Computer::evaluate_board(&board, player);
+            return Ok(Evaluation {
+                score: color * score,
                 movement: None,
             });
         }
 
         // Only the best evaluation is returned
-        let mut best_eval = MiniMaxEvaluation {
+        let mut best_eval = Evaluation {
             score: i64::min_value(),
             movement: None,
         };
@@ -647,35 +696,69 @@ impl Computer {
         //     .collect::<Vec<(Board, Move)>>();
         // if player == &Player::Black {
         //     moves.sort_by(|a, b| {
-        //         if !self.cache.contains_key(&a.0.pieces) {
+        //         if !self.cache(player).contains_key(&a.0.pieces) {
         //             let scores = Computer::evaluate_board(&a.0);
-        //             self.cache.insert(a.0.pieces.clone(), scores);
+        //             self.cache(player).insert(
+        //                 a.0.pieces.clone(),
+        //                 CacheEntry {
+        //                     score: scores.0,
+        //                     rocks: a.0.rocks,
+        //                     flag: CacheFlag::Exact,
+        //                     movement: Some(a.1.clone()),
+        //                 },
+        //             );
         //         }
-        //         if !self.cache.contains_key(&b.0.pieces) {
+        //         if !self.cache(player).contains_key(&b.0.pieces) {
         //             let scores = Computer::evaluate_board(&b.0);
-        //             self.cache.insert(b.0.pieces.clone(), scores);
+        //             self.cache(player).insert(
+        //                 b.0.pieces.clone(),
+        //                 CacheEntry {
+        //                     score: scores.0,
+        //                     rocks: b.0.rocks,
+        //                     flag: CacheFlag::Exact,
+        //                     movement: Some(b.1.clone()),
+        //                 },
+        //             );
         //         }
-        //         self.cache
+        //         let cache = self.cache(player);
+        //         cache
         //             .get(&a.0.pieces)
         //             .unwrap()
-        //             .0
-        //             .cmp(&self.cache.get(&b.0.pieces).unwrap().0)
+        //             .score
+        //             .cmp(&cache.get(&b.0.pieces).unwrap().score)
         //     });
         // } else {
         //     moves.sort_by(|a, b| {
-        //         if !self.cache.contains_key(&a.0.pieces) {
+        //         if !self.cache(player).contains_key(&a.0.pieces) {
         //             let scores = Computer::evaluate_board(&a.0);
-        //             self.cache.insert(a.0.pieces.clone(), scores);
+        //             self.cache(player).insert(
+        //                 a.0.pieces.clone(),
+        //                 CacheEntry {
+        //                     score: scores.1,
+        //                     rocks: a.0.rocks,
+        //                     flag: CacheFlag::Exact,
+        //                     movement: Some(a.1.clone()),
+        //                 },
+        //             );
         //         }
-        //         if !self.cache.contains_key(&b.0.pieces) {
+        //         if !self.cache(player).contains_key(&b.0.pieces) {
         //             let scores = Computer::evaluate_board(&b.0);
-        //             self.cache.insert(b.0.pieces.clone(), scores);
+        //             self.cache(player).insert(
+        //                 b.0.pieces.clone(),
+        //                 CacheEntry {
+        //                     score: scores.1,
+        //                     rocks: a.0.rocks,
+        //                     flag: CacheFlag::Exact,
+        //                     movement: Some(a.1.clone()),
+        //                 },
+        //             );
         //         }
-        //         self.cache
+        //         let cache = self.cache(player);
+        //         cache
         //             .get(&a.0.pieces)
         //             .unwrap()
-        //             .1
-        //             .cmp(&self.cache.get(&b.0.pieces).unwrap().1)
+        //             .score
+        //             .cmp(&cache.get(&b.0.pieces).unwrap().score)
         //     });
         // }
 
@@ -697,7 +780,7 @@ impl Computer {
                 maximize,
             )?;
             eval.score = -eval.score;
-            if eval.score > alpha {
+            if eval.score > best_eval.score {
                 alpha = eval.score;
                 best_eval.score = eval.score;
                 best_eval.movement = Some(movement.clone());
@@ -706,6 +789,23 @@ impl Computer {
                 break;
             }
         }
+
+        // Add to cache
+        let cache_entry = self
+            .cache(player)
+            .entry(board.pieces.clone())
+            .or_insert(CacheEntry {
+                score: best_eval.score,
+                rocks: board.rocks,
+                flag: CacheFlag::Exact,
+                movement: best_eval.movement,
+            });
+        if best_eval.score <= alpha_orig {
+            cache_entry.flag = CacheFlag::Upperbound;
+        } else if best_eval.score >= beta {
+            cache_entry.flag = CacheFlag::Lowerbound;
+        }
+
         return Ok(best_eval);
     }
 
@@ -716,11 +816,21 @@ impl Computer {
         board: &Board,
         depth: usize,
         player: &Player,
-    ) -> Result<MiniMaxEvaluation, String> {
-        let alpha = i64::min_value();
-        let beta = i64::max_value();
-        let best_move =
-            self.negamax_alpha_beta(rules, board, depth, alpha, beta, player, player)?;
+    ) -> Result<Evaluation, String> {
+        // Clean cache
+        self.black_cache.retain(|_, v| v.rocks >= board.rocks);
+        self.white_cache.retain(|_, v| v.rocks >= board.rocks);
+
+        // Apply negamax recursively
+        let best_move = self.negamax_alpha_beta(
+            rules,
+            board,
+            depth,
+            i64::min_value(),
+            i64::max_value(),
+            player,
+            player,
+        )?;
         Ok(best_move)
     }
 }
