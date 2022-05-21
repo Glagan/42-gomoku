@@ -226,7 +226,6 @@ impl Board {
             // TODO capture remove other pawns
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
-        self.rocks += 1;
         self.pieces[movement.index] = movement.player.pawn();
         if movement.player == Player::Black {
             self.black_rocks.push(movement.index);
@@ -235,6 +234,19 @@ impl Board {
         }
         self.rocks += 1;
         self.moves.push(movement.clone());
+    }
+
+    pub fn undo_move(&mut self, rules: &RuleSet) {
+        // TODO Handle capture
+        self.rocks -= 1;
+        if let Some(last_move) = self.moves.pop() {
+            if last_move.player == Player::Black {
+                self.black_rocks.pop();
+            } else {
+                self.white_rocks.pop();
+            }
+            self.pieces[last_move.index] = Pawn::None;
+        }
     }
 
     // Apply a movement to a new copy of the current Board
