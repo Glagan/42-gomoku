@@ -1,4 +1,10 @@
-use crate::{board::Board, computer::Computer, player::Player, rules::RuleSet};
+use crate::{
+    board::{Board, Move, Pawn},
+    computer::Computer,
+    player::Player,
+    rules::RuleSet,
+};
+use colored::Colorize;
 use std::time::{Duration, Instant};
 
 #[derive(PartialEq, Copy, Clone)]
@@ -27,6 +33,7 @@ pub struct Game {
     pub previous_play_time: Duration,
     pub current_player: Player,
     pub winner: Winner,
+    pub rock_move: Vec<usize>,
 }
 
 impl Default for Game {
@@ -42,6 +49,7 @@ impl Default for Game {
             previous_play_time: now - now,
             current_player: Player::Black,
             winner: Winner::None,
+            rock_move: vec![],
         }
     }
 }
@@ -58,6 +66,7 @@ impl Game {
         self.previous_play_time = now - now;
         self.current_player = Player::Black;
         self.winner = Winner::None;
+        self.rock_move = vec![];
         self.computer.clean();
     }
 
@@ -65,6 +74,10 @@ impl Game {
         self.reset();
         self.mode = mode;
         self.playing = true;
+    }
+
+    pub fn add_rock_move(&mut self, index: usize) {
+        self.rock_move.push(index)
     }
 
     pub fn player_won(&mut self) {
@@ -83,5 +96,47 @@ impl Game {
         }
         self.previous_play_time = self.play_time.elapsed();
         self.play_time = Instant::now();
+    }
+
+    pub fn play_player(&mut self, x: usize, y: usize) {
+        if self.board.pieces[Board::coordinates_to_index(x, y)] == Pawn::None {
+            self.board.set_move(
+                &self.rules,
+                &Move {
+                    index: Board::coordinates_to_index(x, y),
+                    player: self.current_player,
+                },
+            );
+            self.add_rock_move(Board::coordinates_to_index(x, y));
+            if self.board.is_winning(&self.rules, &self.current_player) {
+                self.player_won();
+            } else {
+                self.next_player();
+            }
+        }
+    }
+
+    pub fn play_computer(&mut self) {
+        let play_result = self
+            .computer
+            .play(&self.rules, &self.board, 3, &self.current_player);
+        if let Ok(play) = play_result {
+            println!(
+                "computer play: {} in {}ms",
+                play,
+                self.play_time.elapsed().as_millis()
+            );
+            if let Some(movement) = play.movement {
+                self.board.set_move(&self.rules, &movement);
+                self.add_rock_move(movement.index);
+                if self.board.is_winning(&self.rules, &self.current_player) {
+                    self.player_won();
+                } else {
+                    self.next_player();
+                }
+            }
+        } else {
+            println!("{}", "computer returned an empty play result".red());
+        }
     }
 }

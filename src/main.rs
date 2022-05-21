@@ -4,7 +4,6 @@ use crate::{
     game::{Game, GameMode, Winner},
     player::Player,
 };
-use colored::Colorize;
 use macroquad::prelude::*;
 
 const GRID_WINDOW_SIZE: usize = 800;
@@ -43,7 +42,7 @@ async fn main() {
             game_selector(&mut game);
         } else {
             // Draw game
-            draw_goban(&game.board);
+            draw_goban(&game);
             display_panel_text(&mut game);
 
             // Winner
@@ -67,72 +66,20 @@ async fn main() {
                         if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
                             && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
                         {
-                            let rock_x = mouse_x as usize / SQUARE_SIZE;
-                            let rock_y = mouse_y as usize / SQUARE_SIZE;
-                            if game.board.pieces[Board::coordinates_to_index(rock_x, rock_y)]
-                                == Pawn::None
-                            {
-                                game.board.set_move(
-                                    &game.rules,
-                                    &Move {
-                                        index: Board::coordinates_to_index(rock_x, rock_y),
-                                        player: game.current_player,
-                                    },
-                                );
-                                if game.board.is_winning(&game.rules, &game.current_player) {
-                                    game.player_won();
-                                } else {
-                                    game.next_player();
-                                }
-                            }
+                            game.play_player(
+                                mouse_x as usize / SQUARE_SIZE,
+                                mouse_y as usize / SQUARE_SIZE,
+                            );
                         }
                     }
                     // Computer Play
                     if game.mode == GameMode::PvA && game.current_player == Player::Black {
-                        let play_result =
-                            game.computer
-                                .play(&game.rules, &game.board, 3, &game.current_player);
-                        if let Ok(play) = play_result {
-                            println!(
-                                "computer play: {} in {}ms",
-                                play,
-                                game.play_time.elapsed().as_millis()
-                            );
-                            if let Some(movement) = play.movement {
-                                game.board.set_move(&game.rules, &movement);
-                                if game.board.is_winning(&game.rules, &game.current_player) {
-                                    game.player_won();
-                                } else {
-                                    game.next_player();
-                                }
-                            }
-                        } else {
-                            println!("{}", "computer returned an empty play result".red());
-                        }
+                        game.play_computer()
                     }
                 }
                 // AvA just play in turn, no input
                 else {
-                    let play_result =
-                        game.computer
-                            .play(&game.rules, &game.board, 3, &game.current_player);
-                    if let Ok(play) = play_result {
-                        println!(
-                            "computer play: {} in {}ms",
-                            play,
-                            game.play_time.elapsed().as_millis()
-                        );
-                        if let Some(movement) = play.movement {
-                            game.board.set_move(&game.rules, &movement);
-                            if game.board.is_winning(&game.rules, &game.current_player) {
-                                game.player_won();
-                            } else {
-                                game.next_player();
-                            }
-                        }
-                    } else {
-                        println!("{}", "computer returned an empty play result".red());
-                    }
+                    game.play_computer()
                 }
             }
         }

@@ -6,14 +6,19 @@ use crate::{
     SQUARE_SIZE,
 };
 use macroquad::{
-    prelude::{draw_circle, draw_line, draw_text, mouse_position, Vec2, BLACK, WHITE},
+    prelude::{
+        draw_circle, draw_line, draw_text, measure_text, mouse_position, Vec2, BLACK, WHITE,
+    },
     ui::{root_ui, widgets},
 };
 
 const TEXT_OFFSET: f32 = 20.;
+const FONT_SIZE: u16 = 20;
 const POLICE_SIZE: f32 = 20.;
 
-pub fn draw_goban(board: &Board) {
+pub fn draw_goban(game: &Game) {
+    let board = &game.board;
+
     //Draw line
     for i in 0..BOARD_SIZE {
         draw_line(
@@ -67,6 +72,22 @@ pub fn draw_goban(board: &Board) {
                     WHITE
                 },
             );
+            // Move number on top of the rock
+            if let Some(move_number) = game.rock_move.iter().rposition(|&r| r == i) {
+                let move_text = format!("{}", move_number + 1).to_string();
+                let text_size = measure_text(&move_text, None, FONT_SIZE, 1.);
+                draw_text(
+                    &move_text,
+                    (x * SQUARE_SIZE + BORDER_OFFSET) as f32 - text_size.width / 2.,
+                    (y * SQUARE_SIZE + BORDER_OFFSET) as f32 + text_size.height / 2.,
+                    POLICE_SIZE,
+                    if board.pieces[i] == Pawn::Black {
+                        WHITE
+                    } else {
+                        BLACK
+                    },
+                );
+            }
         }
     }
 }
