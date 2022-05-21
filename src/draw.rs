@@ -6,20 +6,23 @@ use crate::{
     SQUARE_SIZE,
 };
 use macroquad::{
+    color::Color,
     prelude::{
-        draw_circle, draw_line, draw_text, measure_text, mouse_position, Vec2, BLACK, WHITE,
+        draw_circle, draw_line, draw_rectangle, draw_rectangle_lines, draw_text, measure_text,
+        mouse_position, Vec2, BLACK, GREEN, WHITE,
     },
     ui::{root_ui, widgets},
 };
 
 const TEXT_OFFSET: f32 = 20.;
 const FONT_SIZE: u16 = 20;
+const WIN_FONT_SIZE: u16 = 30;
 const POLICE_SIZE: f32 = 20.;
 
 pub fn draw_goban(game: &Game) {
     let board = &game.board;
 
-    //Draw line
+    // Draw line
     for i in 0..BOARD_SIZE {
         draw_line(
             (i * SQUARE_SIZE + BORDER_OFFSET) as f32,
@@ -48,7 +51,7 @@ pub fn draw_goban(game: &Game) {
         4.,
         BLACK,
     );
-    //Draw circle
+    // Draw circle
     let mut y = BORDER_OFFSET + 3 * SQUARE_SIZE;
     while y < (17 * SQUARE_SIZE) {
         let mut x = BORDER_OFFSET + 3 * SQUARE_SIZE;
@@ -151,11 +154,11 @@ pub fn game_selector(game: &mut Game) {
 pub fn display_panel_text(game: &mut Game) {
     draw_text(
         format!(
-            "Elapsed time: {:.2}",
+            "Time: {}ms",
             if game.winner != Winner::None {
-                0.
+                0
             } else {
-                game.play_time.elapsed().as_secs_f32()
+                game.play_time.elapsed().as_millis()
             }
         )
         .as_str(),
@@ -165,7 +168,7 @@ pub fn display_panel_text(game: &mut Game) {
         BLACK,
     );
     draw_text(
-        format!("Elapsed time: {:.2}", game.previous_play_time.as_secs_f32()).as_str(),
+        format!("Previous: {}ms", game.previous_play_time.as_millis()).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 2.,
         POLICE_SIZE,
@@ -186,7 +189,6 @@ pub fn display_panel_text(game: &mut Game) {
         POLICE_SIZE,
         BLACK,
     );
-
     draw_text(
         format!(
             "Player: {}",
@@ -220,5 +222,51 @@ pub fn display_panel_text(game: &mut Game) {
 
     if surrender_button {
         game.playing = false;
+    }
+}
+
+const WINNER_WINDOW_WIDTH: f32 = GRID_WINDOW_SIZE as f32 / 4.;
+const WINNER_WINDOW_HEIGHT: f32 = GRID_WINDOW_SIZE as f32 / 7.;
+
+pub fn display_winner(game: &Game) {
+    if game.winner != Winner::None {
+        // Background
+        draw_rectangle(
+            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
+            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_HEIGHT) / 2.,
+            WINNER_WINDOW_WIDTH,
+            WINNER_WINDOW_HEIGHT,
+            Color::from_rgba(25, 200, 25, 220),
+        );
+        draw_rectangle_lines(
+            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
+            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_HEIGHT) / 2.,
+            WINNER_WINDOW_WIDTH,
+            WINNER_WINDOW_HEIGHT,
+            4.,
+            BLACK,
+        );
+        // Winner text
+        let win_text = format!(
+            "{} win !",
+            if game.winner == Winner::Black {
+                "Black"
+            } else {
+                "White"
+            }
+        )
+        .to_string();
+        let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
+        draw_text(
+            &win_text,
+            (GRID_WINDOW_SIZE) as f32 / 2. - text_size.width / 2.,
+            (GRID_WINDOW_SIZE) as f32 / 2. + text_size.height / 2.,
+            WIN_FONT_SIZE as f32,
+            if game.winner == Winner::Black {
+                BLACK
+            } else {
+                WHITE
+            },
+        );
     }
 }

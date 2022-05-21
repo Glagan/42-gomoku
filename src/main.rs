@@ -1,9 +1,9 @@
 use crate::{
-    board::{Board, Move, Pawn},
     draw::{display_panel_text, draw_current_rock, draw_goban, game_selector},
     game::{Game, GameMode, Winner},
     player::Player,
 };
+use draw::display_winner;
 use macroquad::prelude::*;
 
 const GRID_WINDOW_SIZE: usize = 800;
@@ -47,34 +47,38 @@ async fn main() {
 
             // Winner
             if game.winner != Winner::None {
-                // TODO "Winner"
+                display_winner(&game);
             } else {
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
-                    draw_current_rock(&game);
-
-                    // Player play
-                    if is_mouse_button_released(MouseButton::Left) {
-                        b_mouse_pressed = false;
-                    } else if is_mouse_button_down(MouseButton::Left)
-                        && !b_mouse_pressed
-                        && (game.mode == GameMode::PvP
-                            || (game.mode == GameMode::PvA && game.current_player == Player::White))
-                    {
-                        b_mouse_pressed = true;
-                        let (mouse_x, mouse_y) = mouse_position();
-                        if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
-                            && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
-                        {
-                            game.play_player(
-                                mouse_x as usize / SQUARE_SIZE,
-                                mouse_y as usize / SQUARE_SIZE,
-                            );
-                        }
-                    }
                     // Computer Play
                     if game.mode == GameMode::PvA && game.current_player == Player::Black {
                         game.play_computer()
+                    }
+                    // Move preview and await input
+                    else {
+                        draw_current_rock(&game);
+
+                        // Player play
+                        if is_mouse_button_released(MouseButton::Left) {
+                            b_mouse_pressed = false;
+                        } else if is_mouse_button_down(MouseButton::Left)
+                            && !b_mouse_pressed
+                            && (game.mode == GameMode::PvP
+                                || (game.mode == GameMode::PvA
+                                    && game.current_player == Player::White))
+                        {
+                            b_mouse_pressed = true;
+                            let (mouse_x, mouse_y) = mouse_position();
+                            if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
+                                && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
+                            {
+                                game.play_player(
+                                    mouse_x as usize / SQUARE_SIZE,
+                                    mouse_y as usize / SQUARE_SIZE,
+                                );
+                            }
+                        }
                     }
                 }
                 // AvA just play in turn, no input
