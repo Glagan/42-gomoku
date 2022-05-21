@@ -641,8 +641,8 @@ impl Computer {
         let mut beta = beta;
 
         // Check cache to see if the board was already computed
-        if self.cache(player).contains_key(&board.pieces) {
-            let cache_entry = self.cache(player).get(&board.pieces).unwrap();
+        if self.cache(maximize).contains_key(&board.pieces) {
+            let cache_entry = self.cache(maximize).get(&board.pieces).unwrap();
             if cache_entry.rocks >= board.rocks {
                 if cache_entry.flag == CacheFlag::Exact {
                     return Ok(Evaluation {
@@ -714,7 +714,7 @@ impl Computer {
 
         // Add to cache
         let cache_entry = self
-            .cache(player)
+            .cache(maximize)
             .entry(board.pieces.clone())
             .or_insert(CacheEntry {
                 score: best_eval.score,
