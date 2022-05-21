@@ -72,6 +72,7 @@ impl Game {
             Player::Black => Winner::Black,
             Player::White => Winner::White,
         };
+        self.computer.clean();
     }
 
     pub fn next_player(&mut self) {
