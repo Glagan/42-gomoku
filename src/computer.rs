@@ -7,7 +7,7 @@ use crate::{
 use colored::Colorize;
 use std::{collections::HashMap, fmt};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Evaluation {
     pub score: i64,
     pub movement: Option<Move>,
@@ -37,15 +37,34 @@ pub struct CacheEntry {
     pub movement: Option<Move>,
 }
 
-// impl CacheEntry {
-//     pub fn for_player(&self, player: &Player) -> i64 {
-//         if player == &Player::Black {
-//             self.black
-//         } else {
-//             self.white
-//         }
-//     }
-// }
+pub struct Branch {
+    pub depth: usize,
+    pub board: Board,
+    pub evaluation: Option<Evaluation>,
+    pub sub_branches: Vec<Box<Branch>>,
+}
+
+impl Branch {
+    pub fn new(depth: usize, board: &Board) -> Self {
+        Branch {
+            depth,
+            board: board.clone(),
+            evaluation: None,
+            sub_branches: vec![],
+        }
+    }
+
+    pub fn display(&self, level: usize) {
+        if let Some(evaluation) = self.evaluation {
+            println!("{:indent$}> {}", "", evaluation, indent = level);
+        }
+        self.board.display(level);
+        println!("{:indent$}---", "", indent = level);
+        for sub_branch in self.sub_branches.iter() {
+            sub_branch.display(level + 1);
+        }
+    }
+}
 
 pub struct Computer {
     // (black_heuristic, white_heuristic)
@@ -266,6 +285,7 @@ impl Computer {
         beta: i64,
         player: &Player,
         maximize: &Player,
+        branch: &mut Branch,
     ) -> Result<Evaluation, String> {
         let alpha_orig = alpha;
         let mut alpha = alpha;
@@ -335,6 +355,7 @@ impl Computer {
         });
         for movement in moves.iter() {
             let new_board = board.apply_move(rules, movement);
+            let mut sub_branch = Branch::new(depth, &new_board);
             let mut eval = self.negamax_alpha_beta(
                 rules,
                 &new_board,
@@ -347,7 +368,9 @@ impl Computer {
                     &Player::Black
                 },
                 maximize,
+                &mut sub_branch,
             )?;
+            branch.sub_branches.push(Box::new(sub_branch));
             eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = eval.score;
@@ -378,6 +401,7 @@ impl Computer {
         } else if best_eval.score >= beta {
             cache_entry.flag = CacheFlag::Lowerbound;
         }
+        branch.evaluation = Some(best_eval.clone());
 
         return Ok(best_eval);
     }
@@ -395,6 +419,7 @@ impl Computer {
         self.white_cache.retain(|_, v| v.rocks >= board.rocks);
 
         // Apply negamax recursively
+        let mut branch = Branch::new(depth, board);
         let best_move = self.negamax_alpha_beta(
             rules,
             board,
@@ -403,9 +428,13 @@ impl Computer {
             i64::max_value(),
             player,
             player,
+            &mut branch,
         )?;
+
         // Apply minimax recursively
         // let best_move = self.minimax(rules, board, depth, player, player)?;
+
+        branch.display(0);
         Ok(best_move)
     }
 }
