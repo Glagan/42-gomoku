@@ -312,7 +312,7 @@ impl Computer {
 
         // Only the best evaluation is returned
         let mut best_eval = Evaluation {
-            score: i64::min_value(),
+            score: i64::min_value() + 1,
             movement: None,
         };
 
@@ -399,7 +399,7 @@ impl Computer {
             rules,
             board,
             depth,
-            i64::min_value(),
+            i64::min_value() + 1,
             i64::max_value(),
             player,
             player,
