@@ -1,6 +1,6 @@
 use gomoku::{
     board::{Board, Move},
-    computer::Computer,
+    pattern::PATTERN_FINDER,
     player::Player,
     rules::RuleSet,
 };
@@ -24,7 +24,7 @@ fn find_pattern_live_two_horizontal() {
             index: 182,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn find_pattern_live_three_horizontal() {
             index: 182,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 15000);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 15000);
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn find_pattern_live_two_vertical() {
             index: 218,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }
 
 #[test]
@@ -104,7 +104,7 @@ fn find_pattern_live_three_vertical() {
             index: 218,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 15000);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 15000);
 }
 
 #[test]
@@ -133,8 +133,7 @@ fn find_pattern_live_three_vertical_border() {
             index: 360,
         },
     );
-    println!("{:#?}", Computer::get_patterns(&board, &Player::Black));
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 15000);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 15000);
 }
 
 #[test]
@@ -156,7 +155,7 @@ fn find_pattern_live_two_diagonal_left_down() {
             index: 216,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }
 
 #[test]
@@ -178,7 +177,7 @@ fn find_pattern_live_two_diagonal_right_down() {
             index: 220,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }
 
 #[test]
@@ -200,7 +199,7 @@ fn find_pattern_live_two_diagonal_left_up() {
             index: 140,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }
 
 #[test]
@@ -222,5 +221,5 @@ fn find_pattern_live_two_diagonal_right_up() {
             index: 144,
         },
     );
-    assert_eq!(Computer::evaluate_board(&board, &Player::Black), 200);
+    assert_eq!(PATTERN_FINDER.player_score(&board, &Player::Black), 200);
 }

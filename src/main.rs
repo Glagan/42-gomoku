@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use crate::{
     draw::{display_panel_text, draw_current_rock, draw_goban, game_selector},
     game::{Game, GameMode, Winner},
@@ -17,6 +20,7 @@ mod board;
 mod computer;
 mod draw;
 mod game;
+mod pattern;
 mod player;
 mod rules;
 
