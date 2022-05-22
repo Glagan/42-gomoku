@@ -1,7 +1,6 @@
 use crate::pattern::PATTERN_FINDER;
 use crate::{
     board::{Board, Move, Pawn, BOARD_PIECES},
-    pattern::PatternCount,
     player::Player,
     rules::RuleSet,
 };
@@ -273,8 +272,8 @@ impl Computer {
         let mut beta = beta;
 
         // Check cache to see if the board was already computed
-        if self.cache(maximize).contains_key(&board.pieces) {
-            let cache_entry = self.cache(maximize).get(&board.pieces).unwrap();
+        if self.cache(player).contains_key(&board.pieces) {
+            let cache_entry = self.cache(player).get(&board.pieces).unwrap();
             if cache_entry.rocks >= board.rocks {
                 if cache_entry.flag == CacheFlag::Exact {
                     return Ok(Evaluation {
@@ -318,7 +317,23 @@ impl Computer {
         };
 
         // Iterate each neighbor moves
-        for movement in board.intersections_legal_moves(rules, player).iter() {
+        let mut moves = board.intersections_legal_moves(rules, player);
+        moves.sort_by(|a, b| {
+            let a_pattern = PATTERN_FINDER.best_pattern_for_rock(board, a.index);
+            let b_pattern = PATTERN_FINDER.best_pattern_for_rock(board, b.index);
+            let a_is_none = a_pattern.is_none();
+            let b_is_none = b_pattern.is_none();
+            if a_is_none && b_is_none {
+                return std::cmp::Ordering::Equal;
+            }
+            if a_is_none {
+                return std::cmp::Ordering::Greater;
+            } else if b_is_none {
+                return std::cmp::Ordering::Less;
+            }
+            b_pattern.unwrap().partial_cmp(&a_pattern.unwrap()).unwrap()
+        });
+        for movement in moves.iter() {
             let new_board = board.apply_move(rules, movement);
             let mut eval = self.negamax_alpha_beta(
                 rules,
@@ -346,10 +361,14 @@ impl Computer {
 
         // Add to cache
         let cache_entry = self
-            .cache(maximize)
+            .cache(player)
             .entry(board.pieces.clone())
             .or_insert(CacheEntry {
-                score: best_eval.score,
+                score: if player == maximize {
+                    best_eval.score
+                } else {
+                    -best_eval.score
+                },
                 rocks: board.rocks,
                 flag: CacheFlag::Exact,
                 movement: best_eval.movement,
@@ -376,17 +395,17 @@ impl Computer {
         self.white_cache.retain(|_, v| v.rocks >= board.rocks);
 
         // Apply negamax recursively
-        // let best_move = self.negamax_alpha_beta(
-        //     rules,
-        //     board,
-        //     depth,
-        //     i64::min_value(),
-        //     i64::max_value(),
-        //     player,
-        //     player,
-        // )?;
+        let best_move = self.negamax_alpha_beta(
+            rules,
+            board,
+            depth,
+            i64::min_value(),
+            i64::max_value(),
+            player,
+            player,
+        )?;
         // Apply minimax recursively
-        let best_move = self.minimax(rules, board, depth, player, player)?;
+        // let best_move = self.minimax(rules, board, depth, player, player)?;
         Ok(best_move)
     }
 }
