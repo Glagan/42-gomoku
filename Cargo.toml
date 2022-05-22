@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 colored = "2.0.0"
 fixed-vec-deque = "0.1.9"
+lazy_static = "1.4.0"
 macroquad = "0.3.16"
