@@ -6,7 +6,7 @@ use crate::{
     game::{Game, GameMode, Winner},
     player::Player,
 };
-use draw::display_winner;
+use draw::{display_winner, draw_recommended_move};
 use macroquad::prelude::*;
 
 const GRID_WINDOW_SIZE: usize = 800;
@@ -61,6 +61,7 @@ async fn main() {
                     }
                     // Move preview and await input
                     else {
+                        draw_recommended_move(&mut game);
                         draw_rock_preview(&game);
 
                         // Player play

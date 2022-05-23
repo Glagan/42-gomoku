@@ -9,8 +9,8 @@ use macroquad::{
     color::Color,
     color_u8,
     prelude::{
-        draw_circle, draw_line, draw_rectangle, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, Vec2, BLACK, BLUE, RED, WHITE,
+        draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
+        measure_text, mouse_position, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -77,6 +77,7 @@ pub fn draw_goban(game: &Game) {
             let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
             let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
             draw_circle(draw_x, draw_y, 4.0, if movement.legal { BLUE } else { RED });
+            draw_circle_lines(draw_x, draw_y, 4., 1., BLACK);
         }
     }
 
@@ -110,6 +111,19 @@ pub fn draw_goban(game: &Game) {
                     },
                 );
             }
+        }
+    }
+}
+
+pub fn draw_recommended_move(game: &mut Game) {
+    let movement = game.computer_recommended_move();
+    if let Some(movement) = movement {
+        if game.board.pieces[movement.index] == Pawn::None {
+            let (x, y) = Board::index_to_coordinates(movement.index);
+            let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
+            let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
+            draw_circle(draw_x, draw_y, 4.0, MAGENTA);
+            draw_circle_lines(draw_x, draw_y, 4., 1., BLACK);
         }
     }
 }
