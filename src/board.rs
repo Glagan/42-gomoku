@@ -212,13 +212,110 @@ impl Board {
         moves
     }
 
+    fn check_capture(&mut self, movement: &Move) {
+        let player_pawn: Pawn;
+        let opponant_pawn: Pawn;
+        let (x, y) = Board::index_to_coordinates(movement.index);
+        let mut remove_vect: Vec<usize> = vec![];
+
+        if movement.player == Player::Black {
+            player_pawn = Pawn::Black;
+            opponant_pawn = Pawn::White;
+        } else {
+            player_pawn = Pawn::White;
+            opponant_pawn = Pawn::Black;
+        }
+
+        if x >= 3
+            && self.pieces[movement.index - 1] == opponant_pawn
+            && self.pieces[movement.index - 2] == opponant_pawn
+            && self.pieces[movement.index - 3] == player_pawn
+        {
+            remove_vect.push(movement.index - 1);
+            remove_vect.push(movement.index - 2);
+        }
+        if x + 3 < BOARD_PIECES
+            && self.pieces[movement.index + 1] == opponant_pawn
+            && self.pieces[movement.index + 2] == opponant_pawn
+            && self.pieces[movement.index + 3] == player_pawn
+        {
+            remove_vect.push(movement.index + 1);
+            remove_vect.push(movement.index + 2);
+        }
+        if y >= 3
+            && self.pieces[movement.index - BOARD_PIECES] == opponant_pawn
+            && self.pieces[movement.index - BOARD_PIECES * 2] == opponant_pawn
+            && self.pieces[movement.index - BOARD_PIECES * 3] == player_pawn
+        {
+            remove_vect.push(movement.index - BOARD_PIECES);
+            remove_vect.push(movement.index - BOARD_PIECES * 2);
+        }
+        if y + 3 < BOARD_PIECES
+            && self.pieces[movement.index + BOARD_PIECES] == opponant_pawn
+            && self.pieces[movement.index + BOARD_PIECES * 2] == opponant_pawn
+            && self.pieces[movement.index + BOARD_PIECES * 3] == player_pawn
+        {
+            remove_vect.push(movement.index + BOARD_PIECES);
+            remove_vect.push(movement.index + BOARD_PIECES * 2);
+        }
+        if y >= 3
+            && x >= 3
+            && self.pieces[movement.index - BOARD_PIECES - 1] == opponant_pawn
+            && self.pieces[movement.index - (BOARD_PIECES * 2) - 2] == opponant_pawn
+            && self.pieces[movement.index - (BOARD_PIECES * 3) - 3] == player_pawn
+        {
+            remove_vect.push(movement.index - BOARD_PIECES - 1);
+            remove_vect.push(movement.index - (BOARD_PIECES * 2) - 2);
+        }
+        if y + 3 < BOARD_PIECES
+            && x >= 3
+            && self.pieces[movement.index + BOARD_PIECES - 1] == opponant_pawn
+            && self.pieces[movement.index + (BOARD_PIECES * 2) - 2] == opponant_pawn
+            && self.pieces[movement.index + (BOARD_PIECES * 3) - 3] == player_pawn
+        {
+            remove_vect.push(movement.index + BOARD_PIECES - 1);
+            remove_vect.push(movement.index + (BOARD_PIECES * 2) - 2);
+        }
+        if y + 3 < BOARD_PIECES
+            && x + 3 <= BOARD_PIECES
+            && self.pieces[movement.index + BOARD_PIECES + 1] == opponant_pawn
+            && self.pieces[movement.index + (BOARD_PIECES * 2) + 2] == opponant_pawn
+            && self.pieces[movement.index + (BOARD_PIECES * 3) + 3] == player_pawn
+        {
+            remove_vect.push(movement.index + BOARD_PIECES + 1);
+            remove_vect.push(movement.index + (BOARD_PIECES * 2) + 2);
+        }
+        if y >= 3
+            && x + 3 <= BOARD_PIECES
+            && self.pieces[movement.index - BOARD_PIECES + 1] == opponant_pawn
+            && self.pieces[movement.index - (BOARD_PIECES * 2) + 2] == opponant_pawn
+            && self.pieces[movement.index - (BOARD_PIECES * 3) + 3] == player_pawn
+        {
+            remove_vect.push(movement.index - BOARD_PIECES + 1);
+            remove_vect.push(movement.index - (BOARD_PIECES * 2) + 2);
+        }
+        for idx in remove_vect {
+            self.pieces[idx] = Pawn::None;
+            if player_pawn == Pawn::Black {
+                self.black_capture += 2;
+                self.white_rocks.remove(idx);
+                self.all_rocks.remove(idx);
+            } else {
+                self.white_capture += 2;
+                self.black_rocks.remove(idx);
+                self.all_rocks.remove(idx);
+            }
+        }
+    }
+
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
+        self.pieces[movement.index] = movement.player.pawn();
         if rules.capture {
+            //self.check_capture(movement);
             // TODO capture remove other pawns
             // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
-        self.pieces[movement.index] = movement.player.pawn();
         if movement.player == Player::Black {
             self.black_rocks.push(movement.index);
         } else {
