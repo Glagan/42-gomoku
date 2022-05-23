@@ -7,9 +7,10 @@ use crate::{
 };
 use macroquad::{
     color::Color,
+    color_u8,
     prelude::{
         draw_circle, draw_line, draw_rectangle, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, Vec2, BLACK, GREEN, WHITE,
+        mouse_position, Vec2, BLACK, BLUE, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -19,10 +20,13 @@ const FONT_SIZE: u16 = 20;
 const WIN_FONT_SIZE: u16 = 30;
 const POLICE_SIZE: f32 = 20.;
 
+const BLACK_SEMI: Color = color_u8!(0, 0, 0, 200);
+const WHITE_SEMI: Color = color_u8!(255, 255, 255, 200);
+
 pub fn draw_goban(game: &Game) {
     let board = &game.board;
 
-    // Draw line
+    // Draw lines
     for i in 0..BOARD_SIZE {
         draw_line(
             (i * SQUARE_SIZE + BORDER_OFFSET) as f32,
@@ -51,6 +55,7 @@ pub fn draw_goban(game: &Game) {
         4.,
         BLACK,
     );
+
     // Draw circle
     let mut y = BORDER_OFFSET + 3 * SQUARE_SIZE;
     while y < (17 * SQUARE_SIZE) {
@@ -62,6 +67,20 @@ pub fn draw_goban(game: &Game) {
         y += 6 * SQUARE_SIZE;
     }
 
+    // Draw movements
+    let movements = game
+        .board
+        .intersections_all_moves(&game.rules, &game.current_player);
+    for movement in movements {
+        if board.pieces[movement.index] == Pawn::None {
+            let (x, y) = Board::index_to_coordinates(movement.index);
+            let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
+            let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
+            draw_circle(draw_x, draw_y, 4.0, if movement.legal { BLUE } else { RED });
+        }
+    }
+
+    // Draw rocks
     for i in 0..BOARD_PIECES {
         if board.pieces[i] != Pawn::None {
             let (x, y) = Board::index_to_coordinates(i);
@@ -95,7 +114,7 @@ pub fn draw_goban(game: &Game) {
     }
 }
 
-pub fn draw_current_rock(game: &Game) {
+pub fn draw_rock_preview(game: &Game) {
     let (mouse_x, mouse_y) = mouse_position();
     if mouse_x < (GRID_WINDOW_SIZE - 2) as f32 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32 {
         let rock_x = (mouse_x - 1.) as usize / SQUARE_SIZE;
@@ -106,9 +125,9 @@ pub fn draw_current_rock(game: &Game) {
                 (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 20.,
                 if game.current_player == Player::Black {
-                    BLACK
+                    BLACK_SEMI
                 } else {
-                    WHITE
+                    WHITE_SEMI
                 },
             );
         }

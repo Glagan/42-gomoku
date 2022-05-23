@@ -166,7 +166,7 @@ impl Finder {
                             && (new_x as usize) < BOARD_SIZE
                             && (new_y as usize) < BOARD_SIZE
                         {
-                            *buf.push_front() = if new_x == x && new_y == y {
+                            *buf.push_back() = if new_x == x && new_y == y {
                                 1
                             } else {
                                 Finder::pawn_to_pattern_pawn(
@@ -250,7 +250,7 @@ impl Finder {
                         && (new_x as usize) < BOARD_SIZE
                         && (new_y as usize) < BOARD_SIZE
                     {
-                        *buf.push_front() = Finder::pawn_to_pattern_pawn(
+                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
                             board,
                             new_x as usize,
                             new_y as usize,

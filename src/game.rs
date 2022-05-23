@@ -72,6 +72,9 @@ impl Game {
 
     pub fn start(&mut self, mode: GameMode) {
         self.reset();
+        if self.rules.game_ending_capture && !self.rules.capture {
+            self.rules.game_ending_capture = false;
+        }
         self.mode = mode;
         self.playing = true;
     }

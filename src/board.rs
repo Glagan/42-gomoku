@@ -26,6 +26,12 @@ pub struct Move {
     pub index: usize, // Index of the piece to place
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct PossibleMove {
+    pub index: usize,
+    pub legal: bool,
+}
+
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (x, y) = Board::index_to_coordinates(self.index);
@@ -180,7 +186,6 @@ impl Board {
     }
 
     // Check if a move *can* be executed according to the rules
-    // TODO
     pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
         // Forbid movements that would create a "double three"
         if rules.no_double_three {
@@ -193,12 +198,11 @@ impl Board {
         true
     }
 
-    // All possible movements from the intersections for a given player
+    // All *legal* possible movements from the intersections for a given player
     pub fn intersections_legal_moves(&self, rules: &RuleSet, player: &Player) -> Vec<Move> {
         // Analyze each intersections and check if a Pawn can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
-        // println!("---\n{}\n--- intersections {:#?}", self, intersections);
         let mut moves: Vec<Move> = vec![];
         for index in intersections.iter() {
             let movement = Move {
@@ -208,6 +212,25 @@ impl Board {
             if self.is_move_legal(rules, &movement) {
                 moves.push(movement);
             }
+        }
+        moves
+    }
+
+    // All possible movements from the intersections for a given player
+    pub fn intersections_all_moves(&self, rules: &RuleSet, player: &Player) -> Vec<PossibleMove> {
+        // Analyze each intersections and check if a Pawn can be set on it
+        // -- for the current player according to the rules
+        let intersections = self.open_intersections();
+        let mut moves: Vec<PossibleMove> = vec![];
+        for index in intersections.iter() {
+            let movement = Move {
+                player: *player,
+                index: *index,
+            };
+            moves.push(PossibleMove {
+                index: *index,
+                legal: self.is_move_legal(rules, &movement),
+            });
         }
         moves
     }
@@ -301,13 +324,17 @@ impl Board {
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
     pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
-        if rules.game_ending_capture
-            && ((player == &Player::Black && self.black_capture >= 10)
-                || (player == &Player::White && self.white_capture >= 10))
-        {
-            return true;
+        if rules.capture {
+            if (player == &Player::Black && self.black_capture >= 10)
+                || (player == &Player::White && self.white_capture >= 10)
+            {
+                return true;
+            }
+            if rules.game_ending_capture {
+                // TODO if game.capture -> check if five in a row can't be captured
+                return self.has_five_in_a_row(player);
+            }
         }
-        // TODO if game.capture -> check if five in a row can't be captured
         self.has_five_in_a_row(player)
     }
 }

@@ -2,7 +2,7 @@
 extern crate lazy_static;
 
 use crate::{
-    draw::{display_panel_text, draw_current_rock, draw_goban, game_selector},
+    draw::{display_panel_text, draw_goban, draw_rock_preview, game_selector},
     game::{Game, GameMode, Winner},
     player::Player,
 };
@@ -61,7 +61,7 @@ async fn main() {
                     }
                     // Move preview and await input
                     else {
-                        draw_current_rock(&game);
+                        draw_rock_preview(&game);
 
                         // Player play
                         if is_mouse_button_released(MouseButton::Left) {
