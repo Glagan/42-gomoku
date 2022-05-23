@@ -127,12 +127,12 @@ impl Game {
         if self.recommended_move.is_some() {
             return self.recommended_move;
         }
-        let play_result = self
-            .computer
-            .play(&self.rules, &self.board, 3, &self.current_player);
-        if let Ok(play) = play_result {
-            self.recommended_move = play.movement;
-        }
+        // let play_result = self
+        //     .computer
+        //     .play(&self.rules, &self.board, 3, &self.current_player);
+        // if let Ok(play) = play_result {
+        //     self.recommended_move = play.movement;
+        // }
         self.recommended_move
     }
 

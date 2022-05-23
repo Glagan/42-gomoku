@@ -188,12 +188,104 @@ impl Board {
     // Check if a move *can* be executed according to the rules
     pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
         // Forbid movements that would create a "double three"
+        // Pattern: [1 1 1 0 >< 0 1 1 1] where [><] means any direction change
         if rules.no_double_three {
             // TODO
         }
-        // Forbid movements that would put a pawn in a "capture" state
+        // Forbid movements that would put a pawn in a "recursive capture" state
+        // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
         if rules.capture {
-            // TODO
+            let (x, y) = Board::index_to_coordinates(movement.index);
+            let self_pawn = Some(if movement.player == Player::Black {
+                Pawn::Black
+            } else {
+                Pawn::White
+            });
+            let other_pawn = Some(if movement.player == Player::Black {
+                Pawn::White
+            } else {
+                Pawn::Black
+            });
+            // Left
+            if x > 1
+                && x < BOARD_SIZE - 1
+                && self.get(x - 1, y) == self_pawn
+                && self.get(x - 2, y) == other_pawn
+                && self.get(x + 1, y) == other_pawn
+            {
+                return false;
+            }
+            // Right
+            if x > 0
+                && x < BOARD_SIZE - 2
+                && self.get(x - 1, y) == other_pawn
+                && self.get(x + 1, y) == self_pawn
+                && self.get(x + 2, y) == other_pawn
+            {
+                return false;
+            }
+            // Top
+            if y > 1
+                && y < BOARD_SIZE - 1
+                && self.get(x, y - 1) == self_pawn
+                && self.get(x, y - 2) == other_pawn
+                && self.get(x, y + 1) == other_pawn
+            {
+                return false;
+            }
+            // Bottom
+            if y > 0
+                && y < BOARD_SIZE - 2
+                && self.get(x, y - 1) == other_pawn
+                && self.get(x, y + 1) == self_pawn
+                && self.get(x, y + 2) == other_pawn
+            {
+                return false;
+            }
+            // Top-Left
+            if x > 1
+                && y > 1
+                && x < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 1
+                && self.get(x - 1, y - 1) == self_pawn
+                && self.get(x - 2, y - 2) == other_pawn
+                && self.get(x + 1, y + 1) == other_pawn
+            {
+                return false;
+            }
+            // Top-Right
+            if x > 0
+                && y > 0
+                && x < BOARD_SIZE - 2
+                && y < BOARD_SIZE - 1
+                && self.get(x + 1, y - 1) == self_pawn
+                && self.get(x + 2, y - 2) == other_pawn
+                && self.get(x - 1, y - 1) == other_pawn
+            {
+                return false;
+            }
+            // Bottom-Left
+            if x > 1
+                && y > 1
+                && x < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 1
+                && self.get(x - 1, y + 1) == self_pawn
+                && self.get(x - 2, y + 2) == other_pawn
+                && self.get(x + 1, y - 1) == other_pawn
+            {
+                return false;
+            }
+            // Bottom-Right
+            if x > 0
+                && y > 0
+                && x < BOARD_SIZE - 2
+                && y < BOARD_SIZE - 1
+                && self.get(x + 1, y + 1) == self_pawn
+                && self.get(x + 2, y + 2) == other_pawn
+                && self.get(x - 1, y - 1) == other_pawn
+            {
+                return false;
+            }
         }
         true
     }
