@@ -1,11 +1,54 @@
-use crate::pattern::PATTERN_FINDER;
+use crate::pattern::{PatternCategory, PATTERN_FINDER};
 use crate::{
     board::{Board, Move, Pawn, BOARD_PIECES},
     player::Player,
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{collections::HashMap, fmt};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashMap},
+    fmt,
+};
+
+#[derive(Debug, Clone)]
+pub struct SortedMove {
+    pub movement: Move,
+    pub pattern: Option<PatternCategory>,
+}
+
+impl Eq for SortedMove {}
+
+impl PartialEq for SortedMove {
+    fn eq(&self, other: &Self) -> bool {
+        self.pattern == other.pattern
+    }
+}
+
+impl Ord for SortedMove {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_is_none = self.pattern.is_none();
+        let other_is_none = other.pattern.is_none();
+        if self_is_none && other_is_none {
+            return std::cmp::Ordering::Equal;
+        } else if self_is_none {
+            return std::cmp::Ordering::Less;
+        } else if other_is_none {
+            return std::cmp::Ordering::Greater;
+        }
+        other
+            .pattern
+            .unwrap()
+            .partial_cmp(&self.pattern.unwrap())
+            .unwrap()
+    }
+}
+
+impl PartialOrd for SortedMove {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Evaluation {
@@ -337,24 +380,16 @@ impl Computer {
         };
 
         // Iterate each neighbor moves
-        let mut moves = board.intersections_legal_moves(rules, player);
-        moves.sort_by(|a, b| {
-            let a_pattern = PATTERN_FINDER.best_pattern_for_rock(board, a.index);
-            let b_pattern = PATTERN_FINDER.best_pattern_for_rock(board, b.index);
-            let a_is_none = a_pattern.is_none();
-            let b_is_none = b_pattern.is_none();
-            if a_is_none && b_is_none {
-                return std::cmp::Ordering::Equal;
-            }
-            if a_is_none {
-                return std::cmp::Ordering::Greater;
-            } else if b_is_none {
-                return std::cmp::Ordering::Less;
-            }
-            b_pattern.unwrap().partial_cmp(&a_pattern.unwrap()).unwrap()
-        });
-        for movement in moves.iter() {
-            let new_board = board.apply_move(rules, movement);
+        let mut moves: BinaryHeap<SortedMove> = board
+            .intersections_legal_moves(rules, player)
+            .iter()
+            .map(|&movement| SortedMove {
+                movement,
+                pattern: PATTERN_FINDER.best_pattern_for_rock(board, movement.index),
+            })
+            .collect();
+        while let Some(sorted_movement) = moves.pop() {
+            let new_board = board.apply_move(rules, &sorted_movement.movement);
             let mut sub_branch = Branch::new(depth, &new_board);
             let mut eval = self.negamax_alpha_beta(
                 rules,
@@ -375,7 +410,7 @@ impl Computer {
             if eval.score > best_eval.score {
                 alpha = eval.score;
                 best_eval.score = eval.score;
-                best_eval.movement = Some(movement.clone());
+                best_eval.movement = Some(sorted_movement.movement.clone());
             }
             if alpha >= beta {
                 break;
@@ -434,7 +469,7 @@ impl Computer {
         // Apply minimax recursively
         // let best_move = self.minimax(rules, board, depth, player, player)?;
 
-        branch.display(0);
+        // branch.display(0);
         Ok(best_move)
     }
 }

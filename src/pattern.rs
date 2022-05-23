@@ -4,6 +4,7 @@ use crate::{
 };
 use fixed_vec_deque::FixedVecDeque;
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum PatternCategory {
     FiveInRow = 0,
@@ -67,15 +68,19 @@ impl Default for Finder {
         // 5x1
         // patterns.push((vec![0, 1, 1, 0, 1, 1], 6, PatternCategory::LiveFour));
         // patterns.push((vec![1, 1, 0, 1, 1, 0], 6, PatternCategory::LiveFour));
+        // 6x2
+        patterns.push((vec![2, 0, 1, 1, 1, 0, 2], 7, PatternCategory::LiveThree));
         // 6x1
         patterns.push((vec![0, 1, 1, 1, 0], 5, PatternCategory::LiveThree));
         // patterns.push((vec![1, 1, 1], 3, PatternCategory::LiveThree));
-        // 7x1
-        patterns.push((vec![1, 0, 1, 1], 4, PatternCategory::LiveThree));
-        patterns.push((vec![1, 1, 0, 1], 4, PatternCategory::LiveThree));
         // 1x2
         patterns.push((vec![0, 1, 1, 1, 2], 5, PatternCategory::LiveThree));
         patterns.push((vec![2, 1, 1, 1, 0], 5, PatternCategory::LiveThree));
+        // 5x2
+        patterns.push((vec![1, 0, 1, 0, 1], 5, PatternCategory::LiveThree));
+        // 7x1
+        patterns.push((vec![1, 0, 1, 1], 4, PatternCategory::LiveThree));
+        patterns.push((vec![1, 1, 0, 1], 4, PatternCategory::LiveThree));
         // 2x2
         patterns.push((vec![1, 0, 1, 1, 2], 5, PatternCategory::DeadThree));
         patterns.push((vec![2, 1, 1, 0, 1], 5, PatternCategory::DeadThree));
@@ -87,25 +92,21 @@ impl Default for Finder {
         patterns.push((vec![1, 1, 0, 0, 1], 5, PatternCategory::DeadThree));
         // patterns.push((vec![0, 1, 1, 1, 2], 5, PatternCategory::DeadThree));
         // patterns.push((vec![2, 1, 1, 1, 0], 5, PatternCategory::DeadThree));
-        // 5x2
-        patterns.push((vec![1, 0, 1, 0, 1], 5, PatternCategory::LiveThree));
-        // 6x2
-        patterns.push((vec![2, 0, 1, 1, 1, 0, 2], 7, PatternCategory::LiveThree));
-        // 7x2
-        patterns.push((vec![1, 0, 0, 0, 1], 5, PatternCategory::DeadTwo));
-        // 1x3
-        patterns.push((vec![1, 0, 1], 3, PatternCategory::LiveTwo));
-        // 2x3
-        patterns.push((vec![1, 0, 0, 1], 4, PatternCategory::LiveTwo));
-        // 3x3
-        patterns.push((vec![1, 1, 2], 3, PatternCategory::DeadTwo));
-        patterns.push((vec![2, 1, 1], 3, PatternCategory::DeadTwo));
-        // 4x3
-        patterns.push((vec![1, 0, 1, 2], 4, PatternCategory::LiveTwo));
-        patterns.push((vec![2, 1, 0, 1], 4, PatternCategory::LiveTwo));
         // 5x3
         patterns.push((vec![1, 0, 0, 1, 2], 5, PatternCategory::LiveTwo));
         patterns.push((vec![2, 1, 0, 0, 1], 5, PatternCategory::LiveTwo));
+        // 4x3
+        patterns.push((vec![1, 0, 1, 2], 4, PatternCategory::LiveTwo));
+        patterns.push((vec![2, 1, 0, 1], 4, PatternCategory::LiveTwo));
+        // 2x3
+        patterns.push((vec![1, 0, 0, 1], 4, PatternCategory::LiveTwo));
+        // 1x3
+        patterns.push((vec![1, 0, 1], 3, PatternCategory::LiveTwo));
+        // 7x2
+        patterns.push((vec![1, 0, 0, 0, 1], 5, PatternCategory::DeadTwo));
+        // 3x3
+        patterns.push((vec![1, 1, 2], 3, PatternCategory::DeadTwo));
+        patterns.push((vec![2, 1, 1], 3, PatternCategory::DeadTwo));
         // 6x3
         // patterns.push((vec![1, 1], 2, PatternCategory::DeadTwo));
 
