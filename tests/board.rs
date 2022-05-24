@@ -740,3 +740,122 @@ fn four_in_a_row_no_match() {
     );
     assert!(!board.has_five_in_a_row(&Player::Black));
 }
+
+// Create a board with all possible blocked recursive capture patterns
+// 2 0 0 2 0 0 2
+// 0 x 0 x 0 x 0
+// 0 0 1 1 1 0 0
+// 2 x 1 2 1 x 2
+// 0 0 1 1 1 0 0
+// 0 x 0 x 0 x 0
+// 2 0 0 2 0 0 2
+fn create_board_with_recursive_capture_patterns(
+    x_offset: usize,
+    y_offset: usize,
+) -> (Board, Vec<(usize, usize)>) {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let capture_pawns = vec![
+        (0, 0),
+        (3, 0),
+        (6, 0),
+        (0, 3),
+        (3, 3),
+        (6, 3),
+        (0, 6),
+        (3, 6),
+        (6, 6),
+    ];
+    let blocked_pawns = vec![
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (2, 3),
+        (4, 3),
+        (2, 4),
+        (3, 4),
+        (4, 4),
+    ];
+    let move_pawns = vec![
+        (1 + x_offset, 1 + y_offset),
+        (3 + x_offset, 1 + y_offset),
+        (5 + x_offset, 1 + y_offset),
+        (1 + x_offset, 3 + y_offset),
+        (5 + x_offset, 3 + y_offset),
+        (1 + x_offset, 5 + y_offset),
+        (3 + x_offset, 5 + y_offset),
+        (5 + x_offset, 5 + y_offset),
+    ];
+
+    for rock in capture_pawns {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0 + x_offset, rock.1 + y_offset),
+            },
+        )
+    }
+
+    for rock in blocked_pawns {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0 + x_offset, rock.1 + y_offset),
+            },
+        )
+    }
+
+    (board, move_pawns)
+}
+
+fn assert_recursive_capture_are_illegal(board: Board, moves: Vec<(usize, usize)>) {
+    let rules = RuleSet::default();
+    for movement in moves {
+        assert!(
+            !board.is_move_legal(
+                &rules,
+                &Move {
+                    player: Player::White,
+                    index: Board::coordinates_to_index(movement.0, movement.1),
+                },
+            ),
+            "Expected {:#?} to be illegal",
+            movement
+        );
+    }
+}
+
+#[test]
+fn recursive_capture_all_directions_top_left() {
+    let (board, moves) = create_board_with_recursive_capture_patterns(0, 0);
+    assert_recursive_capture_are_illegal(board, moves);
+}
+
+#[test]
+fn recursive_capture_all_directions_top_right() {
+    let (board, moves) = create_board_with_recursive_capture_patterns(BOARD_SIZE - 7, 0);
+    assert_recursive_capture_are_illegal(board, moves);
+}
+
+#[test]
+fn recursive_capture_all_directions_center() {
+    let (board, moves) =
+        create_board_with_recursive_capture_patterns(BOARD_SIZE / 2, BOARD_SIZE / 2);
+    assert_recursive_capture_are_illegal(board, moves);
+}
+
+#[test]
+fn recursive_capture_all_directions_bottom_left() {
+    let (board, moves) = create_board_with_recursive_capture_patterns(0, BOARD_SIZE - 7);
+    assert_recursive_capture_are_illegal(board, moves);
+}
+
+#[test]
+fn recursive_capture_all_directions_bottom_right() {
+    let (board, moves) =
+        create_board_with_recursive_capture_patterns(BOARD_SIZE - 7, BOARD_SIZE - 7);
+    assert_recursive_capture_are_illegal(board, moves);
+}

@@ -135,10 +135,7 @@ impl Board {
 
     // Helper function to get a Board case with (x, y) coordinates
     pub fn get(&self, x: usize, y: usize) -> Option<Pawn> {
-        if x >= BOARD_SIZE || y >= BOARD_SIZE {
-            return None;
-        }
-        Some(self.pieces[Board::coordinates_to_index(x, y)].clone())
+        Some(self.pieces[Board::coordinates_to_index(x, y)])
     }
 
     pub fn index_to_coordinates(index: usize) -> (usize, usize) {
@@ -255,20 +252,20 @@ impl Board {
             }
             // Top-Right
             if x > 0
-                && y > 0
+                && y > 1
                 && x < BOARD_SIZE - 2
                 && y < BOARD_SIZE - 1
                 && self.get(x + 1, y - 1) == self_pawn
                 && self.get(x + 2, y - 2) == other_pawn
-                && self.get(x - 1, y - 1) == other_pawn
+                && self.get(x - 1, y + 1) == other_pawn
             {
                 return false;
             }
             // Bottom-Left
             if x > 1
-                && y > 1
+                && y > 0
                 && x < BOARD_SIZE - 1
-                && y < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 2
                 && self.get(x - 1, y + 1) == self_pawn
                 && self.get(x - 2, y + 2) == other_pawn
                 && self.get(x + 1, y - 1) == other_pawn
@@ -279,7 +276,7 @@ impl Board {
             if x > 0
                 && y > 0
                 && x < BOARD_SIZE - 2
-                && y < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 2
                 && self.get(x + 1, y + 1) == self_pawn
                 && self.get(x + 2, y + 2) == other_pawn
                 && self.get(x - 1, y - 1) == other_pawn
