@@ -203,6 +203,7 @@ impl Board {
             } else {
                 Pawn::Black
             });
+
             // Left
             if x > 1
                 && x < BOARD_SIZE - 1

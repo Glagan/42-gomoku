@@ -22,6 +22,7 @@ const POLICE_SIZE: f32 = 20.;
 
 const BLACK_SEMI: Color = color_u8!(0, 0, 0, 200);
 const WHITE_SEMI: Color = color_u8!(255, 255, 255, 200);
+const BEIGE_SEMI: Color = color_u8!(212, 176, 130, 255);
 
 pub fn draw_goban(game: &Game) {
     let board = &game.board;
@@ -259,21 +260,21 @@ pub fn display_panel_text(game: &mut Game) {
 }
 
 const WINNER_WINDOW_WIDTH: f32 = GRID_WINDOW_SIZE as f32 / 4.;
-const WINNER_WINDOW_HEIGHT: f32 = GRID_WINDOW_SIZE as f32 / 7.;
+const WINNER_WINDOW_HEIGHT: f32 = SQUARE_SIZE as f32 * 2. + 2.;
 
 pub fn display_winner(game: &Game) {
     if game.winner != Winner::None {
         // Background
         draw_rectangle(
             (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
-            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_HEIGHT) / 2.,
+            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.),
             WINNER_WINDOW_WIDTH,
             WINNER_WINDOW_HEIGHT,
-            Color::from_rgba(25, 200, 25, 220),
+            BEIGE_SEMI,
         );
         draw_rectangle_lines(
             (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
-            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_HEIGHT) / 2.,
+            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.),
             WINNER_WINDOW_WIDTH,
             WINNER_WINDOW_HEIGHT,
             4.,
@@ -292,8 +293,9 @@ pub fn display_winner(game: &Game) {
         let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
         draw_text(
             &win_text,
-            (GRID_WINDOW_SIZE) as f32 / 2. - text_size.width / 2.,
-            (GRID_WINDOW_SIZE) as f32 / 2. + text_size.height / 2.,
+            (GRID_WINDOW_SIZE as f32 / 2.) - (text_size.width / 2.),
+            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.)
+                + ((WINNER_WINDOW_HEIGHT - text_size.height) / 1.4), // Should be 2.0 ...
             WIN_FONT_SIZE as f32,
             if game.winner == Winner::Black {
                 BLACK
