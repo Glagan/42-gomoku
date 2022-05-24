@@ -489,7 +489,7 @@ impl Board {
         new_board
     }
 
-    pub fn has_free_three(&self, player: &Player) -> bool {
+    fn has_free_three(&self, player: &Player) -> bool {
         let rocks = if player == &Player::Black {
             &self.black_rocks
         } else {
@@ -536,6 +536,175 @@ impl Board {
                 }
             }
         }
+        false
+    }
+
+    // Pattern: [0 1 1 2] where
+    // With the rock possibly in either [1] positions
+    fn rock_can_be_captured(&self, index: usize) -> bool {
+        let (x, y) = Board::index_to_coordinates(index);
+        let self_pawn = self.get(x, y);
+        let no_pawn = Pawn::None;
+        let other_pawn = self_pawn.opponent();
+
+        // Horizontal
+        if (x > 0
+            && x < BOARD_SIZE - 2
+            && ((self.get(x - 1, y) == no_pawn
+                && self.get(x + 1, y) == self_pawn
+                && self.get(x + 2, y) == other_pawn)
+                || (self.get(x - 1, y) == other_pawn
+                    && self.get(x + 1, y) == self_pawn
+                    && self.get(x + 2, y) == no_pawn)))
+            || (x > 1
+                && x < BOARD_SIZE - 1
+                && ((self.get(x - 2, y) == no_pawn
+                    && self.get(x - 1, y) == self_pawn
+                    && self.get(x + 1, y) == other_pawn)
+                    || (self.get(x - 2, y) == other_pawn
+                        && self.get(x - 1, y) == self_pawn
+                        && self.get(x + 1, y) == no_pawn)))
+        {
+            return true;
+        }
+        // Vertical
+        else if (y > 0
+            && y < BOARD_SIZE - 2
+            && ((self.get(x, y - 1) == no_pawn
+                && self.get(x, y + 1) == self_pawn
+                && self.get(x, y + 2) == other_pawn)
+                || (self.get(x, y - 1) == other_pawn
+                    && self.get(x, y + 1) == self_pawn
+                    && self.get(x, y + 2) == no_pawn)))
+            || (y > 1
+                && y < BOARD_SIZE - 1
+                && ((self.get(x, y - 2) == no_pawn
+                    && self.get(x, y - 1) == self_pawn
+                    && self.get(x, y + 1) == other_pawn)
+                    || (self.get(x, y - 2) == other_pawn
+                        && self.get(x, y - 1) == self_pawn
+                        && self.get(x, y + 1) == no_pawn)))
+        {
+            return true;
+        }
+        // Left Diagonal
+        else if (x > 0
+            && x < BOARD_SIZE - 2
+            && y > 0
+            && y < BOARD_SIZE - 2
+            && ((self.get(x - 1, y - 1) == no_pawn
+                && self.get(x + 1, y + 1) == self_pawn
+                && self.get(x + 2, y + 2) == other_pawn)
+                || (self.get(x - 1, y - 1) == other_pawn
+                    && self.get(x + 1, y + 1) == self_pawn
+                    && self.get(x + 2, y + 2) == no_pawn)))
+            || (x > 1
+                && x < BOARD_SIZE - 1
+                && y > 1
+                && y < BOARD_SIZE - 1
+                && ((self.get(x - 2, y - 2) == no_pawn
+                    && self.get(x - 1, y - 1) == self_pawn
+                    && self.get(x + 1, y + 1) == other_pawn)
+                    || (self.get(x - 2, y - 2) == other_pawn
+                        && self.get(x - 1, y - 1) == self_pawn
+                        && self.get(x + 1, y + 1) == no_pawn)))
+        {
+            return true;
+        }
+        // Right Diagonal
+        else if (x > 1
+            && x < BOARD_SIZE - 1
+            && y > 0
+            && y < BOARD_SIZE - 2
+            && ((self.get(x + 1, y - 1) == no_pawn
+                && self.get(x - 1, y + 1) == self_pawn
+                && self.get(x - 2, y + 2) == other_pawn)
+                || (self.get(x + 1, y - 1) == other_pawn
+                    && self.get(x - 1, y + 1) == self_pawn
+                    && self.get(x - 2, y + 2) == no_pawn)))
+            || (x > 0
+                && x < BOARD_SIZE - 2
+                && y > 1
+                && y < BOARD_SIZE - 1
+                && ((self.get(x + 2, y - 2) == no_pawn
+                    && self.get(x + 1, y - 1) == self_pawn
+                    && self.get(x - 1, y + 1) == other_pawn)
+                    || (self.get(x + 2, y - 2) == other_pawn
+                        && self.get(x + 1, y - 1) == self_pawn
+                        && self.get(x - 1, y + 1) == no_pawn)))
+        {
+            return true;
+        }
+
+        false
+    }
+
+    // Check to see if the player has a five in a row
+    // -- and *then* check if this five in a row can be captured and destroyed
+    // A five in a row can be captured with the following pattern in any direction
+    // [0 0 0 0 0]
+    // [1 0 0 0 0] with 1 in any position, but mirrored v
+    // [1 1 1 1 1]                                      |
+    // [2 0 0 0 0]                        in this "row" ^
+    // Diagonals also need to be checked
+    // [0 0 0 0 0 0]
+    // [0 1 0 0 0 0] with 1 in any position, but mirrored v
+    // [0 1 1 1 1 1]                                      |
+    // [0 0 0 2 0 0]                        in this "row" ^
+    fn has_uncaptured_five_in_a_row(&self, player: &Player) -> bool {
+        let rocks = if player == &Player::Black {
+            &self.black_rocks
+        } else {
+            &self.white_rocks
+        };
+        let player_pawn = player.pawn();
+        let mut buf = FixedVecDeque::<[usize; 5]>::new();
+        let mut index_buf = FixedVecDeque::<[usize; 5]>::new();
+        for rock in rocks.iter() {
+            let pos = Board::index_to_coordinates(*rock);
+            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+            // Check all 8 directions from the rock to see if there is five in a row
+            for (dir_x, dir_y) in DIRECTIONS {
+                // Create a window of length 5 and update it on each move
+                // If there is five in a row in the window, return true
+                let mut length = 0;
+                // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
+                // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
+                let mut mov_x = dir_x * -5;
+                let mut mov_y = dir_y * -5;
+                for _ in 0..10 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
+                    {
+                        // 1 for player pawn and 0 for anything else
+                        *buf.push_back() =
+                            if self.get(new_x as usize, new_y as usize) == player_pawn {
+                                1
+                            } else {
+                                0
+                            };
+                        *index_buf.push_back() =
+                            Board::coordinates_to_index(new_x as usize, new_y as usize);
+                        length += 1;
+                        if length >= 5 && buf == [1, 1, 1, 1, 1] {
+                            if index_buf
+                                .iter()
+                                .all(|&index| !self.rock_can_be_captured(index))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    mov_x += dir_x;
+                    mov_y += dir_y;
+                }
+            }
+        }
+
         false
     }
 
@@ -596,11 +765,11 @@ impl Board {
             {
                 return true;
             }
-            if rules.game_ending_capture {
-                // TODO if game.capture -> check if five in a row can't be captured
-                return self.has_five_in_a_row(player);
-            }
         }
-        self.has_five_in_a_row(player)
+        if rules.game_ending_capture {
+            self.has_uncaptured_five_in_a_row(player)
+        } else {
+            self.has_five_in_a_row(player)
+        }
     }
 }
