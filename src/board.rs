@@ -3,6 +3,7 @@ use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
 use std::fmt;
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Pawn {
     None = 0,
@@ -16,6 +17,16 @@ impl ToString for Pawn {
             Pawn::None => "0".to_string(),
             Pawn::Black => "1".to_string(),
             Pawn::White => "2".to_string(),
+        }
+    }
+}
+
+impl Pawn {
+    pub fn opponent(&self) -> Pawn {
+        if self == &Pawn::Black {
+            Pawn::White
+        } else {
+            Pawn::Black
         }
     }
 }
@@ -134,8 +145,8 @@ impl Board {
     }
 
     // Helper function to get a Board case with (x, y) coordinates
-    pub fn get(&self, x: usize, y: usize) -> Option<Pawn> {
-        Some(self.pieces[Board::coordinates_to_index(x, y)])
+    pub fn get(&self, x: usize, y: usize) -> Pawn {
+        self.pieces[Board::coordinates_to_index(x, y)]
     }
 
     pub fn index_to_coordinates(index: usize) -> (usize, usize) {
@@ -168,12 +179,11 @@ impl Board {
                     && (new_x as usize) < BOARD_SIZE
                     && (new_y as usize) < BOARD_SIZE
                 {
-                    if let Some(pawn) = &self.get(new_x as usize, new_y as usize) {
-                        if *pawn == Pawn::None {
-                            let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
-                            if !intersections.contains(&index) {
-                                intersections.push(index);
-                            }
+                    let pawn = self.get(new_x as usize, new_y as usize);
+                    if pawn == Pawn::None {
+                        let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
+                        if !intersections.contains(&index) {
+                            intersections.push(index);
                         }
                     }
                 }
@@ -182,108 +192,224 @@ impl Board {
         intersections
     }
 
+    // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
+    // Since the move rock can be in any 1 position, we need to check all possible patterns:
+    // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0], [0 ? 0 1 1 0], [0 1 0 ? 1 0] and [0 1 0 1 ? 0]
+    fn move_create_free_three(&self, movement: &Move) -> bool {
+        let player = movement.player;
+        let self_pawn = player.pawn();
+        let no_pawn = Pawn::None;
+        let (x, y) = Board::index_to_coordinates(movement.index);
+
+        // Horizontal
+        if (x > 0
+            && x < BOARD_SIZE - 3
+            && self.get(x - 1, y) == no_pawn
+            && self.get(x + 1, y) == self_pawn
+            && self.get(x + 2, y) == self_pawn
+            && self.get(x + 3, y) == no_pawn)
+            || (x > 1
+                && x < BOARD_SIZE - 2
+                && self.get(x - 2, y) == no_pawn
+                && self.get(x - 1, y) == self_pawn
+                && self.get(x + 1, y) == self_pawn
+                && self.get(x + 2, y) == no_pawn)
+            || (x > 2
+                && x < BOARD_SIZE - 1
+                && self.get(x - 3, y) == no_pawn
+                && self.get(x - 2, y) == self_pawn
+                && self.get(x - 1, y) == self_pawn
+                && self.get(x + 1, y) == no_pawn)
+        {
+            return true;
+        }
+        // Vertical
+        else if (y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x, y - 1) == no_pawn
+            && self.get(x, y + 1) == self_pawn
+            && self.get(x, y + 2) == self_pawn
+            && self.get(x, y + 3) == no_pawn)
+            || (y > 1
+                && y < BOARD_SIZE - 2
+                && self.get(x, y - 2) == no_pawn
+                && self.get(x, y - 1) == self_pawn
+                && self.get(x, y + 1) == self_pawn
+                && self.get(x, y + 2) == no_pawn)
+            || (y > 2
+                && y < BOARD_SIZE - 1
+                && self.get(x, y - 3) == no_pawn
+                && self.get(x, y - 2) == self_pawn
+                && self.get(x, y - 1) == self_pawn
+                && self.get(x, y + 1) == no_pawn)
+        {
+            return true;
+        }
+        // Left Diagonal
+        else if (x > 0
+            && x < BOARD_SIZE - 3
+            && y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x - 1, y - 1) == no_pawn
+            && self.get(x + 1, y + 1) == self_pawn
+            && self.get(x + 2, y + 2) == self_pawn
+            && self.get(x + 3, y + 3) == no_pawn)
+            || (x > 1
+                && x < BOARD_SIZE - 2
+                && y > 1
+                && y < BOARD_SIZE - 2
+                && self.get(x - 2, y - 2) == no_pawn
+                && self.get(x - 1, y - 1) == self_pawn
+                && self.get(x + 1, y + 1) == self_pawn
+                && self.get(x + 2, y + 2) == no_pawn)
+            || (x > 2
+                && x < BOARD_SIZE - 1
+                && y > 2
+                && y < BOARD_SIZE - 1
+                && self.get(x - 3, y - 3) == no_pawn
+                && self.get(x - 2, y - 2) == self_pawn
+                && self.get(x - 1, y - 1) == self_pawn
+                && self.get(x + 1, y + 1) == no_pawn)
+        {
+            return true;
+        }
+        // Right Diagonal
+        else if (x > 2
+            && x < BOARD_SIZE - 1
+            && y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x + 1, y - 1) == no_pawn
+            && self.get(x - 1, y + 1) == self_pawn
+            && self.get(x - 2, y + 2) == self_pawn
+            && self.get(x - 3, y + 3) == no_pawn)
+            || (x > 1
+                && x < BOARD_SIZE - 2
+                && y > 1
+                && y < BOARD_SIZE - 2
+                && self.get(x + 2, y - 2) == no_pawn
+                && self.get(x + 1, y - 1) == self_pawn
+                && self.get(x - 1, y + 1) == self_pawn
+                && self.get(x - 2, y + 2) == no_pawn)
+            || (x > 2
+                && x < BOARD_SIZE - 3
+                && y > 2
+                && y < BOARD_SIZE - 1
+                && self.get(x + 3, y - 3) == no_pawn
+                && self.get(x + 2, y - 2) == self_pawn
+                && self.get(x + 1, y - 1) == self_pawn
+                && self.get(x - 1, y + 1) == no_pawn)
+        {
+            return true;
+        }
+
+        false
+    }
+
+    fn is_move_legal_double_free_three(&self, movement: &Move) -> bool {
+        !self.move_create_free_three(movement) || !self.has_free_three(&movement.player)
+    }
+
+    // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
+    fn is_move_legal_recursive_capture(&self, movement: &Move) -> bool {
+        let player = movement.player;
+        let (x, y) = Board::index_to_coordinates(movement.index);
+        let self_pawn = player.pawn();
+        let other_pawn = self_pawn.opponent();
+
+        // Left
+        if x > 1
+            && x < BOARD_SIZE - 1
+            && self.get(x - 1, y) == self_pawn
+            && self.get(x - 2, y) == other_pawn
+            && self.get(x + 1, y) == other_pawn
+        {
+            return false;
+        }
+        // Right
+        else if x > 0
+            && x < BOARD_SIZE - 2
+            && self.get(x - 1, y) == other_pawn
+            && self.get(x + 1, y) == self_pawn
+            && self.get(x + 2, y) == other_pawn
+        {
+            return false;
+        }
+        // Top
+        else if y > 1
+            && y < BOARD_SIZE - 1
+            && self.get(x, y - 1) == self_pawn
+            && self.get(x, y - 2) == other_pawn
+            && self.get(x, y + 1) == other_pawn
+        {
+            return false;
+        }
+        // Bottom
+        else if y > 0
+            && y < BOARD_SIZE - 2
+            && self.get(x, y - 1) == other_pawn
+            && self.get(x, y + 1) == self_pawn
+            && self.get(x, y + 2) == other_pawn
+        {
+            return false;
+        }
+        // Top-Left
+        else if x > 1
+            && y > 1
+            && x < BOARD_SIZE - 1
+            && y < BOARD_SIZE - 1
+            && self.get(x - 1, y - 1) == self_pawn
+            && self.get(x - 2, y - 2) == other_pawn
+            && self.get(x + 1, y + 1) == other_pawn
+        {
+            return false;
+        }
+        // Top-Right
+        else if x > 0
+            && y > 1
+            && x < BOARD_SIZE - 2
+            && y < BOARD_SIZE - 1
+            && self.get(x + 1, y - 1) == self_pawn
+            && self.get(x + 2, y - 2) == other_pawn
+            && self.get(x - 1, y + 1) == other_pawn
+        {
+            return false;
+        }
+        // Bottom-Left
+        else if x > 1
+            && y > 0
+            && x < BOARD_SIZE - 1
+            && y < BOARD_SIZE - 2
+            && self.get(x - 1, y + 1) == self_pawn
+            && self.get(x - 2, y + 2) == other_pawn
+            && self.get(x + 1, y - 1) == other_pawn
+        {
+            return false;
+        }
+        // Bottom-Right
+        else if x > 0
+            && y > 0
+            && x < BOARD_SIZE - 2
+            && y < BOARD_SIZE - 2
+            && self.get(x + 1, y + 1) == self_pawn
+            && self.get(x + 2, y + 2) == other_pawn
+            && self.get(x - 1, y - 1) == other_pawn
+        {
+            return false;
+        }
+
+        true
+    }
+
     // Check if a move *can* be executed according to the rules
     pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
         // Forbid movements that would create a "double three"
         // Pattern: [1 1 1 0 >< 0 1 1 1] where [><] means any direction change
-        if rules.no_double_three {
-            // TODO
+        if rules.no_double_three && !self.is_move_legal_double_free_three(movement) {
+            return false;
         }
         // Forbid movements that would put a pawn in a "recursive capture" state
-        // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
-        if rules.capture {
-            let (x, y) = Board::index_to_coordinates(movement.index);
-            let self_pawn = Some(if movement.player == Player::Black {
-                Pawn::Black
-            } else {
-                Pawn::White
-            });
-            let other_pawn = Some(if movement.player == Player::Black {
-                Pawn::White
-            } else {
-                Pawn::Black
-            });
-
-            // Left
-            if x > 1
-                && x < BOARD_SIZE - 1
-                && self.get(x - 1, y) == self_pawn
-                && self.get(x - 2, y) == other_pawn
-                && self.get(x + 1, y) == other_pawn
-            {
-                return false;
-            }
-            // Right
-            if x > 0
-                && x < BOARD_SIZE - 2
-                && self.get(x - 1, y) == other_pawn
-                && self.get(x + 1, y) == self_pawn
-                && self.get(x + 2, y) == other_pawn
-            {
-                return false;
-            }
-            // Top
-            if y > 1
-                && y < BOARD_SIZE - 1
-                && self.get(x, y - 1) == self_pawn
-                && self.get(x, y - 2) == other_pawn
-                && self.get(x, y + 1) == other_pawn
-            {
-                return false;
-            }
-            // Bottom
-            if y > 0
-                && y < BOARD_SIZE - 2
-                && self.get(x, y - 1) == other_pawn
-                && self.get(x, y + 1) == self_pawn
-                && self.get(x, y + 2) == other_pawn
-            {
-                return false;
-            }
-            // Top-Left
-            if x > 1
-                && y > 1
-                && x < BOARD_SIZE - 1
-                && y < BOARD_SIZE - 1
-                && self.get(x - 1, y - 1) == self_pawn
-                && self.get(x - 2, y - 2) == other_pawn
-                && self.get(x + 1, y + 1) == other_pawn
-            {
-                return false;
-            }
-            // Top-Right
-            if x > 0
-                && y > 1
-                && x < BOARD_SIZE - 2
-                && y < BOARD_SIZE - 1
-                && self.get(x + 1, y - 1) == self_pawn
-                && self.get(x + 2, y - 2) == other_pawn
-                && self.get(x - 1, y + 1) == other_pawn
-            {
-                return false;
-            }
-            // Bottom-Left
-            if x > 1
-                && y > 0
-                && x < BOARD_SIZE - 1
-                && y < BOARD_SIZE - 2
-                && self.get(x - 1, y + 1) == self_pawn
-                && self.get(x - 2, y + 2) == other_pawn
-                && self.get(x + 1, y - 1) == other_pawn
-            {
-                return false;
-            }
-            // Bottom-Right
-            if x > 0
-                && y > 0
-                && x < BOARD_SIZE - 2
-                && y < BOARD_SIZE - 2
-                && self.get(x + 1, y + 1) == self_pawn
-                && self.get(x + 2, y + 2) == other_pawn
-                && self.get(x - 1, y - 1) == other_pawn
-            {
-                return false;
-            }
+        if rules.capture && !self.is_move_legal_recursive_capture(movement) {
+            return false;
         }
         true
     }
@@ -363,6 +489,56 @@ impl Board {
         new_board
     }
 
+    pub fn has_free_three(&self, player: &Player) -> bool {
+        let rocks = if player == &Player::Black {
+            &self.black_rocks
+        } else {
+            &self.white_rocks
+        };
+        let player_pawn = player.pawn();
+        for rock in rocks.iter() {
+            let pos = Board::index_to_coordinates(*rock);
+            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+            // Check all 8 directions from the rock to see if there is a free three pattern
+            for (dir_x, dir_y) in DIRECTIONS {
+                // Create a window of length 6 and update it on each move
+                // If there is the given pattern, return true
+                let mut length = 0;
+                // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
+                // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
+                let mut buf = FixedVecDeque::<[usize; 6]>::new();
+                let mut mov_x = dir_x * -6;
+                let mut mov_y = dir_y * -6;
+                for _ in 0..12 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
+                    {
+                        // 1 for player pawn and 0 for anything else
+                        *buf.push_back() =
+                            if self.get(new_x as usize, new_y as usize) == player_pawn {
+                                1
+                            } else {
+                                0
+                            };
+                        length += 1;
+                        if (length >= 5 && (buf == [0, 1, 1, 1, 0, 0] || buf == [0, 0, 1, 1, 1, 0]))
+                            || (length >= 6 && buf == [0, 1, 0, 1, 1, 0])
+                        {
+                            return true;
+                        }
+                    }
+                    mov_x += dir_x;
+                    mov_y += dir_y;
+                }
+            }
+        }
+        false
+    }
+
     pub fn has_five_in_a_row(&self, player: &Player) -> bool {
         let rocks = if player == &Player::Black {
             &self.black_rocks
@@ -392,8 +568,8 @@ impl Board {
                         && (new_y as usize) < BOARD_SIZE
                     {
                         // 1 for player pawn and 0 for anything else
-                        *buf.push_front() =
-                            if self.get(new_x as usize, new_y as usize).unwrap() == player_pawn {
+                        *buf.push_back() =
+                            if self.get(new_x as usize, new_y as usize) == player_pawn {
                                 1
                             } else {
                                 0

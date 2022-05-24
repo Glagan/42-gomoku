@@ -116,18 +116,15 @@ impl Default for Finder {
 
 impl Finder {
     pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
-        if let Some(pawn) = board.get(x, y) {
-            if pawn == Pawn::None {
-                0
-            } else if (pawn == Pawn::Black && *player == Player::Black)
-                || (pawn == Pawn::White && *player == Player::White)
-            {
-                1
-            } else {
-                2
-            }
-        } else {
+        let pawn = board.get(x, y);
+        if pawn == Pawn::None {
             0
+        } else if (pawn == Pawn::Black && *player == Player::Black)
+            || (pawn == Pawn::White && *player == Player::White)
+        {
+            1
+        } else {
+            2
         }
     }
 
@@ -139,52 +136,49 @@ impl Finder {
         let mut best_pattern: Option<PatternCategory> = None;
         let (x, y) = Board::index_to_coordinates(rock_index);
         let rock = board.get(x, y);
-        if let Some(rock) = rock {
-            if rock == Pawn::None {
-                let player = if rock == Pawn::Black {
-                    &Player::Black
-                } else {
-                    &Player::White
-                };
-                let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-                let mut best_pattern_index: Option<usize> = None;
-                // Sliding window of 7 (patterns length)
-                let mut buf = FixedVecDeque::<[u8; 7]>::new();
-                for (dir_x, dir_y) in DIRECTIONS {
-                    // Initialize to -7 so the first 7 elements
-                    // -- can be set and the last one is the initial rock
-                    let mut length = 0;
-                    // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
-                    // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
-                    let mut mov_x = dir_x * -7;
-                    let mut mov_y = dir_y * -7;
-                    for _ in 0..13 {
-                        let (new_x, new_y) = (x + mov_x, y + mov_y);
-                        // Check Board boundaries
-                        if new_x >= 0
-                            && new_y >= 0
-                            && (new_x as usize) < BOARD_SIZE
-                            && (new_y as usize) < BOARD_SIZE
-                        {
-                            *buf.push_back() = if new_x == x && new_y == y {
-                                1
-                            } else {
-                                Finder::pawn_to_pattern_pawn(
-                                    board,
-                                    new_x as usize,
-                                    new_y as usize,
-                                    player,
-                                )
-                            };
-                            length += 1;
-                            if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                                let has_best_pattern = best_pattern_index.is_some();
-                                let has_no_best_pattern = best_pattern_index.is_none();
-                                if let Some((index, (_, _, category))) = self
-                                    .patterns
-                                    .iter()
-                                    .enumerate()
-                                    .find(|&(index, (pattern, length, _))| {
+        if rock == Pawn::None {
+            let player = if rock == Pawn::Black {
+                &Player::Black
+            } else {
+                &Player::White
+            };
+            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+            let mut best_pattern_index: Option<usize> = None;
+            // Sliding window of 7 (patterns length)
+            let mut buf = FixedVecDeque::<[u8; 7]>::new();
+            for (dir_x, dir_y) in DIRECTIONS {
+                // Initialize to -7 so the first 7 elements
+                // -- can be set and the last one is the initial rock
+                let mut length = 0;
+                // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
+                // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
+                let mut mov_x = dir_x * -7;
+                let mut mov_y = dir_y * -7;
+                for _ in 0..13 {
+                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    // Check Board boundaries
+                    if new_x >= 0
+                        && new_y >= 0
+                        && (new_x as usize) < BOARD_SIZE
+                        && (new_y as usize) < BOARD_SIZE
+                    {
+                        *buf.push_back() = if new_x == x && new_y == y {
+                            1
+                        } else {
+                            Finder::pawn_to_pattern_pawn(
+                                board,
+                                new_x as usize,
+                                new_y as usize,
+                                player,
+                            )
+                        };
+                        length += 1;
+                        if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                            let has_best_pattern = best_pattern_index.is_some();
+                            let has_no_best_pattern = best_pattern_index.is_none();
+                            if let Some((index, (_, _, category))) =
+                                self.patterns.iter().enumerate().find(
+                                    |&(index, (pattern, length, _))| {
                                         if has_best_pattern && best_pattern_index.unwrap() < index {
                                             return false;
                                         }
@@ -200,22 +194,22 @@ impl Finder {
                                             }
                                         }
                                         i == *length
-                                    })
-                                {
-                                    // println!("Found pattern {:#?} in {:#?}", category, buf);
-                                    if has_no_best_pattern || best_pattern_index.unwrap() > index {
-                                        best_pattern_index = Some(index);
-                                        best_pattern = Some(*category);
-                                        if category == &PatternCategory::FiveInRow {
-                                            return best_pattern;
-                                        }
+                                    },
+                                )
+                            {
+                                // println!("Found pattern {:#?} in {:#?}", category, buf);
+                                if has_no_best_pattern || best_pattern_index.unwrap() > index {
+                                    best_pattern_index = Some(index);
+                                    best_pattern = Some(*category);
+                                    if category == &PatternCategory::FiveInRow {
+                                        return best_pattern;
                                     }
                                 }
                             }
                         }
-                        mov_x += dir_x;
-                        mov_y += dir_y;
                     }
+                    mov_x += dir_x;
+                    mov_y += dir_y;
                 }
             }
         }
