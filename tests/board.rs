@@ -859,3 +859,135 @@ fn recursive_capture_all_directions_bottom_right() {
         create_board_with_recursive_capture_patterns(BOARD_SIZE - 7, BOARD_SIZE - 7);
     assert_recursive_capture_are_illegal(board, moves);
 }
+
+#[test]
+fn free_three_detected_horizontal() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 1,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 2,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 3,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_detected_vertical() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 20,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 39,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 58,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_detected_diagonal_left() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 22,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 40,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 58,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_detected_diagonal_right() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 20,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 40,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 60,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}

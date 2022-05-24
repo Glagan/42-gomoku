@@ -195,7 +195,10 @@ impl Board {
     // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
     // Since the move rock can be in any 1 position, we need to check all possible patterns:
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0], [0 ? 0 1 1 0], [0 1 0 ? 1 0] and [0 1 0 1 ? 0]
-    fn move_create_free_three(&self, movement: &Move) -> bool {
+    // For the pattern to be considered a free-three, it strictly need to have both ends "free"
+    // -- so borders does *not* count
+    // TODO add [0 ? 0 1 1 0], [0 1 0 ? 1 0] and [0 1 0 1 ? 0] patterns
+    pub fn move_create_free_three(&self, movement: &Move) -> bool {
         let player = movement.player;
         let self_pawn = player.pawn();
         let no_pawn = Pawn::None;
@@ -290,7 +293,7 @@ impl Board {
                 && self.get(x + 1, y - 1) == self_pawn
                 && self.get(x - 1, y + 1) == self_pawn
                 && self.get(x - 2, y + 2) == no_pawn)
-            || (x > 2
+            || (x > 0
                 && x < BOARD_SIZE - 3
                 && y > 2
                 && y < BOARD_SIZE - 1
@@ -489,7 +492,8 @@ impl Board {
         new_board
     }
 
-    fn has_free_three(&self, player: &Player) -> bool {
+    pub fn has_free_three(&self, player: &Player) -> bool {
+        let free_three_pattern: [usize; 5] = [0, 1, 1, 1, 0];
         let rocks = if player == &Player::Black {
             &self.black_rocks
         } else {
@@ -525,9 +529,21 @@ impl Board {
                                 0
                             };
                         length += 1;
-                        if (length >= 5 && (buf == [0, 1, 1, 1, 0, 0] || buf == [0, 0, 1, 1, 1, 0]))
-                            || (length >= 6 && buf == [0, 1, 0, 1, 1, 0])
-                        {
+                        // buf.contains([0, 1, 1, 1, 0]
+                        if length >= 5 {
+                            let mut i: u8 = 0;
+                            for value in &buf {
+                                if *value == free_three_pattern[i as usize] {
+                                    i += 1;
+                                    if i == 5 {
+                                        return true;
+                                    }
+                                } else {
+                                    i = 0;
+                                }
+                            }
+                        }
+                        if length >= 6 && buf == [0, 1, 0, 1, 1, 0] {
                             return true;
                         }
                     }
