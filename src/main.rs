@@ -20,6 +20,7 @@ mod board;
 mod computer;
 mod draw;
 mod game;
+mod options;
 mod pattern;
 mod player;
 mod rules;
@@ -96,3 +97,11 @@ async fn main() {
         next_frame().await
     }
 }
+
+// fn main() {
+//     let mut game = Game::default();
+//     game.start(GameMode::AvA);
+//     while game.winner == Winner::None {
+//         game.play_computer()
+//     }
+// }
