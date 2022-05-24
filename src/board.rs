@@ -667,7 +667,7 @@ impl Board {
     // [0 1 0 0 0 0] with 1 in any position, but mirrored v
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
-    fn has_uncaptured_five_in_a_row(&self, player: &Player) -> bool {
+    pub fn has_uncaptured_five_in_a_row(&self, player: &Player) -> bool {
         let rocks = if player == &Player::Black {
             &self.black_rocks
         } else {

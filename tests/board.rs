@@ -756,7 +756,7 @@ fn create_board_with_recursive_capture_patterns(
     let rules = RuleSet::default();
     let mut board = Board::default();
 
-    let capture_pawns = vec![
+    let capture_rocks = vec![
         (0, 0),
         (3, 0),
         (6, 0),
@@ -767,7 +767,7 @@ fn create_board_with_recursive_capture_patterns(
         (3, 6),
         (6, 6),
     ];
-    let blocked_pawns = vec![
+    let blocked_rocks = vec![
         (2, 2),
         (3, 2),
         (4, 2),
@@ -777,7 +777,7 @@ fn create_board_with_recursive_capture_patterns(
         (3, 4),
         (4, 4),
     ];
-    let move_pawns = vec![
+    let move_rocks = vec![
         (1 + x_offset, 1 + y_offset),
         (3 + x_offset, 1 + y_offset),
         (5 + x_offset, 1 + y_offset),
@@ -788,7 +788,7 @@ fn create_board_with_recursive_capture_patterns(
         (5 + x_offset, 5 + y_offset),
     ];
 
-    for rock in capture_pawns {
+    for rock in capture_rocks {
         board.set_move(
             &rules,
             &Move {
@@ -798,7 +798,7 @@ fn create_board_with_recursive_capture_patterns(
         )
     }
 
-    for rock in blocked_pawns {
+    for rock in blocked_rocks {
         board.set_move(
             &rules,
             &Move {
@@ -808,7 +808,7 @@ fn create_board_with_recursive_capture_patterns(
         )
     }
 
-    (board, move_pawns)
+    (board, move_rocks)
 }
 
 fn assert_recursive_capture_are_illegal(board: Board, moves: Vec<(usize, usize)>) {
@@ -990,4 +990,324 @@ fn free_three_detected_diagonal_right() {
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
     assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn captured_five_in_a_row_horizontal_1() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (1, 2),
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (5, 2),
+        (1, 1), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(1, 0)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_horizontal_2() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (1, 2),
+        (2, 2),
+        (3, 2),
+        (4, 2),
+        (5, 2),
+        (1, 1), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(1, 3)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_vertical_1() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (2, 1),
+        (2, 2),
+        (2, 3),
+        (2, 4),
+        (2, 5),
+        (1, 1), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(3, 1)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_vertical_2() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (2, 1),
+        (2, 2),
+        (2, 3),
+        (2, 4),
+        (2, 5),
+        (1, 1), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(0, 1)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_diagonal_1() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        (5, 5),
+        (6, 6),
+        (1, 3), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(3, 1)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_diagonal_2() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        (5, 5),
+        (6, 6),
+        (1, 3), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(0, 4)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_diagonal_3() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (8, 8),
+        (7, 9),
+        (6, 10),
+        (5, 11),
+        (4, 12),
+        (7, 7), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(6, 6)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
+}
+
+#[test]
+fn captured_five_in_a_row_diagonal_4() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    let blocked_rocks = vec![
+        (8, 8),
+        (7, 9),
+        (6, 10),
+        (5, 11),
+        (4, 12),
+        (7, 7), // Rock that allow capture
+    ];
+    let capture_rocks = vec![(9, 9)];
+
+    for rock in blocked_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::Black,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    for rock in capture_rocks {
+        board.set_move(
+            &rules,
+            &Move {
+                player: Player::White,
+                index: Board::coordinates_to_index(rock.0, rock.1),
+            },
+        )
+    }
+
+    assert!(board.has_five_in_a_row(&Player::Black));
+    assert!(!board.has_uncaptured_five_in_a_row(&Player::Black));
+    assert!(!board.is_winning(&rules, &Player::Black));
 }
