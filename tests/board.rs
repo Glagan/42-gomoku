@@ -861,7 +861,7 @@ fn recursive_capture_all_directions_bottom_right() {
 }
 
 #[test]
-fn free_three_detected_horizontal() {
+fn free_three_1_detected_horizontal() {
     let rules = RuleSet::default();
     let mut board = Board::default();
 
@@ -894,7 +894,7 @@ fn free_three_detected_horizontal() {
 }
 
 #[test]
-fn free_three_detected_vertical() {
+fn free_three_1_detected_vertical() {
     let rules = RuleSet::default();
     let mut board = Board::default();
 
@@ -927,7 +927,7 @@ fn free_three_detected_vertical() {
 }
 
 #[test]
-fn free_three_detected_diagonal_left() {
+fn free_three_1_detected_diagonal_left() {
     let rules = RuleSet::default();
     let mut board = Board::default();
 
@@ -960,7 +960,7 @@ fn free_three_detected_diagonal_left() {
 }
 
 #[test]
-fn free_three_detected_diagonal_right() {
+fn free_three_1_detected_diagonal_right() {
     let rules = RuleSet::default();
     let mut board = Board::default();
 
@@ -983,6 +983,138 @@ fn free_three_detected_diagonal_right() {
 
     let free_three_move = Move {
         index: 60,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_2_detected_horizontal() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 1,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 2,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 4,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_2_detected_vertical() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 20,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 39,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 77,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_2_detected_diagonal_left() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 23,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 41,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 77,
+        player: Player::Black,
+    };
+    assert!(board.move_create_free_three(&free_three_move));
+
+    board.set_move(&rules, &free_three_move);
+    assert!(board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+}
+
+#[test]
+fn free_three_2_detected_diagonal_right() {
+    let rules = RuleSet::default();
+    let mut board = Board::default();
+
+    board.set_move(
+        &rules,
+        &Move {
+            index: 20,
+            player: Player::Black,
+        },
+    );
+    board.set_move(
+        &rules,
+        &Move {
+            index: 40,
+            player: Player::Black,
+        },
+    );
+    assert!(!board.has_free_three(&Player::Black));
+    assert!(!board.has_free_three(&Player::White));
+
+    let free_three_move = Move {
+        index: 80,
         player: Player::Black,
     };
     assert!(board.move_create_free_three(&free_three_move));
