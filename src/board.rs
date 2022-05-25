@@ -118,7 +118,7 @@ impl fmt::Display for Board {
                     .iter()
                     .map(|p| p.to_string())
                     .collect::<Vec<String>>()
-                    .join(&" ")
+                    .join(" ")
             )?;
             if row != BOARD_SIZE - 1 {
                 writeln!(f)?;
@@ -131,14 +131,14 @@ impl fmt::Display for Board {
 impl Board {
     pub fn display(&self, level: usize) {
         for row in 0..BOARD_SIZE {
-            print!(
-                "{:indent$}{}\n",
+            println!(
+                "{:indent$}{}",
                 "",
                 self.pieces[(BOARD_SIZE * row)..(BOARD_SIZE * (row + 1))]
                     .iter()
                     .map(|p| p.to_string())
                     .collect::<Vec<String>>()
-                    .join(&" "),
+                    .join(" "),
                 indent = level
             );
         }
@@ -164,7 +164,7 @@ impl Board {
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
         // Only the center intersection is available if there is no previous moves
-        if self.moves.len() == 0 {
+        if self.moves.is_empty() {
             return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
         }
         let mut intersections: Vec<usize> = vec![];
@@ -220,16 +220,13 @@ impl Board {
                 && self.get(x - 2, y) == self_pawn
                 && self.get(x - 1, y) == self_pawn
                 && self.get(x + 1, y) == no_pawn)
-        {
-            return true;
-        }
-        // Vertical
-        else if (y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x, y - 1) == no_pawn
-            && self.get(x, y + 1) == self_pawn
-            && self.get(x, y + 2) == self_pawn
-            && self.get(x, y + 3) == no_pawn)
+            // Vertical
+            || (y > 0
+                && y < BOARD_SIZE - 3
+                && self.get(x, y - 1) == no_pawn
+                && self.get(x, y + 1) == self_pawn
+                && self.get(x, y + 2) == self_pawn
+                && self.get(x, y + 3) == no_pawn)
             || (y > 1
                 && y < BOARD_SIZE - 2
                 && self.get(x, y - 2) == no_pawn
@@ -242,18 +239,15 @@ impl Board {
                 && self.get(x, y - 2) == self_pawn
                 && self.get(x, y - 1) == self_pawn
                 && self.get(x, y + 1) == no_pawn)
-        {
-            return true;
-        }
-        // Left Diagonal
-        else if (x > 0
-            && x < BOARD_SIZE - 3
-            && y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x - 1, y - 1) == no_pawn
-            && self.get(x + 1, y + 1) == self_pawn
-            && self.get(x + 2, y + 2) == self_pawn
-            && self.get(x + 3, y + 3) == no_pawn)
+            // Left Diagonal
+            || (x > 0
+                && x < BOARD_SIZE - 3
+                && y > 0
+                && y < BOARD_SIZE - 3
+                && self.get(x - 1, y - 1) == no_pawn
+                && self.get(x + 1, y + 1) == self_pawn
+                && self.get(x + 2, y + 2) == self_pawn
+                && self.get(x + 3, y + 3) == no_pawn)
             || (x > 1
                 && x < BOARD_SIZE - 2
                 && y > 1
@@ -270,18 +264,15 @@ impl Board {
                 && self.get(x - 2, y - 2) == self_pawn
                 && self.get(x - 1, y - 1) == self_pawn
                 && self.get(x + 1, y + 1) == no_pawn)
-        {
-            return true;
-        }
-        // Right Diagonal
-        else if (x > 2
-            && x < BOARD_SIZE - 1
-            && y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x + 1, y - 1) == no_pawn
-            && self.get(x - 1, y + 1) == self_pawn
-            && self.get(x - 2, y + 2) == self_pawn
-            && self.get(x - 3, y + 3) == no_pawn)
+            // Right Diagonal
+            || (x > 2
+                && x < BOARD_SIZE - 1
+                && y > 0
+                && y < BOARD_SIZE - 3
+                && self.get(x + 1, y - 1) == no_pawn
+                && self.get(x - 1, y + 1) == self_pawn
+                && self.get(x - 2, y + 2) == self_pawn
+                && self.get(x - 3, y + 3) == no_pawn)
             || (x > 1
                 && x < BOARD_SIZE - 2
                 && y > 1
@@ -454,19 +445,14 @@ impl Board {
                     && (new_y as usize) < BOARD_SIZE
                 {
                     // 1 for player pawn and 0 for anything else
-                    *buf.push_back() = if new_x == x && new_y == y {
+                    *buf.push_back() = if new_x == x && new_y == y
+                        || self.get(new_x as usize, new_y as usize) == player_pawn
+                    {
                         1
                     } else {
-                        if self.get(new_x as usize, new_y as usize) == player_pawn {
-                            1
-                        } else {
-                            0
-                        }
+                        0
                     };
                     length += 1;
-                    if length >= 6 {
-                        println!("window {:#?}", buf);
-                    }
                     if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
                         return true;
                     }
@@ -498,82 +484,61 @@ impl Board {
         let other_pawn = self_pawn.opponent();
 
         // Left
-        if x > 1
+        if (x > 1
             && x < BOARD_SIZE - 1
             && self.get(x - 1, y) == self_pawn
             && self.get(x - 2, y) == other_pawn
-            && self.get(x + 1, y) == other_pawn
-        {
-            return false;
-        }
-        // Right
-        else if x > 0
-            && x < BOARD_SIZE - 2
-            && self.get(x - 1, y) == other_pawn
-            && self.get(x + 1, y) == self_pawn
-            && self.get(x + 2, y) == other_pawn
-        {
-            return false;
-        }
-        // Top
-        else if y > 1
-            && y < BOARD_SIZE - 1
-            && self.get(x, y - 1) == self_pawn
-            && self.get(x, y - 2) == other_pawn
-            && self.get(x, y + 1) == other_pawn
-        {
-            return false;
-        }
-        // Bottom
-        else if y > 0
-            && y < BOARD_SIZE - 2
-            && self.get(x, y - 1) == other_pawn
-            && self.get(x, y + 1) == self_pawn
-            && self.get(x, y + 2) == other_pawn
-        {
-            return false;
-        }
-        // Top-Left
-        else if x > 1
-            && y > 1
-            && x < BOARD_SIZE - 1
-            && y < BOARD_SIZE - 1
-            && self.get(x - 1, y - 1) == self_pawn
-            && self.get(x - 2, y - 2) == other_pawn
-            && self.get(x + 1, y + 1) == other_pawn
-        {
-            return false;
-        }
-        // Top-Right
-        else if x > 0
-            && y > 1
-            && x < BOARD_SIZE - 2
-            && y < BOARD_SIZE - 1
-            && self.get(x + 1, y - 1) == self_pawn
-            && self.get(x + 2, y - 2) == other_pawn
-            && self.get(x - 1, y + 1) == other_pawn
-        {
-            return false;
-        }
-        // Bottom-Left
-        else if x > 1
-            && y > 0
-            && x < BOARD_SIZE - 1
-            && y < BOARD_SIZE - 2
-            && self.get(x - 1, y + 1) == self_pawn
-            && self.get(x - 2, y + 2) == other_pawn
-            && self.get(x + 1, y - 1) == other_pawn
-        {
-            return false;
-        }
-        // Bottom-Right
-        else if x > 0
-            && y > 0
-            && x < BOARD_SIZE - 2
-            && y < BOARD_SIZE - 2
-            && self.get(x + 1, y + 1) == self_pawn
-            && self.get(x + 2, y + 2) == other_pawn
-            && self.get(x - 1, y - 1) == other_pawn
+            && self.get(x + 1, y) == other_pawn)
+            // Right
+            || (x > 0
+                && x < BOARD_SIZE - 2
+                && self.get(x - 1, y) == other_pawn
+                && self.get(x + 1, y) == self_pawn
+                && self.get(x + 2, y) == other_pawn)
+            // Top
+            || (y > 1
+                && y < BOARD_SIZE - 1
+                && self.get(x, y - 1) == self_pawn
+                && self.get(x, y - 2) == other_pawn
+                && self.get(x, y + 1) == other_pawn)
+            // Bottom
+            || (y > 0
+                && y < BOARD_SIZE - 2
+                && self.get(x, y - 1) == other_pawn
+                && self.get(x, y + 1) == self_pawn
+                && self.get(x, y + 2) == other_pawn)
+            // Top-Left
+            || (x > 1
+                && y > 1
+                && x < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 1
+                && self.get(x - 1, y - 1) == self_pawn
+                && self.get(x - 2, y - 2) == other_pawn
+                && self.get(x + 1, y + 1) == other_pawn)
+            // Top-Right
+            || (x > 0
+                && y > 1
+                && x < BOARD_SIZE - 2
+                && y < BOARD_SIZE - 1
+                && self.get(x + 1, y - 1) == self_pawn
+                && self.get(x + 2, y - 2) == other_pawn
+                && self.get(x - 1, y + 1) == other_pawn)
+            // Bottom-Left
+            || (x > 1
+                && y > 0
+                && x < BOARD_SIZE - 1
+                && y < BOARD_SIZE - 2
+                && self.get(x - 1, y + 1) == self_pawn
+                && self.get(x - 2, y + 2) == other_pawn
+                && self.get(x + 1, y - 1) == other_pawn)
+            // Bottom-Right
+            || (x > 0
+                && y > 0
+                && x < BOARD_SIZE - 2
+                && y < BOARD_SIZE - 2
+                && self.get(x + 1, y + 1) == self_pawn
+                && self.get(x + 2, y + 2) == other_pawn
+                && self.get(x - 1, y - 1) == other_pawn)
         {
             return false;
         }
@@ -760,7 +725,7 @@ impl Board {
         }
         self.all_rocks.push(movement.index);
         self.rocks += 1;
-        self.moves.push(movement.clone());
+        self.moves.push(*movement);
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet) {
@@ -871,12 +836,10 @@ impl Board {
                     && self.get(x + 1, y) == other_pawn)
                     || (self.get(x - 2, y) == other_pawn
                         && self.get(x - 1, y) == self_pawn
-                        && self.get(x + 1, y) == no_pawn)))
-        {
-            return true;
-        }
+                        && self.get(x + 1, y) == no_pawn))) ||
+
         // Vertical
-        else if (y > 0
+          (y > 0
             && y < BOARD_SIZE - 2
             && ((self.get(x, y - 1) == no_pawn
                 && self.get(x, y + 1) == self_pawn
@@ -891,55 +854,49 @@ impl Board {
                     && self.get(x, y + 1) == other_pawn)
                     || (self.get(x, y - 2) == other_pawn
                         && self.get(x, y - 1) == self_pawn
-                        && self.get(x, y + 1) == no_pawn)))
-        {
-            return true;
-        }
-        // Left Diagonal
-        else if (x > 0
-            && x < BOARD_SIZE - 2
-            && y > 0
-            && y < BOARD_SIZE - 2
-            && ((self.get(x - 1, y - 1) == no_pawn
-                && self.get(x + 1, y + 1) == self_pawn
-                && self.get(x + 2, y + 2) == other_pawn)
-                || (self.get(x - 1, y - 1) == other_pawn
-                    && self.get(x + 1, y + 1) == self_pawn
-                    && self.get(x + 2, y + 2) == no_pawn)))
-            || (x > 1
-                && x < BOARD_SIZE - 1
-                && y > 1
-                && y < BOARD_SIZE - 1
-                && ((self.get(x - 2, y - 2) == no_pawn
-                    && self.get(x - 1, y - 1) == self_pawn
-                    && self.get(x + 1, y + 1) == other_pawn)
-                    || (self.get(x - 2, y - 2) == other_pawn
-                        && self.get(x - 1, y - 1) == self_pawn
-                        && self.get(x + 1, y + 1) == no_pawn)))
-        {
-            return true;
-        }
-        // Right Diagonal
-        else if (x > 1
-            && x < BOARD_SIZE - 1
-            && y > 0
-            && y < BOARD_SIZE - 2
-            && ((self.get(x + 1, y - 1) == no_pawn
-                && self.get(x - 1, y + 1) == self_pawn
-                && self.get(x - 2, y + 2) == other_pawn)
-                || (self.get(x + 1, y - 1) == other_pawn
-                    && self.get(x - 1, y + 1) == self_pawn
-                    && self.get(x - 2, y + 2) == no_pawn)))
-            || (x > 0
-                && x < BOARD_SIZE - 2
-                && y > 1
-                && y < BOARD_SIZE - 1
-                && ((self.get(x + 2, y - 2) == no_pawn
-                    && self.get(x + 1, y - 1) == self_pawn
-                    && self.get(x - 1, y + 1) == other_pawn)
-                    || (self.get(x + 2, y - 2) == other_pawn
-                        && self.get(x + 1, y - 1) == self_pawn
-                        && self.get(x - 1, y + 1) == no_pawn)))
+                        && self.get(x, y + 1) == no_pawn))) ||
+                        // Left Diagonal
+                         (x > 0
+                            && x < BOARD_SIZE - 2
+                            && y > 0
+                            && y < BOARD_SIZE - 2
+                            && ((self.get(x - 1, y - 1) == no_pawn
+                                && self.get(x + 1, y + 1) == self_pawn
+                                && self.get(x + 2, y + 2) == other_pawn)
+                                || (self.get(x - 1, y - 1) == other_pawn
+                                    && self.get(x + 1, y + 1) == self_pawn
+                                    && self.get(x + 2, y + 2) == no_pawn)))
+                            || (x > 1
+                                && x < BOARD_SIZE - 1
+                                && y > 1
+                                && y < BOARD_SIZE - 1
+                                && ((self.get(x - 2, y - 2) == no_pawn
+                                    && self.get(x - 1, y - 1) == self_pawn
+                                    && self.get(x + 1, y + 1) == other_pawn)
+                                    || (self.get(x - 2, y - 2) == other_pawn
+                                        && self.get(x - 1, y - 1) == self_pawn
+                                        && self.get(x + 1, y + 1) == no_pawn)))||
+                                        // Right Diagonal
+                                         (x > 1
+                                            && x < BOARD_SIZE - 1
+                                            && y > 0
+                                            && y < BOARD_SIZE - 2
+                                            && ((self.get(x + 1, y - 1) == no_pawn
+                                                && self.get(x - 1, y + 1) == self_pawn
+                                                && self.get(x - 2, y + 2) == other_pawn)
+                                                || (self.get(x + 1, y - 1) == other_pawn
+                                                    && self.get(x - 1, y + 1) == self_pawn
+                                                    && self.get(x - 2, y + 2) == no_pawn)))
+                                            || (x > 0
+                                                && x < BOARD_SIZE - 2
+                                                && y > 1
+                                                && y < BOARD_SIZE - 1
+                                                && ((self.get(x + 2, y - 2) == no_pawn
+                                                    && self.get(x + 1, y - 1) == self_pawn
+                                                    && self.get(x - 1, y + 1) == other_pawn)
+                                                    || (self.get(x + 2, y - 2) == other_pawn
+                                                        && self.get(x + 1, y - 1) == self_pawn
+                                                        && self.get(x - 1, y + 1) == no_pawn)))
         {
             return true;
         }
@@ -998,13 +955,13 @@ impl Board {
                         *index_buf.push_back() =
                             Board::coordinates_to_index(new_x as usize, new_y as usize);
                         length += 1;
-                        if length >= 5 && buf == [1, 1, 1, 1, 1] {
-                            if index_buf
+                        if length >= 5
+                            && buf == [1, 1, 1, 1, 1]
+                            && index_buf
                                 .iter()
                                 .all(|&index| !self.rock_can_be_captured(index))
-                            {
-                                return true;
-                            }
+                        {
+                            return true;
                         }
                     }
                     mov_x += dir_x;
@@ -1067,12 +1024,11 @@ impl Board {
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
     pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
-        if rules.capture {
-            if (player == &Player::Black && self.black_capture >= 10)
-                || (player == &Player::White && self.white_capture >= 10)
-            {
-                return true;
-            }
+        if rules.capture
+            && ((player == &Player::Black && self.black_capture >= 10)
+                || (player == &Player::White && self.white_capture >= 10))
+        {
+            return true;
         }
         if rules.game_ending_capture {
             self.has_uncaptured_five_in_a_row(player)

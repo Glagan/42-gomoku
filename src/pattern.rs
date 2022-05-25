@@ -16,6 +16,7 @@ pub enum PatternCategory {
     DeadTwo = 6,
 }
 
+#[derive(Default)]
 pub struct PatternCount {
     pub five_in_row: usize,
     pub live_four: usize,
@@ -24,20 +25,6 @@ pub struct PatternCount {
     pub dead_three: usize,
     pub live_two: usize,
     pub dead_two: usize,
-}
-
-impl Default for PatternCount {
-    fn default() -> PatternCount {
-        PatternCount {
-            five_in_row: 0,
-            live_four: 0,
-            dead_four: 0,
-            live_three: 0,
-            dead_three: 0,
-            live_two: 0,
-            dead_two: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,63 +39,63 @@ pub struct Finder {
 
 impl Default for Finder {
     fn default() -> Self {
-        let mut patterns: Vec<(Vec<u8>, u8, PatternCategory)> = vec![];
-
-        patterns.push((vec![1, 1, 1, 1, 1], 5, PatternCategory::FiveInRow));
-        // 2x1
-        patterns.push((vec![0, 1, 1, 1, 1], 5, PatternCategory::LiveFour));
-        patterns.push((vec![1, 1, 1, 1, 0], 5, PatternCategory::LiveFour));
-        // 3x1
-        patterns.push((vec![2, 1, 1, 1, 1, 0], 6, PatternCategory::LiveFour));
-        patterns.push((vec![0, 1, 1, 1, 1, 2], 6, PatternCategory::LiveFour));
-        // 4x1
-        patterns.push((vec![1, 0, 1, 1, 1], 5, PatternCategory::LiveFour));
-        patterns.push((vec![1, 1, 0, 1, 1], 5, PatternCategory::LiveFour));
-        patterns.push((vec![1, 1, 1, 0, 1], 5, PatternCategory::LiveFour));
-        // 5x1
-        // patterns.push((vec![0, 1, 1, 0, 1, 1], 6, PatternCategory::LiveFour));
-        // patterns.push((vec![1, 1, 0, 1, 1, 0], 6, PatternCategory::LiveFour));
-        // 6x2
-        patterns.push((vec![2, 0, 1, 1, 1, 0, 2], 7, PatternCategory::LiveThree));
-        // 6x1
-        patterns.push((vec![0, 1, 1, 1, 0], 5, PatternCategory::LiveThree));
-        // patterns.push((vec![1, 1, 1], 3, PatternCategory::LiveThree));
-        // 1x2
-        patterns.push((vec![0, 1, 1, 1, 2], 5, PatternCategory::LiveThree));
-        patterns.push((vec![2, 1, 1, 1, 0], 5, PatternCategory::LiveThree));
-        // 5x2
-        patterns.push((vec![1, 0, 1, 0, 1], 5, PatternCategory::LiveThree));
-        // 7x1
-        patterns.push((vec![1, 0, 1, 1], 4, PatternCategory::LiveThree));
-        patterns.push((vec![1, 1, 0, 1], 4, PatternCategory::LiveThree));
-        // 2x2
-        patterns.push((vec![1, 0, 1, 1, 2], 5, PatternCategory::DeadThree));
-        patterns.push((vec![2, 1, 1, 0, 1], 5, PatternCategory::DeadThree));
-        // 3x2
-        patterns.push((vec![2, 1, 0, 1, 1], 5, PatternCategory::DeadThree));
-        patterns.push((vec![1, 1, 0, 1, 2, 0], 6, PatternCategory::DeadThree));
-        // 4x2
-        patterns.push((vec![1, 0, 0, 1, 1], 5, PatternCategory::DeadThree));
-        patterns.push((vec![1, 1, 0, 0, 1], 5, PatternCategory::DeadThree));
-        // patterns.push((vec![0, 1, 1, 1, 2], 5, PatternCategory::DeadThree));
-        // patterns.push((vec![2, 1, 1, 1, 0], 5, PatternCategory::DeadThree));
-        // 5x3
-        patterns.push((vec![1, 0, 0, 1, 2], 5, PatternCategory::LiveTwo));
-        patterns.push((vec![2, 1, 0, 0, 1], 5, PatternCategory::LiveTwo));
-        // 4x3
-        patterns.push((vec![1, 0, 1, 2], 4, PatternCategory::LiveTwo));
-        patterns.push((vec![2, 1, 0, 1], 4, PatternCategory::LiveTwo));
-        // 2x3
-        patterns.push((vec![1, 0, 0, 1], 4, PatternCategory::LiveTwo));
-        // 1x3
-        patterns.push((vec![1, 0, 1], 3, PatternCategory::LiveTwo));
-        // 7x2
-        patterns.push((vec![1, 0, 0, 0, 1], 5, PatternCategory::DeadTwo));
-        // 3x3
-        patterns.push((vec![1, 1, 2], 3, PatternCategory::DeadTwo));
-        patterns.push((vec![2, 1, 1], 3, PatternCategory::DeadTwo));
-        // 6x3
-        // patterns.push((vec![1, 1], 2, PatternCategory::DeadTwo));
+        let patterns: Vec<(Vec<u8>, u8, PatternCategory)> = vec![
+            (vec![1, 1, 1, 1, 1], 5, PatternCategory::FiveInRow),
+            // 2x1
+            (vec![0, 1, 1, 1, 1], 5, PatternCategory::LiveFour),
+            (vec![1, 1, 1, 1, 0], 5, PatternCategory::LiveFour),
+            // 3x1
+            (vec![2, 1, 1, 1, 1, 0], 6, PatternCategory::LiveFour),
+            (vec![0, 1, 1, 1, 1, 2], 6, PatternCategory::LiveFour),
+            // 4x1
+            (vec![1, 0, 1, 1, 1], 5, PatternCategory::LiveFour),
+            (vec![1, 1, 0, 1, 1], 5, PatternCategory::LiveFour),
+            (vec![1, 1, 1, 0, 1], 5, PatternCategory::LiveFour),
+            // 5x1
+            // (vec![0, 1, 1, 0, 1, 1], 6, PatternCategory::LiveFour),
+            // (vec![1, 1, 0, 1, 1, 0], 6, PatternCategory::LiveFour),
+            // 6x2
+            (vec![2, 0, 1, 1, 1, 0, 2], 7, PatternCategory::LiveThree),
+            // 6x1
+            (vec![0, 1, 1, 1, 0], 5, PatternCategory::LiveThree),
+            // (vec![1, 1, 1], 3, PatternCategory::LiveThree),
+            // 1x2
+            (vec![0, 1, 1, 1, 2], 5, PatternCategory::LiveThree),
+            (vec![2, 1, 1, 1, 0], 5, PatternCategory::LiveThree),
+            // 5x2
+            (vec![1, 0, 1, 0, 1], 5, PatternCategory::LiveThree),
+            // 7x1
+            (vec![1, 0, 1, 1], 4, PatternCategory::LiveThree),
+            (vec![1, 1, 0, 1], 4, PatternCategory::LiveThree),
+            // 2x2
+            (vec![1, 0, 1, 1, 2], 5, PatternCategory::DeadThree),
+            (vec![2, 1, 1, 0, 1], 5, PatternCategory::DeadThree),
+            // 3x2
+            (vec![2, 1, 0, 1, 1], 5, PatternCategory::DeadThree),
+            (vec![1, 1, 0, 1, 2, 0], 6, PatternCategory::DeadThree),
+            // 4x2
+            (vec![1, 0, 0, 1, 1], 5, PatternCategory::DeadThree),
+            (vec![1, 1, 0, 0, 1], 5, PatternCategory::DeadThree),
+            // (vec![0, 1, 1, 1, 2], 5, PatternCategory::DeadThree),
+            // (vec![2, 1, 1, 1, 0], 5, PatternCategory::DeadThree),
+            // 5x3
+            (vec![1, 0, 0, 1, 2], 5, PatternCategory::LiveTwo),
+            (vec![2, 1, 0, 0, 1], 5, PatternCategory::LiveTwo),
+            // 4x3
+            (vec![1, 0, 1, 2], 4, PatternCategory::LiveTwo),
+            (vec![2, 1, 0, 1], 4, PatternCategory::LiveTwo),
+            // 2x3
+            (vec![1, 0, 0, 1], 4, PatternCategory::LiveTwo),
+            // 1x3
+            (vec![1, 0, 1], 3, PatternCategory::LiveTwo),
+            // 7x2
+            (vec![1, 0, 0, 0, 1], 5, PatternCategory::DeadTwo),
+            // 3x3
+            (vec![1, 1, 2], 3, PatternCategory::DeadTwo),
+            (vec![2, 1, 1], 3, PatternCategory::DeadTwo),
+            // 6x3
+            // (vec![1, 1], 2, PatternCategory::DeadTwo),
+        ];
 
         Finder { patterns }
     }

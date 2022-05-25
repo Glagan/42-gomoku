@@ -48,7 +48,7 @@ impl Default for Game {
             computer: Computer::default(),
             recommended_move: None,
             play_time: now,
-            previous_play_time: now - now,
+            previous_play_time: now.elapsed(),
             current_player: Player::Black,
             winner: Winner::None,
             rock_move: vec![],
@@ -66,7 +66,7 @@ impl Game {
         self.recommended_move = None;
         let now = Instant::now();
         self.play_time = now;
-        self.previous_play_time = now - now;
+        self.previous_play_time = now.elapsed();
         self.current_player = Player::Black;
         self.winner = Winner::None;
         self.rock_move = vec![];

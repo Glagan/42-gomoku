@@ -109,19 +109,11 @@ impl Branch {
     }
 }
 
+#[derive(Default)]
 pub struct Computer {
     // (black_heuristic, white_heuristic)
     pub black_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
     pub white_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
-}
-
-impl Default for Computer {
-    fn default() -> Self {
-        Computer {
-            black_cache: HashMap::new(),
-            white_cache: HashMap::new(),
-        }
-    }
 }
 
 impl Computer {
@@ -171,7 +163,7 @@ impl Computer {
         if depth == 0 || board.is_winning(rules, player) {
             let score = self.evaluate_board(board, player);
             return Ok(Evaluation {
-                score: score,
+                score,
                 movement: None,
             });
         }
@@ -192,13 +184,13 @@ impl Computer {
                 let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
-                    max_eval.movement = Some(movement.clone());
+                    max_eval.movement = Some(*movement);
                 }
             }
 
             // Add to cache
             self.cache(player)
-                .entry(board.pieces.clone())
+                .entry(board.pieces)
                 .or_insert(CacheEntry {
                     score: max_eval.score,
                     rocks: board.rocks,
@@ -206,7 +198,7 @@ impl Computer {
                     movement: max_eval.movement,
                 });
 
-            return Ok(max_eval);
+            Ok(max_eval)
         } else {
             let mut min_eval = Evaluation {
                 score: i64::max_value(),
@@ -217,13 +209,13 @@ impl Computer {
                 let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
-                    min_eval.movement = Some(movement.clone());
+                    min_eval.movement = Some(*movement);
                 }
             }
 
             // Add to cache
             self.cache(player)
-                .entry(board.pieces.clone())
+                .entry(board.pieces)
                 .or_insert(CacheEntry {
                     score: min_eval.score,
                     rocks: board.rocks,
@@ -231,7 +223,7 @@ impl Computer {
                     movement: min_eval.movement,
                 });
 
-            return Ok(min_eval);
+            Ok(min_eval)
         }
     }
 
@@ -366,7 +358,7 @@ impl Computer {
         if depth == 0 || board.is_winning(rules, player) {
             // println!("{}", board);
             let color = if player == maximize { 1 } else { -1 };
-            let score = self.evaluate_board(&board, player);
+            let score = self.evaluate_board(board, player);
             return Ok(Evaluation {
                 score: color * score,
                 movement: None,
@@ -410,7 +402,7 @@ impl Computer {
             if eval.score > best_eval.score {
                 alpha = eval.score;
                 best_eval.score = eval.score;
-                best_eval.movement = Some(sorted_movement.movement.clone());
+                best_eval.movement = Some(sorted_movement.movement);
             }
             if alpha >= beta {
                 break;
@@ -420,7 +412,7 @@ impl Computer {
         // Add to cache
         let cache_entry = self
             .cache(player)
-            .entry(board.pieces.clone())
+            .entry(board.pieces)
             .or_insert(CacheEntry {
                 score: if player == maximize {
                     best_eval.score
@@ -436,9 +428,9 @@ impl Computer {
         } else if best_eval.score >= beta {
             cache_entry.flag = CacheFlag::Lowerbound;
         }
-        branch.evaluation = Some(best_eval.clone());
+        branch.evaluation = Some(best_eval);
 
-        return Ok(best_eval);
+        Ok(best_eval)
     }
 
     // Use the negamax algorithm (minimax variant) to get the next best move
