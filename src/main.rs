@@ -39,6 +39,7 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut game = Game::default();
     let mut b_mouse_pressed: bool = false;
+
     loop {
         clear_background(BEIGE);
 
