@@ -1,7 +1,7 @@
-use crate::{player::Player, rules::RuleSet};
+use crate::{pattern::Finder, player::Player, rules::RuleSet};
 use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -84,26 +84,26 @@ pub const DIRECTIONS: [(i16, i16); 8] = [
 #[derive(Clone)]
 pub struct Board {
     pub pieces: [Pawn; BOARD_PIECES],
-    pub moves: Vec<Move>,
-    pub rocks: u16,
+    pub moves: u16,
     pub black_rocks: Vec<usize>,
     pub white_rocks: Vec<usize>,
     pub all_rocks: Vec<usize>,
     pub black_capture: u8,
     pub white_capture: u8,
+    // pub capture_moves: HashMap<usize, Vec<usize>>,
 }
 
 impl Default for Board {
     fn default() -> Board {
         Board {
             pieces: [Pawn::None; BOARD_PIECES],
-            moves: vec![],
-            rocks: 0,
+            moves: 0,
             black_rocks: vec![],
             white_rocks: vec![],
             all_rocks: vec![],
             black_capture: 0,
             white_capture: 0,
+            // capture_moves: HashMap::new(),
         }
     }
 }
@@ -116,7 +116,19 @@ impl fmt::Display for Board {
                 "{}",
                 self.pieces[(BOARD_SIZE * row)..(BOARD_SIZE * (row + 1))]
                     .iter()
-                    .map(|p| p.to_string())
+                    .enumerate()
+                    .map(|(i, p)| format!(
+                        "{: >3}",
+                        if p == &Pawn::Black {
+                            format!("{}", row * BOARD_SIZE + i)
+                                .white()
+                                .on_bright_black()
+                        } else if p == &Pawn::White {
+                            format!("{}", row * BOARD_SIZE + i).black().on_white()
+                        } else {
+                            format!("{}", row * BOARD_SIZE + i).dimmed()
+                        }
+                    ))
                     .collect::<Vec<String>>()
                     .join(" ")
             )?;
@@ -149,7 +161,7 @@ impl Board {
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
         // Only the center intersection is available if there is no previous moves
-        if self.moves.is_empty() {
+        if self.moves == 0 {
             return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
         }
         let mut intersections: Vec<usize> = vec![];
@@ -180,13 +192,14 @@ impl Board {
     // Pattern: [0 1 1 1 0]
     // Since the move rock can be in any 1 position, we need to check all possible patterns:
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
-    pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> bool {
+    pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
         let player = movement.player;
         let self_pawn = player.pawn();
         let no_pawn = Pawn::None;
         let (x, y) = Board::index_to_coordinates(movement.index);
 
         // Horizontal
+        let mut total = 0;
         if (x > 0
             && x < BOARD_SIZE - 3
             && self.get(x - 1, y) == no_pawn
@@ -205,13 +218,17 @@ impl Board {
                 && self.get(x - 2, y) == self_pawn
                 && self.get(x - 1, y) == self_pawn
                 && self.get(x + 1, y) == no_pawn)
-            // Vertical
-            || (y > 0
-                && y < BOARD_SIZE - 3
-                && self.get(x, y - 1) == no_pawn
-                && self.get(x, y + 1) == self_pawn
-                && self.get(x, y + 2) == self_pawn
-                && self.get(x, y + 3) == no_pawn)
+        {
+            total += 1;
+        }
+
+        // Vertical
+        if (y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x, y - 1) == no_pawn
+            && self.get(x, y + 1) == self_pawn
+            && self.get(x, y + 2) == self_pawn
+            && self.get(x, y + 3) == no_pawn)
             || (y > 1
                 && y < BOARD_SIZE - 2
                 && self.get(x, y - 2) == no_pawn
@@ -224,15 +241,19 @@ impl Board {
                 && self.get(x, y - 2) == self_pawn
                 && self.get(x, y - 1) == self_pawn
                 && self.get(x, y + 1) == no_pawn)
-            // Left Diagonal
-            || (x > 0
-                && x < BOARD_SIZE - 3
-                && y > 0
-                && y < BOARD_SIZE - 3
-                && self.get(x - 1, y - 1) == no_pawn
-                && self.get(x + 1, y + 1) == self_pawn
-                && self.get(x + 2, y + 2) == self_pawn
-                && self.get(x + 3, y + 3) == no_pawn)
+        {
+            total += 1;
+        }
+
+        // Left Diagonal
+        if (x > 0
+            && x < BOARD_SIZE - 3
+            && y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x - 1, y - 1) == no_pawn
+            && self.get(x + 1, y + 1) == self_pawn
+            && self.get(x + 2, y + 2) == self_pawn
+            && self.get(x + 3, y + 3) == no_pawn)
             || (x > 1
                 && x < BOARD_SIZE - 2
                 && y > 1
@@ -249,15 +270,19 @@ impl Board {
                 && self.get(x - 2, y - 2) == self_pawn
                 && self.get(x - 1, y - 1) == self_pawn
                 && self.get(x + 1, y + 1) == no_pawn)
-            // Right Diagonal
-            || (x > 2
-                && x < BOARD_SIZE - 1
-                && y > 0
-                && y < BOARD_SIZE - 3
-                && self.get(x + 1, y - 1) == no_pawn
-                && self.get(x - 1, y + 1) == self_pawn
-                && self.get(x - 2, y + 2) == self_pawn
-                && self.get(x - 3, y + 3) == no_pawn)
+        {
+            total += 1;
+        }
+
+        // Right Diagonal
+        if (x > 2
+            && x < BOARD_SIZE - 1
+            && y > 0
+            && y < BOARD_SIZE - 3
+            && self.get(x + 1, y - 1) == no_pawn
+            && self.get(x - 1, y + 1) == self_pawn
+            && self.get(x - 2, y + 2) == self_pawn
+            && self.get(x - 3, y + 3) == no_pawn)
             || (x > 1
                 && x < BOARD_SIZE - 2
                 && y > 1
@@ -275,10 +300,10 @@ impl Board {
                 && self.get(x + 1, y - 1) == self_pawn
                 && self.get(x - 1, y + 1) == no_pawn)
         {
-            return true;
+            total += 1;
         }
 
-        false
+        total
     }
 
     // Pattern: [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
@@ -408,12 +433,13 @@ impl Board {
     // }
 
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
-    pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> bool {
+    pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
         let player = movement.player;
         let player_pawn = player.pawn();
         let pos = Board::index_to_coordinates(movement.index);
         let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
-        let mut buf = FixedVecDeque::<[usize; 6]>::new();
+        let mut buf = FixedVecDeque::<[u8; 6]>::new();
+        let mut total = 0;
         // Check all 8 directions from the rock to see if there is a free three pattern
         for (dir_x, dir_y) in DIRECTIONS {
             // Create a window of length 6 and update it on each move
@@ -435,30 +461,39 @@ impl Board {
                     {
                         1
                     } else {
-                        0
+                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, &player)
                     };
                     length += 1;
                     if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
-                        return true;
+                        total += 1;
+                        continue; // TODO the pattern is counted twice (left/right -> 1 + 1)
                     }
                 }
                 mov_x += dir_x;
                 mov_y += dir_y;
             }
         }
-        false
+
+        total
     }
 
     // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
     // For the pattern to be considered a free-three, it strictly need to have both ends "free"
     // -- so borders does *not* count
-    pub fn move_create_free_three(&self, movement: &Move) -> bool {
+    pub fn move_create_free_three(&self, movement: &Move) -> u8 {
         self.move_create_free_three_direct_pattern(movement)
-            || self.move_create_free_three_secondary_pattern(movement)
+            + self.move_create_free_three_secondary_pattern(movement)
     }
 
     fn is_move_legal_double_free_three(&self, movement: &Move) -> bool {
-        !self.move_create_free_three(movement) || !self.has_free_three(&movement.player)
+        let created_free_threes = self.move_create_free_three(movement);
+        if created_free_threes >= 2 {
+            return false;
+        }
+        if created_free_threes == 1 {
+            return !self.has_free_three(&movement.player);
+        }
+        true
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
@@ -676,7 +711,7 @@ impl Board {
             remove_vect.push(movement.index - (BOARD_SIZE * 2) + 2);
         }
         // println!("8 if");
-        for idx in remove_vect {
+        for &idx in remove_vect.iter() {
             // println!("try to remove : {}", idx);
             self.pieces[idx] = Pawn::None;
             if player_pawn == Pawn::Black {
@@ -693,6 +728,9 @@ impl Board {
                     .remove(self.all_rocks.iter().position(|x| *x == idx).unwrap());
             }
         }
+        // if !remove_vect.is_empty() {
+        //     self.capture_moves.insert(movement.index, remove_vect);
+        // }
     }
 
     // Apply a movement to the current Board
@@ -700,8 +738,6 @@ impl Board {
         self.pieces[movement.index] = movement.player.pawn();
         if rules.capture {
             self.check_capture(movement);
-            // TODO capture remove other pawns
-            // TODO Return the number of captured pawns to increase the total (if rules.game_ending_capture)
         }
         if movement.player == Player::Black {
             self.black_rocks.push(movement.index);
@@ -709,23 +745,54 @@ impl Board {
             self.white_rocks.push(movement.index);
         }
         self.all_rocks.push(movement.index);
-        self.rocks += 1;
-        self.moves.push(*movement);
+        self.moves += 1;
     }
 
-    pub fn undo_move(&mut self, rules: &RuleSet) {
-        // TODO Handle capture
-        self.rocks -= 1;
-        if let Some(last_move) = self.moves.pop() {
-            if last_move.player == Player::Black {
-                self.black_rocks.pop();
+    /*pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
+        if rules.capture && self.capture_moves.contains_key(&movement.index) {
+            let opponent_pawn = movement.player.pawn().opponent();
+            let rocks = if opponent_pawn == Pawn::Black {
+                &mut self.black_rocks
             } else {
-                self.white_rocks.pop();
+                &mut self.white_rocks
+            };
+            let captures = if opponent_pawn == Pawn::Black {
+                &mut self.white_capture
+            } else {
+                &mut self.black_capture
+            };
+            for &captured_rock in self.capture_moves.get(&movement.index).unwrap() {
+                self.pieces[captured_rock] = opponent_pawn;
+                rocks.push(captured_rock);
+                self.all_rocks.push(captured_rock);
+                *captures -= 1;
             }
-            self.pieces[last_move.index] = Pawn::None;
-            self.all_rocks.pop();
+            self.capture_moves.remove(&movement.index);
         }
-    }
+        if movement.player == Player::Black {
+            self.black_rocks.remove(
+                self.black_rocks
+                    .iter()
+                    .position(|x| *x == movement.index)
+                    .unwrap(),
+            );
+        } else {
+            self.white_rocks.remove(
+                self.white_rocks
+                    .iter()
+                    .position(|x| *x == movement.index)
+                    .unwrap(),
+            );
+        }
+        self.pieces[movement.index] = Pawn::None;
+        self.all_rocks.remove(
+            self.all_rocks
+                .iter()
+                .position(|x| *x == movement.index)
+                .unwrap(),
+        );
+        self.moves -= 1;
+    }*/
 
     // Apply a movement to a new copy of the current Board
     pub fn apply_move(&self, rules: &RuleSet, movement: &Move) -> Board {
@@ -741,7 +808,6 @@ impl Board {
         } else {
             &self.white_rocks
         };
-        let player_pawn = player.pawn();
         for rock in rocks.iter() {
             let pos = Board::index_to_coordinates(*rock);
             let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
@@ -764,18 +830,18 @@ impl Board {
                         && (new_y as usize) < BOARD_SIZE
                     {
                         // 1 for player pawn and 0 for anything else
-                        *buf.push_back() =
-                            if self.get(new_x as usize, new_y as usize) == player_pawn {
-                                1
-                            } else {
-                                0
-                            };
+                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
+                            self,
+                            new_x as usize,
+                            new_y as usize,
+                            player,
+                        ) as usize;
                         length += 1;
                         // buf.contains([0, 1, 1, 1, 0]
                         if length >= 5 {
-                            let mut i: u8 = 0;
+                            let mut i = 0;
                             for value in &buf {
-                                if *value == free_three_pattern[i as usize] {
+                                if *value == free_three_pattern[i] {
                                     i += 1;
                                     if i == 5 {
                                         return true;
@@ -907,8 +973,7 @@ impl Board {
         } else {
             &self.white_rocks
         };
-        let player_pawn = player.pawn();
-        let mut buf = FixedVecDeque::<[usize; 5]>::new();
+        let mut buf = FixedVecDeque::<[u8; 5]>::new();
         let mut index_buf = FixedVecDeque::<[usize; 5]>::new();
         for rock in rocks.iter() {
             let pos = Board::index_to_coordinates(*rock);
@@ -931,12 +996,12 @@ impl Board {
                         && (new_y as usize) < BOARD_SIZE
                     {
                         // 1 for player pawn and 0 for anything else
-                        *buf.push_back() =
-                            if self.get(new_x as usize, new_y as usize) == player_pawn {
-                                1
-                            } else {
-                                0
-                            };
+                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
+                            self,
+                            new_x as usize,
+                            new_y as usize,
+                            player,
+                        );
                         *index_buf.push_back() =
                             Board::coordinates_to_index(new_x as usize, new_y as usize);
                         length += 1;
@@ -964,7 +1029,6 @@ impl Board {
         } else {
             &self.white_rocks
         };
-        let player_pawn = player.pawn();
         for rock in rocks.iter() {
             let pos = Board::index_to_coordinates(*rock);
             let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
@@ -975,7 +1039,7 @@ impl Board {
                 let mut length = 0;
                 // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
                 // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
-                let mut buf = FixedVecDeque::<[usize; 5]>::new();
+                let mut buf = FixedVecDeque::<[u8; 5]>::new();
                 let mut mov_x = dir_x * -5;
                 let mut mov_y = dir_y * -5;
                 for _ in 0..10 {
@@ -987,12 +1051,12 @@ impl Board {
                         && (new_y as usize) < BOARD_SIZE
                     {
                         // 1 for player pawn and 0 for anything else
-                        *buf.push_back() =
-                            if self.get(new_x as usize, new_y as usize) == player_pawn {
-                                1
-                            } else {
-                                0
-                            };
+                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
+                            self,
+                            new_x as usize,
+                            new_y as usize,
+                            player,
+                        );
                         length += 1;
                         if length >= 5 && buf == [1, 1, 1, 1, 1] {
                             return true;

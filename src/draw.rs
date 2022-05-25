@@ -238,15 +238,13 @@ pub fn display_panel_text(game: &mut Game) {
         POLICE_SIZE,
         BLACK,
     );
-    let surrender_button = widgets::Button::new(if game.mode == GameMode::AvA {
-        "Back"
-    } else {
-        if game.winner != Winner::None {
+    let surrender_button = widgets::Button::new(
+        if game.mode == GameMode::AvA || game.winner != Winner::None {
             "Back"
         } else {
             "Surrender"
-        }
-    })
+        },
+    )
     .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
     .position(Vec2::new(
         (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
@@ -288,8 +286,7 @@ pub fn display_winner(game: &Game) {
             } else {
                 "White"
             }
-        )
-        .to_string();
+        );
         let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
         draw_text(
             &win_text,

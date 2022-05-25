@@ -221,11 +221,12 @@ impl Finder {
                     && (new_x as usize) < BOARD_SIZE
                     && (new_y as usize) < BOARD_SIZE
                 {
-                    *buf.push_back() = if new_x == x && new_y == y {
-                        1
-                    } else {
-                        Finder::pawn_to_pattern_pawn(board, new_x as usize, new_y as usize, &player)
-                    };
+                    *buf.push_back() = Finder::pawn_to_pattern_pawn(
+                        board,
+                        new_x as usize,
+                        new_y as usize,
+                        &player,
+                    );
                     length += 1;
                     if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
                         let has_best_pattern = best_pattern_index.is_some();
