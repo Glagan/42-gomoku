@@ -434,7 +434,7 @@ impl Computer {
         // Apply minimax recursively
         // let best_move = self.minimax(rules, board, depth, player, player)?;
 
-        branch.display(0);
+        //branch.display(0);
         Ok(best_move)
     }
 }
