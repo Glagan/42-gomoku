@@ -35,6 +35,7 @@ fn window_conf() -> Conf {
     }
 }
 
+#[cfg(not(feature = "cli_ava"))]
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut game = Game::default();
@@ -99,10 +100,11 @@ async fn main() {
     }
 }
 
-// fn main() {
-//     let mut game = Game::default();
-//     game.start(GameMode::AvA);
-//     while game.winner == Winner::None {
-//         game.play_computer()
-//     }
-// }
+#[cfg(feature = "cli_ava")]
+fn main() {
+    let mut game = Game::default();
+    game.start(GameMode::AvA);
+    while game.winner == Winner::None {
+        game.play_computer()
+    }
+}
