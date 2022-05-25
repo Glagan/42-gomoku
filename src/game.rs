@@ -129,7 +129,7 @@ impl Game {
         }
         // let play_result = self
         //     .computer
-        //     .play(&self.rules, &self.board, 3, &self.current_player);
+        //     .play(&self.rules, &self.board, 5, &self.current_player);
         // if let Ok(play) = play_result {
         //     self.recommended_move = play.movement;
         // }

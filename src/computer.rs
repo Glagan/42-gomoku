@@ -80,45 +80,15 @@ pub struct CacheEntry {
     pub movement: Option<Move>,
 }
 
-pub struct NegamaxIteration {
+pub struct AlphaBetaIteration {
     depth: usize,
     alpha: i64,
     beta: i64,
 }
 
-pub struct NegamaxAction<'a> {
+pub struct MinimaxAction<'a> {
     board: &'a Board,
     movement: Option<Move>,
-}
-
-pub struct Branch {
-    pub depth: usize,
-    pub board: Board,
-    pub evaluation: Option<Evaluation>,
-    pub sub_branches: Vec<Branch>,
-}
-
-impl Branch {
-    pub fn new(depth: usize, board: &Board) -> Self {
-        Branch {
-            depth,
-            board: board.clone(),
-            evaluation: None,
-            sub_branches: vec![],
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn display(&self, level: usize) {
-        if let Some(evaluation) = self.evaluation {
-            println!("{:indent$}> {}", "", evaluation, indent = level);
-        }
-        self.board.display(level);
-        println!("{:indent$}---", "", indent = level);
-        for sub_branch in self.sub_branches.iter() {
-            sub_branch.display(level + 1);
-        }
-    }
 }
 
 #[derive(Default)]
@@ -135,13 +105,8 @@ impl Computer {
         self.white_cache = HashMap::new();
     }
 
-    // Calculate all patterns for a both players and return the board score
-    pub fn evaluate_board(&self, board: &Board, player: &Player) -> i64 {
-        PATTERN_FINDER.player_score(board, player)
-    }
-
     // Calculate the patterns created by a movement and return it's score
-    pub fn evaluate_action(&self, action: &NegamaxAction) -> i64 {
+    pub fn evaluate_action(&self, action: &MinimaxAction) -> i64 {
         PATTERN_FINDER.movement_score(action.board, &action.movement.unwrap())
     }
 
@@ -160,15 +125,15 @@ impl Computer {
     fn minimax(
         &mut self,
         rules: &RuleSet,
-        board: &Board,
+        action: MinimaxAction,
         depth: usize,
         player: &Player,
         maximize: &Player,
     ) -> Result<Evaluation, String> {
         // Check cache to see if the board was already computed
-        if self.cache(player).contains_key(&board.pieces) {
-            let cache_entry = self.cache(player).get(&board.pieces).unwrap();
-            if cache_entry.rocks >= board.rocks {
+        if self.cache(player).contains_key(&action.board.pieces) {
+            let cache_entry = self.cache(player).get(&action.board.pieces).unwrap();
+            if cache_entry.rocks >= action.board.rocks {
                 return Ok(Evaluation {
                     score: cache_entry.score,
                     movement: cache_entry.movement,
@@ -177,8 +142,11 @@ impl Computer {
         }
 
         // Check if it's a leaf and compute it's value
-        if depth == 0 || board.is_winning(rules, player) {
-            let score = self.evaluate_board(board, player);
+        if depth == 0 || action.board.is_winning(rules, player) {
+            if action.movement.is_none() {
+                return Err("Empty movement in negamax leaf".to_string());
+            }
+            let score = self.evaluate_action(&action);
             return Ok(Evaluation {
                 score,
                 movement: None,
@@ -193,12 +161,21 @@ impl Computer {
         };
         if player == maximize {
             let mut max_eval = Evaluation {
-                score: i64::min_value(),
+                score: i64::min_value() + 1,
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement);
-                let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
+            for movement in action.board.intersections_legal_moves(rules, player).iter() {
+                let new_board = action.board.apply_move(rules, movement);
+                let eval = self.minimax(
+                    rules,
+                    MinimaxAction {
+                        board: &new_board,
+                        movement: Some(*movement),
+                    },
+                    depth - 1,
+                    other_player,
+                    maximize,
+                )?;
                 if eval.score > max_eval.score {
                     max_eval.score = eval.score;
                     max_eval.movement = Some(*movement);
@@ -207,10 +184,10 @@ impl Computer {
 
             // Add to cache
             self.cache(player)
-                .entry(board.pieces)
+                .entry(action.board.pieces)
                 .or_insert(CacheEntry {
                     score: max_eval.score,
-                    rocks: board.rocks,
+                    rocks: action.board.rocks,
                     flag: CacheFlag::Exact,
                     movement: max_eval.movement,
                 });
@@ -221,9 +198,18 @@ impl Computer {
                 score: i64::max_value(),
                 movement: None,
             };
-            for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement);
-                let eval = self.minimax(rules, &new_board, depth - 1, other_player, maximize)?;
+            for movement in action.board.intersections_legal_moves(rules, player).iter() {
+                let new_board = action.board.apply_move(rules, movement);
+                let eval = self.minimax(
+                    rules,
+                    MinimaxAction {
+                        board: &new_board,
+                        movement: Some(*movement),
+                    },
+                    depth - 1,
+                    other_player,
+                    maximize,
+                )?;
                 if eval.score < min_eval.score {
                     min_eval.score = eval.score;
                     min_eval.movement = Some(*movement);
@@ -232,10 +218,10 @@ impl Computer {
 
             // Add to cache
             self.cache(player)
-                .entry(board.pieces)
+                .entry(action.board.pieces)
                 .or_insert(CacheEntry {
                     score: min_eval.score,
-                    rocks: board.rocks,
+                    rocks: action.board.rocks,
                     flag: CacheFlag::Exact,
                     movement: min_eval.movement,
                 });
@@ -330,11 +316,10 @@ impl Computer {
     fn negamax_alpha_beta(
         &mut self,
         rules: &RuleSet,
-        action: NegamaxAction,
-        iteration: NegamaxIteration,
+        action: MinimaxAction,
+        iteration: AlphaBetaIteration,
         player: &Player,
         maximize: &Player,
-        branch: &mut Branch,
     ) -> Result<Evaluation, String> {
         let alpha_orig = iteration.alpha;
         let mut alpha = iteration.alpha;
@@ -397,14 +382,13 @@ impl Computer {
             .collect();
         while let Some(sorted_movement) = moves.pop() {
             let new_board = action.board.apply_move(rules, &sorted_movement.movement);
-            let mut sub_branch = Branch::new(iteration.depth, &new_board);
             let mut eval = self.negamax_alpha_beta(
                 rules,
-                NegamaxAction {
+                MinimaxAction {
                     board: &new_board,
                     movement: Some(sorted_movement.movement),
                 },
-                NegamaxIteration {
+                AlphaBetaIteration {
                     depth: iteration.depth - 1,
                     alpha: -beta,
                     beta: -alpha,
@@ -415,9 +399,7 @@ impl Computer {
                     &Player::Black
                 },
                 maximize,
-                &mut sub_branch,
             )?;
-            branch.sub_branches.push(sub_branch);
             eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = eval.score;
@@ -448,7 +430,6 @@ impl Computer {
         } else if best_eval.score >= beta {
             cache_entry.flag = CacheFlag::Lowerbound;
         }
-        branch.evaluation = Some(best_eval);
 
         Ok(best_eval)
     }
@@ -465,26 +446,33 @@ impl Computer {
         self.black_cache.retain(|_, v| v.rocks >= board.rocks);
         self.white_cache.retain(|_, v| v.rocks >= board.rocks);
 
-        // Apply negamax recursively
-        let mut branch = Branch::new(depth, board);
+        // Apply negamax recursively d);
         let best_move = self.negamax_alpha_beta(
             rules,
-            NegamaxAction {
+            MinimaxAction {
                 board,
                 movement: None,
             },
-            NegamaxIteration {
+            AlphaBetaIteration {
                 depth,
                 alpha: i64::min_value() + 1,
                 beta: i64::max_value(),
             },
             player,
             player,
-            &mut branch,
         )?;
 
         // Apply minimax recursively
-        // let best_move = self.minimax(rules, board, depth, player, player)?;
+        // let best_move = self.minimax(
+        //     rules,
+        //     MinimaxAction {
+        //         board,
+        //         movement: None,
+        //     },
+        //     depth,
+        //     player,
+        //     player,
+        // )?;
 
         // branch.display(0);
         Ok(best_move)

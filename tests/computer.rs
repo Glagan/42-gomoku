@@ -6,7 +6,7 @@ use gomoku::{
     rules::RuleSet,
 };
 
-#[test]
+/*#[test]
 // 0 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0
 fn find_pattern_live_two_horizontal() {
     let mut board = Board::default();
@@ -268,7 +268,7 @@ fn find_pattern_live_two_diagonal_right_up() {
             .live_two,
         1
     );
-}
+}*/
 
 #[test]
 fn option_pattern_category_eq() {

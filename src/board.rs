@@ -129,21 +129,6 @@ impl fmt::Display for Board {
 }
 
 impl Board {
-    pub fn display(&self, level: usize) {
-        for row in 0..BOARD_SIZE {
-            println!(
-                "{:indent$}{}",
-                "",
-                self.pieces[(BOARD_SIZE * row)..(BOARD_SIZE * (row + 1))]
-                    .iter()
-                    .map(|p| p.to_string())
-                    .collect::<Vec<String>>()
-                    .join(" "),
-                indent = level
-            );
-        }
-    }
-
     // Helper function to get a Board case with (x, y) coordinates
     pub fn get(&self, x: usize, y: usize) -> Pawn {
         self.pieces[Board::coordinates_to_index(x, y)]
