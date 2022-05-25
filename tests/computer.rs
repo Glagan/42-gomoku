@@ -1,7 +1,7 @@
 use gomoku::{
     board::{Board, Move},
     computer::SortedMove,
-    pattern::{PatternCategory, PATTERN_FINDER},
+    pattern::{Pattern, PATTERN_FINDER},
     player::Player,
     rules::RuleSet,
 };
@@ -277,14 +277,14 @@ fn option_pattern_category_eq() {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::FiveInRow),
+        pattern: Some(Pattern::FiveInRow),
     };
     let sorted_move_2 = SortedMove {
         movement: Move {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::FiveInRow),
+        pattern: Some(Pattern::FiveInRow),
     };
     assert_eq!(sorted_move_1, sorted_move_2);
 
@@ -293,7 +293,7 @@ fn option_pattern_category_eq() {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::LiveFour),
+        pattern: Some(Pattern::LiveFour),
     };
     assert_ne!(sorted_move_1, sorted_move_2);
 
@@ -323,14 +323,14 @@ fn option_pattern_category_cmp_1() {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::FiveInRow),
+        pattern: Some(Pattern::FiveInRow),
     };
     let sorted_move_2 = SortedMove {
         movement: Move {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::LiveFour),
+        pattern: Some(Pattern::LiveFour),
     };
     assert!(sorted_move_1 > sorted_move_2);
     assert!(sorted_move_1 >= sorted_move_2);
@@ -361,14 +361,14 @@ fn option_pattern_category_cmp_2() {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::LiveThree),
+        pattern: Some(Pattern::LiveThree),
     };
     let sorted_move_2 = SortedMove {
         movement: Move {
             player: Player::Black,
             index: 0,
         },
-        pattern: Some(PatternCategory::DeadTwo),
+        pattern: Some(Pattern::DeadTwo),
     };
     assert!(sorted_move_1 > sorted_move_2);
     assert!(sorted_move_1 >= sorted_move_2);

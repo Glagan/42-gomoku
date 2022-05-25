@@ -139,7 +139,7 @@ impl Game {
     pub fn play_computer(&mut self) {
         let play_result = self
             .computer
-            .play(&self.rules, &self.board, 3, &self.current_player);
+            .play(&self.rules, &self.board, 5, &self.current_player);
         if let Ok(play) = play_result {
             println!(
                 "computer play: {} in {}ms",
