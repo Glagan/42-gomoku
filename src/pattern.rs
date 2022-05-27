@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Move, Pawn, BOARD_SIZE, DIRECTIONS},
+    board::{Board, Move, Rock, BOARD_SIZE, DIRECTIONS},
     player::Player,
 };
 use fixed_vec_deque::FixedVecDeque;
@@ -98,10 +98,10 @@ impl Default for Finder {
 impl Finder {
     pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
         let pawn = board.get(x, y);
-        if pawn == Pawn::None {
+        if pawn == Rock::None {
             0
-        } else if (pawn == Pawn::Black && *player == Player::Black)
-            || (pawn == Pawn::White && *player == Player::White)
+        } else if (pawn == Rock::Black && *player == Player::Black)
+            || (pawn == Rock::White && *player == Player::White)
         {
             1
         } else {
@@ -113,8 +113,8 @@ impl Finder {
         let mut best_pattern: Option<Pattern> = None;
         let (x, y) = Board::index_to_coordinates(rock_index);
         let rock = board.get(x, y);
-        if rock == Pawn::None {
-            let player = if rock == Pawn::Black {
+        if rock == Rock::None {
+            let player = if rock == Rock::Black {
                 &Player::Black
             } else {
                 &Player::White

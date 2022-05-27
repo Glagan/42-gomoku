@@ -7,3 +7,4 @@ pub mod options;
 pub mod pattern;
 pub mod player;
 pub mod rules;
+pub mod transpose;

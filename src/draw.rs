@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Pawn, BOARD_PIECES, BOARD_SIZE},
+    board::{Board, Rock, BOARD_PIECES, BOARD_SIZE},
     game::{Game, GameMode, Winner},
     player::Player,
     BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGHT, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
@@ -57,7 +57,7 @@ pub fn draw_goban(game: &Game) {
         BLACK,
     );
 
-    // Draw circle
+    // Draw circles
     let mut y = BORDER_OFFSET + 3 * SQUARE_SIZE;
     while y < (17 * SQUARE_SIZE) {
         let mut x = BORDER_OFFSET + 3 * SQUARE_SIZE;
@@ -73,7 +73,7 @@ pub fn draw_goban(game: &Game) {
         .board
         .intersections_all_moves(&game.rules, &game.current_player);
     for movement in movements {
-        if board.pieces[movement.index] == Pawn::None {
+        if board.at(movement.index) == Rock::None {
             let (x, y) = Board::index_to_coordinates(movement.index);
             let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
             let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
@@ -84,13 +84,13 @@ pub fn draw_goban(game: &Game) {
 
     // Draw rocks
     for i in 0..BOARD_PIECES {
-        if board.pieces[i] != Pawn::None {
+        if board.at(i) != Rock::None {
             let (x, y) = Board::index_to_coordinates(i);
             draw_circle(
                 (x * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 (y * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 20.,
-                if board.pieces[i] == Pawn::Black {
+                if board.at(i) == Rock::Black {
                     BLACK
                 } else {
                     WHITE
@@ -105,7 +105,7 @@ pub fn draw_goban(game: &Game) {
                     (x * SQUARE_SIZE + BORDER_OFFSET) as f32 - text_size.width / 2.,
                     (y * SQUARE_SIZE + BORDER_OFFSET) as f32 + text_size.height / 2.,
                     POLICE_SIZE,
-                    if board.pieces[i] == Pawn::Black {
+                    if board.at(i) == Rock::Black {
                         WHITE
                     } else {
                         BLACK
@@ -119,7 +119,7 @@ pub fn draw_goban(game: &Game) {
 pub fn draw_recommended_move(game: &mut Game) {
     let movement = game.computer_recommended_move();
     if let Some(movement) = movement {
-        if game.board.pieces[movement.index] == Pawn::None {
+        if game.board.at(movement.index) == Rock::None {
             let (x, y) = Board::index_to_coordinates(movement.index);
             let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
             let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
@@ -134,7 +134,7 @@ pub fn draw_rock_preview(game: &Game) {
     if mouse_x < (GRID_WINDOW_SIZE - 2) as f32 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32 {
         let rock_x = (mouse_x - 1.) as usize / SQUARE_SIZE;
         let rock_y = (mouse_y - 1.) as usize / SQUARE_SIZE;
-        if game.board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Pawn::None {
+        if game.board.get(rock_x, rock_y) == Rock::None {
             draw_circle(
                 (rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32,

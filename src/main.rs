@@ -24,6 +24,7 @@ mod options;
 mod pattern;
 mod player;
 mod rules;
+mod transpose;
 
 fn window_conf() -> Conf {
     Conf {

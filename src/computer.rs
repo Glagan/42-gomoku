@@ -1,6 +1,6 @@
 use crate::pattern::{Pattern, PATTERN_FINDER};
 use crate::{
-    board::{Board, Move, Pawn, BOARD_PIECES},
+    board::{Board, Move, Rock, BOARD_PIECES},
     player::Player,
     rules::RuleSet,
 };
@@ -87,15 +87,15 @@ pub struct AlphaBetaIteration {
 }
 
 pub struct MinimaxAction<'a> {
-    board: &'a Board,
+    board: &'a mut Board,
     movement: Option<Move>,
 }
 
 #[derive(Default)]
 pub struct Computer {
     // (black_heuristic, white_heuristic)
-    pub black_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
-    pub white_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
+    pub black_cache: HashMap<[Rock; BOARD_PIECES as usize], CacheEntry>,
+    pub white_cache: HashMap<[Rock; BOARD_PIECES as usize], CacheEntry>,
 }
 
 impl Computer {
@@ -113,7 +113,7 @@ impl Computer {
     pub fn cache(
         &mut self,
         player: &Player,
-    ) -> &mut HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry> {
+    ) -> &mut HashMap<[Rock; BOARD_PIECES as usize], CacheEntry> {
         if player == &Player::Black {
             &mut self.black_cache
         } else {
@@ -326,30 +326,32 @@ impl Computer {
         let mut beta = iteration.beta;
 
         // Check cache to see if the board was already computed
-        if self.cache(player).contains_key(&action.board.pieces) {
-            let cache_entry = self.cache(player).get(&action.board.pieces).unwrap();
-            if cache_entry.moves >= action.board.moves {
-                if cache_entry.flag == CacheFlag::Exact {
-                    return Ok(Evaluation {
-                        score: cache_entry.score,
-                        movement: cache_entry.movement,
-                    });
-                } else if cache_entry.flag == CacheFlag::Lowerbound {
-                    if cache_entry.score > alpha {
-                        alpha = cache_entry.score
-                    }
-                } else if cache_entry.flag == CacheFlag::Upperbound && cache_entry.score < beta {
-                    beta = cache_entry.score
-                }
+        // TODO > Cache with bitboards ? Need to know the player for a rock not only if it exists
+        // if self.cache(player).contains_key(&action.board.pieces) {
+        //     let cache_entry = self.cache(player).get(&action.board.pieces).unwrap();
+        //     if cache_entry.moves >= action.board.moves {
+        //         if cache_entry.flag == CacheFlag::Exact {
+        //             return Ok(Evaluation {
+        //                 score: cache_entry.score,
+        //                 movement: cache_entry.movement,
+        //             });
+        //         } else if cache_entry.flag == CacheFlag::Lowerbound {
+        //             if cache_entry.score > alpha {
+        //                 alpha = cache_entry.score
+        //             }
+        //         } else if cache_entry.flag == CacheFlag::Upperbound && cache_entry.score < beta {
+        //             beta = cache_entry.score
+        //         }
 
-                if alpha >= beta {
-                    return Ok(Evaluation {
-                        score: cache_entry.score,
-                        movement: cache_entry.movement,
-                    });
-                }
-            }
-        }
+        //         if alpha >= beta {
+        //             return Ok(Evaluation {
+        //                 score: cache_entry.score,
+        //                 movement: cache_entry.movement,
+        //             });
+        //         }
+        //     }
+        // }
+        // TODO <
 
         // Check if it's a leaf and compute it's value
         if iteration.depth == 0 || action.board.is_winning(rules, player) {
@@ -381,11 +383,11 @@ impl Computer {
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
-            let new_board = action.board.apply_move(rules, &sorted_movement.movement);
+            action.board.set_move(rules, &sorted_movement.movement);
             let mut eval = self.negamax_alpha_beta(
                 rules,
                 MinimaxAction {
-                    board: &new_board,
+                    board: action.board,
                     movement: Some(sorted_movement.movement),
                 },
                 AlphaBetaIteration {
@@ -400,6 +402,7 @@ impl Computer {
                 },
                 maximize,
             )?;
+            action.board.undo_move(rules, &sorted_movement.movement);
             eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = eval.score;
@@ -412,7 +415,8 @@ impl Computer {
         }
 
         // Add to cache
-        let cache_entry = self
+        // TODO >
+        /*let cache_entry = self
             .cache(player)
             .entry(action.board.pieces)
             .or_insert(CacheEntry {
@@ -429,7 +433,8 @@ impl Computer {
             cache_entry.flag = CacheFlag::Upperbound;
         } else if best_eval.score >= beta {
             cache_entry.flag = CacheFlag::Lowerbound;
-        }
+        }*/
+        // TODO <
 
         Ok(best_eval)
     }
@@ -438,7 +443,7 @@ impl Computer {
     pub fn play(
         &mut self,
         rules: &RuleSet,
-        board: &Board,
+        board: &mut Board,
         depth: usize,
         player: &Player,
     ) -> Result<Evaluation, String> {

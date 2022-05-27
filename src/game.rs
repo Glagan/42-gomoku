@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Move, Pawn},
+    board::{Board, Move, Rock},
     computer::Computer,
     player::Player,
     rules::RuleSet,
@@ -105,7 +105,7 @@ impl Game {
     }
 
     pub fn play_player(&mut self, x: usize, y: usize) {
-        if self.board.pieces[Board::coordinates_to_index(x, y)] == Pawn::None {
+        if self.board.get(x, y) == Rock::None {
             let movement = Move {
                 index: Board::coordinates_to_index(x, y),
                 player: self.current_player,
@@ -139,7 +139,7 @@ impl Game {
     pub fn play_computer(&mut self) {
         let play_result = self
             .computer
-            .play(&self.rules, &self.board, 5, &self.current_player);
+            .play(&self.rules, &mut self.board, 3, &self.current_player);
         if let Ok(play) = play_result {
             println!(
                 "computer play: {} in {}ms",
@@ -155,6 +155,7 @@ impl Game {
                     self.next_player();
                 }
             }
+            println!("{}", self.board);
         } else {
             println!("{}", "computer returned an empty play result".red());
         }
