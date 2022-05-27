@@ -318,8 +318,8 @@ impl Computer {
         rules: &RuleSet,
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
-        player: &Player,
-        maximize: &Player,
+        player: Player,
+        maximize: Player,
     ) -> Result<Evaluation, String> {
         let alpha_orig = iteration.alpha;
         let mut alpha = iteration.alpha;
@@ -395,10 +395,10 @@ impl Computer {
                     alpha: -beta,
                     beta: -alpha,
                 },
-                if *player == Player::Black {
-                    &Player::White
+                if player == Player::Black {
+                    Player::White
                 } else {
-                    &Player::Black
+                    Player::Black
                 },
                 maximize,
             )?;
@@ -445,7 +445,7 @@ impl Computer {
         rules: &RuleSet,
         board: &mut Board,
         depth: usize,
-        player: &Player,
+        player: Player,
     ) -> Result<Evaluation, String> {
         // Clean cache
         self.black_cache.retain(|_, v| v.moves >= board.moves);

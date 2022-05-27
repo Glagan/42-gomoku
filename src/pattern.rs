@@ -96,12 +96,12 @@ impl Default for Finder {
 }
 
 impl Finder {
-    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
+    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: Player) -> u8 {
         let pawn = board.get(x, y);
         if pawn == Rock::None {
             0
-        } else if (pawn == Rock::Black && *player == Player::Black)
-            || (pawn == Rock::White && *player == Player::White)
+        } else if (pawn == Rock::Black && player == Player::Black)
+            || (pawn == Rock::White && player == Player::White)
         {
             1
         } else {
@@ -115,9 +115,9 @@ impl Finder {
         let rock = board.get(x, y);
         if rock == Rock::None {
             let player = if rock == Rock::Black {
-                &Player::Black
+                Player::Black
             } else {
-                &Player::White
+                Player::White
             };
             let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
             let mut best_pattern_index: Option<usize> = None;
@@ -221,12 +221,8 @@ impl Finder {
                     && (new_x as usize) < BOARD_SIZE
                     && (new_y as usize) < BOARD_SIZE
                 {
-                    *buf.push_back() = Finder::pawn_to_pattern_pawn(
-                        board,
-                        new_x as usize,
-                        new_y as usize,
-                        &player,
-                    );
+                    *buf.push_back() =
+                        Finder::pawn_to_pattern_pawn(board, new_x as usize, new_y as usize, player);
                     length += 1;
                     if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
                         let has_best_pattern = best_pattern_index.is_some();

@@ -1,5 +1,6 @@
 use crate::board::Rock;
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Player {
     Black,
@@ -7,7 +8,7 @@ pub enum Player {
 }
 
 impl Player {
-    pub fn pawn(&self) -> Rock {
+    pub fn rock(&self) -> Rock {
         if *self == Player::Black {
             Rock::Black
         } else {

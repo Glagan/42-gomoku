@@ -2,7 +2,11 @@ use crate::{
     pattern::Finder,
     player::Player,
     rules::RuleSet,
-    transpose::{ANTI_DIAGONAL_TRANSPOSE, DIAGONAL_TRANSPOSE, VERTICAL_TRANSPOSE},
+    transpose::{
+        ANTI_DIAGONAL_TRANSPOSE, DIAGONAL_TRANSPOSE, VERTICAL_TRANSPOSE,
+        WINDOW_ANTI_DIAGONAL_SLICE_FIVE, WINDOW_DIAGONAL_SLICE_FIVE, WINDOW_HORIZONTAL_SLICE_FIVE,
+        WINDOW_VERTICAL_SLICE_FIVE,
+    },
 };
 use bitvec::prelude::*;
 use colored::Colorize;
@@ -145,7 +149,7 @@ impl fmt::Display for Board {
             for col in 0..BOARD_SIZE {
                 write!(
                     f,
-                    "{: >3}",
+                    "{: >3} ",
                     if !self.boards[Index::HORIZONTAL_WHITE][col + row * BOARD_SIZE] {
                         format!("{}", col + row * BOARD_SIZE).black().on_white()
                     } else if !self.boards[Index::HORIZONTAL_BLACK][col + row * BOARD_SIZE] {
@@ -236,7 +240,7 @@ impl Board {
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
     pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
         let player = movement.player;
-        let self_pawn = player.pawn();
+        let self_pawn = player.rock();
         let no_pawn = Rock::None;
         let (x, y) = Board::index_to_coordinates(movement.index);
 
@@ -351,7 +355,7 @@ impl Board {
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
     pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
         let player = movement.player;
-        let player_pawn = player.pawn();
+        let player_pawn = player.rock();
         let pos = Board::index_to_coordinates(movement.index);
         let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
         let mut buf = FixedVecDeque::<[u8; 6]>::new();
@@ -377,7 +381,7 @@ impl Board {
                     {
                         1
                     } else {
-                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, &player)
+                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, player)
                     };
                     length += 1;
                     if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
@@ -407,7 +411,7 @@ impl Board {
             return false;
         }
         if created_free_threes == 1 {
-            return !self.has_free_three(&movement.player);
+            return !self.has_free_three(movement.player);
         }
         true
     }
@@ -416,7 +420,7 @@ impl Board {
     fn is_move_legal_recursive_capture(&self, movement: &Move) -> bool {
         let player = movement.player;
         let (x, y) = Board::index_to_coordinates(movement.index);
-        let self_pawn = player.pawn();
+        let self_pawn = player.rock();
         let other_pawn = self_pawn.opponent();
 
         // Left
@@ -499,14 +503,14 @@ impl Board {
     }
 
     // All *legal* possible movements from the intersections for a given player
-    pub fn intersections_legal_moves(&self, rules: &RuleSet, player: &Player) -> Vec<Move> {
+    pub fn intersections_legal_moves(&self, rules: &RuleSet, player: Player) -> Vec<Move> {
         // Analyze each intersections and check if a Pawn can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
         for index in intersections.iter() {
             let movement = Move {
-                player: *player,
+                player,
                 index: *index,
             };
             if self.is_move_legal(rules, &movement) {
@@ -518,14 +522,14 @@ impl Board {
 
     // All possible movements from the intersections for a given player
     // TODO Star pattern
-    pub fn intersections_all_moves(&self, rules: &RuleSet, player: &Player) -> Vec<PossibleMove> {
+    pub fn intersections_all_moves(&self, rules: &RuleSet, player: Player) -> Vec<PossibleMove> {
         // Analyze each intersections and check if a Pawn can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<PossibleMove> = vec![];
         for index in intersections.iter() {
             let movement = Move {
-                player: *player,
+                player,
                 index: *index,
             };
             moves.push(PossibleMove {
@@ -685,7 +689,7 @@ impl Board {
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
         // TODO >
         /*if rules.capture && self.capture_moves.contains_key(&movement.index) {
-            let opponent_pawn = movement.player.pawn().opponent();
+            let opponent_pawn = movement.player.rock().opponent();
             let rocks = if opponent_pawn == Pawn::Black {
                 &mut self.black_rocks
             } else {
@@ -739,9 +743,9 @@ impl Board {
         self.moves -= 1;
     }
 
-    pub fn has_free_three(&self, player: &Player) -> bool {
+    pub fn has_free_three(&self, player: Player) -> bool {
         let free_three_pattern: [usize; 5] = [0, 1, 1, 1, 0];
-        let rocks = if player == &Player::Black {
+        let rocks = if player == Player::Black {
             &self.black_rocks
         } else {
             &self.white_rocks
@@ -905,8 +909,8 @@ impl Board {
     // [0 1 0 0 0 0] with 1 in any position, but mirrored v
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
-    pub fn has_uncaptured_five_in_a_row(&self, player: &Player) -> bool {
-        let rocks = if player == &Player::Black {
+    pub fn has_uncaptured_five_in_a_row(&self, player: Player) -> bool {
+        let rocks = if player == Player::Black {
             &self.black_rocks
         } else {
             &self.white_rocks
@@ -961,59 +965,61 @@ impl Board {
         false
     }
 
-    pub fn has_five_in_a_row(&self, player: &Player) -> bool {
-        let rocks = if player == &Player::Black {
-            &self.black_rocks
-        } else {
-            &self.white_rocks
-        };
-        for rock in rocks.iter() {
-            let pos = Board::index_to_coordinates(*rock);
-            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
-            // Check all 8 directions from the rock to see if there is five in a row
-            for (dir_x, dir_y) in DIRECTIONS {
-                // Create a window of length 5 and update it on each move
-                // If there is five in a row in the window, return true
-                let mut length = 0;
-                // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
-                // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
-                let mut buf = FixedVecDeque::<[u8; 5]>::new();
-                let mut mov_x = dir_x * -5;
-                let mut mov_y = dir_y * -5;
-                for _ in 0..10 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
-                    // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
-                    {
-                        // 1 for player pawn and 0 for anything else
-                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
-                            self,
-                            new_x as usize,
-                            new_y as usize,
-                            player,
-                        );
-                        length += 1;
-                        if length >= 5 && buf == [1, 1, 1, 1, 1] {
-                            return true;
-                        }
-                    }
-                    mov_x += dir_x;
-                    mov_y += dir_y;
+    pub fn has_five_in_a_row(&self, player: Player) -> bool {
+        let five_in_a_row = bits![0; 5];
+
+        // Iterate on each bitboards for the current player to search for the [1 1 1 1 1] pattern
+        if player == Player::Black {
+            // Iterate on each rocks to know if any of them make a five in a row
+            for rock in &self.black_rocks {
+                let slice = WINDOW_HORIZONTAL_SLICE_FIVE[*rock];
+                if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_VERTICAL_SLICE_FIVE[*rock];
+                if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_DIAGONAL_SLICE_FIVE[*rock];
+                if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[*rock];
+                if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
                 }
             }
+            false
+        } else {
+            // Iterate on each rocks to know if any of them make a five in a row
+            for rock in self.black_rocks.iter() {
+                let slice = WINDOW_HORIZONTAL_SLICE_FIVE[*rock];
+                if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_VERTICAL_SLICE_FIVE[*rock];
+                if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_DIAGONAL_SLICE_FIVE[*rock];
+                if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+                let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[*rock];
+                if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
+                    return true;
+                }
+            }
+            false
         }
-        false
     }
 
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
-    pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
+    pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
         if rules.capture
-            && ((player == &Player::Black && self.black_capture >= 10)
-                || (player == &Player::White && self.white_capture >= 10))
+            && ((player == Player::Black && self.black_capture >= 10)
+                || (player == Player::White && self.white_capture >= 10))
         {
             return true;
         }
@@ -1024,6 +1030,6 @@ impl Board {
         //     self.has_five_in_a_row(player)
         // }
         // TODO <
-        false
+        self.has_five_in_a_row(player)
     }
 }

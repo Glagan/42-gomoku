@@ -114,7 +114,7 @@ impl Game {
                 self.board.set_move(&self.rules, &movement);
                 self.recommended_move = None;
                 self.add_rock_move(Board::coordinates_to_index(x, y));
-                if self.board.is_winning(&self.rules, &self.current_player) {
+                if self.board.is_winning(&self.rules, self.current_player) {
                     self.player_won();
                 } else {
                     self.next_player();
@@ -139,7 +139,7 @@ impl Game {
     pub fn play_computer(&mut self) {
         let play_result = self
             .computer
-            .play(&self.rules, &mut self.board, 3, &self.current_player);
+            .play(&self.rules, &mut self.board, 3, self.current_player);
         if let Ok(play) = play_result {
             println!(
                 "computer play: {} in {}ms",
@@ -149,7 +149,7 @@ impl Game {
             if let Some(movement) = play.movement {
                 self.board.set_move(&self.rules, &movement);
                 self.add_rock_move(movement.index);
-                if self.board.is_winning(&self.rules, &self.current_player) {
+                if self.board.is_winning(&self.rules, self.current_player) {
                     self.player_won();
                 } else {
                     self.next_player();

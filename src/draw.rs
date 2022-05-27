@@ -71,7 +71,7 @@ pub fn draw_goban(game: &Game) {
     // Draw movements
     let movements = game
         .board
-        .intersections_all_moves(&game.rules, &game.current_player);
+        .intersections_all_moves(&game.rules, game.current_player);
     for movement in movements {
         if board.at(movement.index) == Rock::None {
             let (x, y) = Board::index_to_coordinates(movement.index);
