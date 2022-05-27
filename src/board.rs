@@ -170,6 +170,86 @@ impl fmt::Display for Board {
 }
 
 impl Board {
+    pub fn display_all_bitboards(&self) {
+        println!("Horizontal");
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let index = col + row * BOARD_SIZE;
+                print!(
+                    "{: >3} ",
+                    if !self.boards[Index::HORIZONTAL_WHITE][index] {
+                        format!("{}", index).black().on_white()
+                    } else if !self.boards[Index::HORIZONTAL_BLACK][index] {
+                        format!("{}", index).white().on_bright_black()
+                    } else {
+                        format!("{}", index).dimmed()
+                    }
+                );
+            }
+            if row != BOARD_SIZE - 1 {
+                println!();
+            }
+        }
+        println!("\nVertical");
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let index = col + row * BOARD_SIZE;
+                print!(
+                    "{: >3} ",
+                    if !self.boards[Index::VERTICAL_WHITE][index] {
+                        format!("{}", index).black().on_white()
+                    } else if !self.boards[Index::VERTICAL_BLACK][index] {
+                        format!("{}", index).white().on_bright_black()
+                    } else {
+                        format!("{}", index).dimmed()
+                    }
+                );
+            }
+            if row != BOARD_SIZE - 1 {
+                println!();
+            }
+        }
+        println!("\nDiagonal");
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let index = col + row * BOARD_SIZE;
+                print!(
+                    "{: >3} ",
+                    if !self.boards[Index::DIAGONAL_WHITE][index] {
+                        format!("{}", index).black().on_white()
+                    } else if !self.boards[Index::DIAGONAL_BLACK][index] {
+                        format!("{}", index).white().on_bright_black()
+                    } else {
+                        format!("{}", index).dimmed()
+                    }
+                );
+            }
+            if row != BOARD_SIZE - 1 {
+                println!();
+            }
+        }
+        println!("\nAnti-Diagonal");
+        for row in 0..BOARD_SIZE {
+            for col in 0..BOARD_SIZE {
+                let index = col + row * BOARD_SIZE;
+                print!(
+                    "{: >3} ",
+                    if !self.boards[Index::ANTI_DIAGONAL_WHITE][index] {
+                        format!("{}", index).black().on_white()
+                    } else if !self.boards[Index::ANTI_DIAGONAL_BLACK][index] {
+                        format!("{}", index).white().on_bright_black()
+                    } else {
+                        format!("{}", index).dimmed()
+                    }
+                );
+            }
+            if row != BOARD_SIZE - 1 {
+                println!();
+            }
+        }
+        println!("\n---");
+    }
+
     // Helper function to get a Board case with (x, y) coordinates
     pub fn get(&self, x: usize, y: usize) -> Rock {
         let index = Board::coordinates_to_index(x, y);
@@ -665,6 +745,7 @@ impl Board {
             self.boards[Index::ANTI_DIAGONAL_BLACK]
                 .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], false);
             self.black_rocks.push(movement.index);
+            self.display_all_bitboards();
         } else {
             self.boards[Index::HORIZONTAL_WHITE].set(movement.index, false);
             self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[movement.index], false);

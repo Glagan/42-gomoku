@@ -1,10 +1,18 @@
 [package]
 name = "gomoku"
+default-run = "gomoku"
 version = "0.1.0"
 edition = "2021"
 
 [features]
 cli_ava = []
+
+[[bin]]
+name = "gomoku"
+
+[[bin]]
+name = "transpose"
+path = "./tools/transpose/src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
