@@ -37,14 +37,15 @@ pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
     println!("pub static WINDOW_ANTI_DIAGONAL_SLICE_FIVE: [(usize, usize); 361] = [");
     let mut offset = 0;
     let mut length = 1;
-    for i in 0..((19 * 2) - 1) {
+    let mut mov_length: i32 = 1;
+    for d in 0..((19 * 2) - 1) {
         for j in 0..length {
             let horizontal_index = transpose
                 .iter()
                 .position(|&index| index == (offset + j))
                 .unwrap();
             let left = if offset + j < 2 {
-                offset + j
+                0
             } else {
                 (offset + j - 2).max(offset)
             };
@@ -52,11 +53,10 @@ pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
             window_anti_diagonal_slice_five[horizontal_index] = format!("({}, {})", left, right);
         }
         offset += length;
-        if i < 18 {
-            length += 1;
-        } else {
-            length -= 1;
+        if d == 18 {
+            mov_length = -1;
         }
+        length = (length as i32 + mov_length) as usize;
     }
     for window in window_anti_diagonal_slice_five {
         println!("{},", window);

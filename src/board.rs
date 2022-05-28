@@ -745,7 +745,6 @@ impl Board {
             self.boards[Index::ANTI_DIAGONAL_BLACK]
                 .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], false);
             self.black_rocks.push(movement.index);
-            self.display_all_bitboards();
         } else {
             self.boards[Index::HORIZONTAL_WHITE].set(movement.index, false);
             self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[movement.index], false);
@@ -761,10 +760,6 @@ impl Board {
         //     self.check_capture(movement);
         // }
         // TODO <
-        // for bitboard in self.boards.iter() {
-        //     println!("{}", bitboard.to_string());
-        // }
-        // println!("---")
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
@@ -796,31 +791,16 @@ impl Board {
             self.boards[Index::DIAGONAL_BLACK].set(DIAGONAL_TRANSPOSE[movement.index], true);
             self.boards[Index::ANTI_DIAGONAL_BLACK]
                 .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], true);
-            self.black_rocks.remove(
-                self.black_rocks
-                    .iter()
-                    .position(|x| *x == movement.index)
-                    .unwrap(),
-            );
+            self.black_rocks.pop();
         } else {
             self.boards[Index::HORIZONTAL_WHITE].set(movement.index, true);
             self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[movement.index], true);
             self.boards[Index::DIAGONAL_WHITE].set(DIAGONAL_TRANSPOSE[movement.index], true);
             self.boards[Index::ANTI_DIAGONAL_WHITE]
                 .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], true);
-            self.white_rocks.remove(
-                self.white_rocks
-                    .iter()
-                    .position(|x| *x == movement.index)
-                    .unwrap(),
-            );
+            self.white_rocks.pop();
         }
-        self.all_rocks.remove(
-            self.all_rocks
-                .iter()
-                .position(|x| *x == movement.index)
-                .unwrap(),
-        );
+        self.all_rocks.pop();
         self.moves -= 1;
     }
 
@@ -1073,7 +1053,7 @@ impl Board {
             false
         } else {
             // Iterate on each rocks to know if any of them make a five in a row
-            for rock in self.black_rocks.iter() {
+            for rock in self.white_rocks.iter() {
                 let slice = WINDOW_HORIZONTAL_SLICE_FIVE[*rock];
                 if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
                     return true;

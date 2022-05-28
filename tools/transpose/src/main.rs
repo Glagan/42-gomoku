@@ -136,14 +136,14 @@ fn main() {
     // print_board(&horizontal);
 
     // Horizontal
-    // display_horizontal_window_five_slices();
+    display_horizontal_window_five_slices();
 
     // Vertical
-    // let transpose = generate_swap_vertical();
+    let transpose = generate_swap_vertical();
     // let mut vertical = swap_board(&horizontal, &transpose);
     // print_board(&vertical);
-    // display_swap_vertical(&transpose);
-    // display_vertical_window_five_slices(&transpose);
+    display_swap_vertical(&transpose);
+    display_vertical_window_five_slices(&transpose);
 
     // Diagonal
     let transpose = generate_swap_diagonal();
