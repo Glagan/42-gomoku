@@ -6,16 +6,15 @@ pub fn generate_swap_anti_diagonal() -> [usize; 361] {
     let mut length = 1;
     for i in 0..=18 {
         for j in 0..length {
-            swap_vec_anti_diag[index] = i + (j * (19 - 1));
+            swap_vec_anti_diag[i + (j * (19 - 1))] = index;
             index += 1;
         }
         length += 1;
     }
     length = 18;
     for i in 0..18 {
-        let start = 37 + (i * 19);
         for j in 0..length {
-            swap_vec_anti_diag[index] = start + (j * (19 - 1));
+            swap_vec_anti_diag[(37 + (i * 19)) + (j * (19 - 1))] = index;
             index += 1;
         }
         length -= 1;
@@ -35,7 +34,7 @@ pub fn display_swap_anti_diagonal(swap: &[usize; 361]) {
 pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
     let mut window_anti_diagonal_slice_five: Vec<String> = vec!["".to_string(); 361];
     println!("\n// Slice for the largest anti-diagonal window of size 5 for an index");
-    println!("pub const WINDOW_ANTI_DIAGONAL_SLICE_FIVE: [(usize, usize); 361] = [");
+    println!("pub static WINDOW_ANTI_DIAGONAL_SLICE_FIVE: [(usize, usize); 361] = [");
     let mut offset = 0;
     let mut length = 1;
     for i in 0..((19 * 2) - 1) {
