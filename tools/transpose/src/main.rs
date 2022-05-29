@@ -1,17 +1,21 @@
 use anti_diagonal::{
     display_anti_diagonal_window_five_slices, display_swap_anti_diagonal,
-    generate_swap_anti_diagonal,
+    display_swap_anti_diagonal_rev, generate_swap_anti_diagonal,
 };
 use bitvec::prelude::*;
+use capture::display_capture_windows;
 use diagonal::{
-    display_diagonal_window_five_slices, display_swap_diagonal, generate_swap_diagonal,
+    display_diagonal_window_five_slices, display_swap_diagonal, display_swap_diagonal_rev,
+    generate_swap_diagonal,
 };
 use horizontal::display_horizontal_window_five_slices;
 use vertical::{
-    display_swap_vertical, display_vertical_window_five_slices, generate_swap_vertical,
+    display_swap_vertical, display_swap_vertical_rev, display_vertical_window_five_slices,
+    generate_swap_vertical,
 };
 
 mod anti_diagonal;
+mod capture;
 mod diagonal;
 mod horizontal;
 mod vertical;
@@ -126,48 +130,23 @@ fn set_on_boards(
 }
 
 fn main() {
-    // * Debug
-    // let mut horizontal = create_board();
-    // draw_row(&mut horizontal, 0, None);
-    // draw_column(&mut horizontal, 0, None);
-    // draw_diagonal(&mut horizontal, None);
-    // draw_anti_diagonal(&mut horizontal, None);
-    // draw_row(&mut horizontal, 0, None);
-    // print_board(&horizontal);
+    //* Swap
+    let transpose_vertical = generate_swap_vertical();
+    display_swap_vertical(&transpose_vertical);
+    display_swap_vertical_rev(&transpose_vertical);
+    let transpose_diagonal = generate_swap_diagonal();
+    display_swap_diagonal(&transpose_diagonal);
+    display_swap_diagonal_rev(&transpose_diagonal);
+    let transpose_anti_diagonal = generate_swap_anti_diagonal();
+    display_swap_anti_diagonal(&transpose_anti_diagonal);
+    display_swap_anti_diagonal_rev(&transpose_anti_diagonal);
 
-    // Horizontal
+    //* Slices
     display_horizontal_window_five_slices();
+    display_vertical_window_five_slices(&transpose_vertical);
+    display_diagonal_window_five_slices(&transpose_diagonal);
+    display_anti_diagonal_window_five_slices(&transpose_anti_diagonal);
 
-    // Vertical
-    let transpose = generate_swap_vertical();
-    // let mut vertical = swap_board(&horizontal, &transpose);
-    // print_board(&vertical);
-    display_swap_vertical(&transpose);
-    display_vertical_window_five_slices(&transpose);
-
-    // Diagonal
-    let transpose = generate_swap_diagonal();
-    display_swap_diagonal(&transpose);
-    display_diagonal_window_five_slices(&transpose);
-
-    // ! Debug
-    // let mut diagonal = swap_board(&horizontal, &transpose);
-    // print_board(&diagonal);
-    // let mut diagonal = create_board();
-    // draw_row(&mut diagonal, 0, Some(&transpose));
-    // draw_diagonal(&mut diagonal, Some(&transpose));
-    // print_board(&diagonal);
-
-    // Anti-diagonal
-    let transpose = generate_swap_anti_diagonal();
-    display_swap_anti_diagonal(&transpose);
-    display_anti_diagonal_window_five_slices(&transpose);
-
-    // ! Debug
-    // let mut anti_diagonal = swap_board(&horizontal, &transpose);
-    // print_board(&anti_diagonal);
-    // let mut anti_diagonal = create_board();
-    // draw_row(&mut anti_diagonal, 0, Some(&transpose));
-    // draw_anti_diagonal(&mut anti_diagonal, Some(&transpose));
-    // print_board(&anti_diagonal);
+    //* Capture slices
+    display_capture_windows();
 }

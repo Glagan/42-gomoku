@@ -3,7 +3,8 @@ use crate::{
     player::Player,
     rules::RuleSet,
     transpose::{
-        ANTI_DIAGONAL_TRANSPOSE, DIAGONAL_TRANSPOSE, VERTICAL_TRANSPOSE,
+        ANTI_DIAGONAL_TRANSPOSE, ANTI_DIAGONAL_TRANSPOSE_REV, CAPTURE_SLICES, DIAGONAL_TRANSPOSE,
+        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV,
         WINDOW_ANTI_DIAGONAL_SLICE_FIVE, WINDOW_DIAGONAL_SLICE_FIVE, WINDOW_HORIZONTAL_SLICE_FIVE,
         WINDOW_VERTICAL_SLICE_FIVE,
     },
@@ -90,6 +91,12 @@ impl Index {
     pub const ANTI_DIAGONAL_WHITE: usize = 7;
 }
 
+#[derive(Default)]
+pub struct PlayerState {
+    pub captures: usize,
+    pub rocks: Vec<usize>,
+}
+
 pub const BOARD_SIZE: usize = 19;
 pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
 pub const DIRECTIONS: [(i16, i16); 8] = [
@@ -103,20 +110,19 @@ pub const DIRECTIONS: [(i16, i16); 8] = [
     (1, 1),
 ];
 
-#[derive(Clone)]
 pub struct Board {
     pub boards: [bitvec::array::BitArray<[usize; 6], Lsb0>; 8],
     pub moves: u16,
-    pub black_rocks: Vec<usize>,
-    pub white_rocks: Vec<usize>,
+    pub black: PlayerState,
+    pub white: PlayerState,
     pub all_rocks: Vec<usize>,
-    pub black_capture: u8,
-    pub white_capture: u8,
-    // pub capture_moves: HashMap<usize, Vec<usize>>,
+    pub moves_restore: Vec<Vec<usize>>,
 }
 
 impl Default for Board {
     fn default() -> Board {
+        let mut moves_restore = vec![];
+        moves_restore.reserve(360);
         let mut board = Board {
             boards: [
                 bitarr![0; 361],
@@ -129,12 +135,10 @@ impl Default for Board {
                 bitarr![0; 361],
             ],
             moves: 0,
-            black_rocks: vec![],
-            white_rocks: vec![],
+            black: PlayerState::default(),
+            white: PlayerState::default(),
             all_rocks: vec![],
-            black_capture: 0,
-            white_capture: 0,
-            // capture_moves: HashMap::new(),
+            moves_restore,
         };
         for bitboard in board.boards.iter_mut() {
             bitboard.fill(true);
@@ -601,7 +605,6 @@ impl Board {
     }
 
     // All possible movements from the intersections for a given player
-    // TODO Star pattern
     pub fn intersections_all_moves(&self, rules: &RuleSet, player: Player) -> Vec<PossibleMove> {
         // Analyze each intersections and check if a Pawn can be set on it
         // -- for the current player according to the rules
@@ -620,196 +623,298 @@ impl Board {
         moves
     }
 
-    /*fn check_capture(&mut self, movement: &Move) {
-        let player_pawn: Rock;
-        let opponant_pawn: Rock;
-        let (x, y) = Board::index_to_coordinates(movement.index);
-        let mut remove_vect: Vec<usize> = vec![];
-
-        // println!(
-        //     "Check_capture : index {} | x : {} | y : {}",
-        //     movement.index, x, y
-        // );
+    fn get_movement_captures(&mut self, movement: &Move) -> Vec<usize> {
+        // Check all 8 directions on a window of 4
+        // -- with the movement rock on the "center" of all directions (star pattern)
+        let capture_pattern_self = bits![0, 1, 1, 0];
+        let capture_pattern_opponent = bits![1, 0, 0, 1];
+        let index = movement.index;
+        let mut captures: Vec<usize> = vec![];
+        let slices = CAPTURE_SLICES[movement.index];
         if movement.player == Player::Black {
-            player_pawn = Rock::Black;
-            opponant_pawn = Rock::White;
+            // Left Horizontal
+            if self.boards[Index::HORIZONTAL_BLACK][slices.0 .0..=index].eq(capture_pattern_self)
+                && self.boards[Index::HORIZONTAL_WHITE][slices.0 .0..=index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(index - 1);
+                captures.push(index - 2);
+            }
+            // Right Horizontal
+            if self.boards[Index::HORIZONTAL_BLACK][index..=slices.0 .1].eq(capture_pattern_self)
+                && self.boards[Index::HORIZONTAL_WHITE][index..=slices.0 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(index + 1);
+                captures.push(index + 2);
+            }
+            // Top Vertical
+            let transposed_index = VERTICAL_TRANSPOSE[index];
+            if self.boards[Index::VERTICAL_BLACK][slices.1 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::VERTICAL_WHITE][slices.1 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Vertical
+            if self.boards[Index::VERTICAL_BLACK][transposed_index..=slices.1 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::VERTICAL_WHITE][transposed_index..=slices.1 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 2]);
+            }
+            // Top Diagonal
+            let transposed_index = DIAGONAL_TRANSPOSE[index];
+            if self.boards[Index::DIAGONAL_BLACK][slices.2 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::DIAGONAL_WHITE][slices.2 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Diagonal
+            if self.boards[Index::DIAGONAL_BLACK][transposed_index..=slices.2 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::DIAGONAL_WHITE][transposed_index..=slices.2 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
+            }
+            // Top Anti-diagonal
+            let transposed_index = ANTI_DIAGONAL_TRANSPOSE[index];
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][slices.3 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::ANTI_DIAGONAL_WHITE][slices.3 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Anti-diagonal
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][transposed_index..=slices.3 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::ANTI_DIAGONAL_WHITE][transposed_index..=slices.3 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
+            }
         } else {
-            player_pawn = Rock::White;
-            opponant_pawn = Rock::Black;
-        }
-
-        if x >= 3
-            && self.pieces[movement.index - 1] == opponant_pawn
-            && self.pieces[movement.index - 2] == opponant_pawn
-            && self.pieces[movement.index - 3] == player_pawn
-        {
-            remove_vect.push(movement.index - 1);
-            remove_vect.push(movement.index - 2);
-        }
-        // println!("1 if");
-        if x + 3 < BOARD_SIZE
-            && self.pieces[movement.index + 1] == opponant_pawn
-            && self.pieces[movement.index + 2] == opponant_pawn
-            && self.pieces[movement.index + 3] == player_pawn
-        {
-            remove_vect.push(movement.index + 1);
-            remove_vect.push(movement.index + 2);
-        }
-        // println!("2 if");
-        if y >= 3
-            && self.pieces[movement.index - BOARD_SIZE] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 2)] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 3)] == player_pawn
-        {
-            remove_vect.push(movement.index - BOARD_SIZE);
-            remove_vect.push(movement.index - (BOARD_SIZE * 2));
-        }
-        // println!("3 if");
-        if y + 3 < BOARD_SIZE
-            && self.pieces[movement.index + BOARD_SIZE] == opponant_pawn
-            && self.pieces[movement.index + BOARD_SIZE * 2] == opponant_pawn
-            && self.pieces[movement.index + BOARD_SIZE * 3] == player_pawn
-        {
-            remove_vect.push(movement.index + BOARD_SIZE);
-            remove_vect.push(movement.index + BOARD_SIZE * 2);
-        }
-        // println!("4 if");
-        if y >= 3
-            && x >= 3
-            && self.pieces[movement.index - BOARD_SIZE - 1] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 2) - 2] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 3) - 3] == player_pawn
-        {
-            remove_vect.push(movement.index - BOARD_SIZE - 1);
-            remove_vect.push(movement.index - (BOARD_SIZE * 2) - 2);
-        }
-        // println!("5 if");
-        if y + 3 < BOARD_SIZE
-            && x >= 3
-            && self.pieces[movement.index + BOARD_SIZE - 1] == opponant_pawn
-            && self.pieces[movement.index + (BOARD_SIZE * 2) - 2] == opponant_pawn
-            && self.pieces[movement.index + (BOARD_SIZE * 3) - 3] == player_pawn
-        {
-            remove_vect.push(movement.index + BOARD_SIZE - 1);
-            remove_vect.push(movement.index + (BOARD_SIZE * 2) - 2);
-        }
-        // println!("6 if");
-        if y + 3 < BOARD_SIZE
-            && x + 3 <= BOARD_SIZE
-            && self.pieces[movement.index + BOARD_SIZE + 1] == opponant_pawn
-            && self.pieces[movement.index + (BOARD_SIZE * 2) + 2] == opponant_pawn
-            && self.pieces[movement.index + (BOARD_SIZE * 3) + 3] == player_pawn
-        {
-            remove_vect.push(movement.index + BOARD_SIZE + 1);
-            remove_vect.push(movement.index + (BOARD_SIZE * 2) + 2);
-        }
-        // println!("7 if");
-        if y >= 3
-            && x + 3 <= BOARD_SIZE
-            && self.pieces[movement.index - BOARD_SIZE + 1] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 2) + 2] == opponant_pawn
-            && self.pieces[movement.index - (BOARD_SIZE * 3) + 3] == player_pawn
-        {
-            remove_vect.push(movement.index - BOARD_SIZE + 1);
-            remove_vect.push(movement.index - (BOARD_SIZE * 2) + 2);
-        }
-        // println!("8 if");
-        for &idx in remove_vect.iter() {
-            // println!("try to remove : {}", idx);
-            self.pieces[idx] = Rock::None;
-            if player_pawn == Rock::Black {
-                self.black_capture += 1;
-                self.white_rocks
-                    .remove(self.white_rocks.iter().position(|x| *x == idx).unwrap());
-                self.all_rocks
-                    .remove(self.all_rocks.iter().position(|x| *x == idx).unwrap());
-            } else {
-                self.white_capture += 1;
-                self.black_rocks
-                    .remove(self.black_rocks.iter().position(|x| *x == idx).unwrap());
-                self.all_rocks
-                    .remove(self.all_rocks.iter().position(|x| *x == idx).unwrap());
+            // Left Horizontal
+            if self.boards[Index::HORIZONTAL_WHITE][slices.0 .0..=index].eq(capture_pattern_self)
+                && self.boards[Index::HORIZONTAL_BLACK][slices.0 .0..=index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(index - 1);
+                captures.push(index - 2);
+            }
+            // Right Horizontal
+            if self.boards[Index::HORIZONTAL_WHITE][index..=slices.0 .1].eq(capture_pattern_self)
+                && self.boards[Index::HORIZONTAL_BLACK][index..=slices.0 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(index + 1);
+                captures.push(index + 2);
+            }
+            // Top Vertical
+            let transposed_index = VERTICAL_TRANSPOSE[index];
+            if self.boards[Index::VERTICAL_WHITE][slices.1 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::VERTICAL_BLACK][slices.1 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Vertical
+            if self.boards[Index::VERTICAL_WHITE][transposed_index..=slices.1 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::VERTICAL_BLACK][transposed_index..=slices.1 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 2]);
+            }
+            // Top Diagonal
+            let transposed_index = DIAGONAL_TRANSPOSE[index];
+            if self.boards[Index::DIAGONAL_WHITE][slices.2 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::DIAGONAL_BLACK][slices.2 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Diagonal
+            if self.boards[Index::DIAGONAL_WHITE][transposed_index..=slices.2 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::DIAGONAL_BLACK][transposed_index..=slices.2 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
+            }
+            // Top Anti-diagonal
+            let transposed_index = ANTI_DIAGONAL_TRANSPOSE[index];
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][slices.3 .0..=transposed_index]
+                .eq(capture_pattern_self)
+                && self.boards[Index::ANTI_DIAGONAL_BLACK][slices.3 .0..=transposed_index]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            }
+            // Bottom Anti-diagonal
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][transposed_index..=slices.3 .1]
+                .eq(capture_pattern_self)
+                && self.boards[Index::ANTI_DIAGONAL_BLACK][transposed_index..=slices.3 .1]
+                    .eq(capture_pattern_opponent)
+            {
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
+                captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
             }
         }
-        // if !remove_vect.is_empty() {
-        //     self.capture_moves.insert(movement.index, remove_vect);
-        // }
-    }*/
+        captures
+    }
+
+    pub fn set_rock(&mut self, index: usize, rock: Rock) {
+        if rock == Rock::Black {
+            self.boards[Index::HORIZONTAL_BLACK].set(index, false);
+            self.boards[Index::VERTICAL_BLACK].set(VERTICAL_TRANSPOSE[index], false);
+            self.boards[Index::DIAGONAL_BLACK].set(DIAGONAL_TRANSPOSE[index], false);
+            self.boards[Index::ANTI_DIAGONAL_BLACK].set(ANTI_DIAGONAL_TRANSPOSE[index], false);
+        } else if rock == Rock::White {
+            self.boards[Index::HORIZONTAL_WHITE].set(index, false);
+            self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[index], false);
+            self.boards[Index::DIAGONAL_WHITE].set(DIAGONAL_TRANSPOSE[index], false);
+            self.boards[Index::ANTI_DIAGONAL_WHITE].set(ANTI_DIAGONAL_TRANSPOSE[index], false);
+        } else {
+            self.boards[Index::HORIZONTAL_BLACK].set(index, true);
+            self.boards[Index::HORIZONTAL_WHITE].set(index, true);
+            self.boards[Index::VERTICAL_BLACK].set(VERTICAL_TRANSPOSE[index], true);
+            self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[index], true);
+            self.boards[Index::DIAGONAL_BLACK].set(DIAGONAL_TRANSPOSE[index], true);
+            self.boards[Index::DIAGONAL_WHITE].set(DIAGONAL_TRANSPOSE[index], true);
+            self.boards[Index::ANTI_DIAGONAL_BLACK].set(ANTI_DIAGONAL_TRANSPOSE[index], true);
+            self.boards[Index::ANTI_DIAGONAL_WHITE].set(ANTI_DIAGONAL_TRANSPOSE[index], true);
+        }
+    }
 
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
+        // Set rock
         if movement.player == Player::Black {
-            self.boards[Index::HORIZONTAL_BLACK].set(movement.index, false);
-            self.boards[Index::VERTICAL_BLACK].set(VERTICAL_TRANSPOSE[movement.index], false);
-            self.boards[Index::DIAGONAL_BLACK].set(DIAGONAL_TRANSPOSE[movement.index], false);
-            self.boards[Index::ANTI_DIAGONAL_BLACK]
-                .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], false);
-            self.black_rocks.push(movement.index);
+            self.set_rock(movement.index, Rock::Black);
+            self.black.rocks.push(movement.index);
         } else {
-            self.boards[Index::HORIZONTAL_WHITE].set(movement.index, false);
-            self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[movement.index], false);
-            self.boards[Index::DIAGONAL_WHITE].set(DIAGONAL_TRANSPOSE[movement.index], false);
-            self.boards[Index::ANTI_DIAGONAL_WHITE]
-                .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], false);
-            self.white_rocks.push(movement.index);
+            self.set_rock(movement.index, Rock::White);
+            self.white.rocks.push(movement.index);
         }
         self.all_rocks.push(movement.index);
+        // Check capture
+        if rules.capture {
+            let captures = self.get_movement_captures(movement);
+            if movement.player == Player::Black {
+                self.black.captures += captures.len();
+            } else {
+                self.white.captures += captures.len();
+            }
+            for rock in &captures {
+                // Remove opponent rock from the list of rocks
+                if movement.player == Player::Black {
+                    self.white.rocks.swap_remove(
+                        self.white
+                            .rocks
+                            .iter()
+                            .position(|index| index == rock)
+                            .unwrap(),
+                    );
+                } else {
+                    self.black.rocks.swap_remove(
+                        self.black
+                            .rocks
+                            .iter()
+                            .position(|index| index == rock)
+                            .unwrap(),
+                    );
+                }
+                // ... and from the global list of rock
+                self.all_rocks.swap_remove(
+                    self.all_rocks
+                        .iter()
+                        .position(|index| index == rock)
+                        .unwrap(),
+                );
+                self.set_rock(*rock, Rock::None);
+            }
+            // Save the list of captured rocks to restore for when undo_move is called
+            self.moves_restore.push(captures);
+        }
         self.moves += 1;
-        // TODO >
-        // if rules.capture {
-        //     self.check_capture(movement);
-        // }
-        // TODO <
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
-        // TODO >
-        /*if rules.capture && self.capture_moves.contains_key(&movement.index) {
-            let opponent_pawn = movement.player.rock().opponent();
-            let rocks = if opponent_pawn == Pawn::Black {
-                &mut self.black_rocks
+        // Restored the captured rocks
+        if rules.capture {
+            let opponent_rock = movement.player.rock().opponent();
+            let rocks = self.moves_restore.pop().unwrap();
+            // Decrease capture counter
+            if movement.player == Player::Black {
+                self.black.captures -= rocks.len();
             } else {
-                &mut self.white_rocks
-            };
-            let captures = if opponent_pawn == Pawn::Black {
-                &mut self.white_capture
-            } else {
-                &mut self.black_capture
-            };
-            for &captured_rock in self.capture_moves.get(&movement.index).unwrap() {
-                self.pieces[captured_rock] = opponent_pawn;
-                rocks.push(captured_rock);
-                self.all_rocks.push(captured_rock);
-                *captures -= 1;
+                self.white.captures -= rocks.len();
             }
-            self.capture_moves.remove(&movement.index);
-        }*/
-        // TODO <
-        if movement.player == Player::Black {
-            self.boards[Index::HORIZONTAL_BLACK].set(movement.index, true);
-            self.boards[Index::VERTICAL_BLACK].set(VERTICAL_TRANSPOSE[movement.index], true);
-            self.boards[Index::DIAGONAL_BLACK].set(DIAGONAL_TRANSPOSE[movement.index], true);
-            self.boards[Index::ANTI_DIAGONAL_BLACK]
-                .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], true);
-            self.black_rocks.pop();
-        } else {
-            self.boards[Index::HORIZONTAL_WHITE].set(movement.index, true);
-            self.boards[Index::VERTICAL_WHITE].set(VERTICAL_TRANSPOSE[movement.index], true);
-            self.boards[Index::DIAGONAL_WHITE].set(DIAGONAL_TRANSPOSE[movement.index], true);
-            self.boards[Index::ANTI_DIAGONAL_WHITE]
-                .set(ANTI_DIAGONAL_TRANSPOSE[movement.index], true);
-            self.white_rocks.pop();
+            // Restore the rock index in the opponent list of rocks
+            for rock in rocks {
+                if movement.player == Player::Black {
+                    self.white.rocks.push(rock);
+                } else {
+                    self.black.rocks.push(rock);
+                }
+                self.all_rocks.push(rock);
+                self.set_rock(rock, opponent_rock);
+            }
         }
-        self.all_rocks.pop();
+        // Remove rock
+        self.set_rock(movement.index, Rock::None);
+        if movement.player == Player::Black {
+            self.black.rocks.swap_remove(
+                self.black
+                    .rocks
+                    .iter()
+                    .position(|&rock| rock == movement.index)
+                    .unwrap(),
+            );
+        } else {
+            self.white.rocks.swap_remove(
+                self.white
+                    .rocks
+                    .iter()
+                    .position(|&rock| rock == movement.index)
+                    .unwrap(),
+            );
+        }
+        self.all_rocks.swap_remove(
+            self.all_rocks
+                .iter()
+                .position(|&rock| rock == movement.index)
+                .unwrap(),
+        );
         self.moves -= 1;
     }
 
     pub fn has_free_three(&self, player: Player) -> bool {
         let free_three_pattern: [usize; 5] = [0, 1, 1, 1, 0];
         let rocks = if player == Player::Black {
-            &self.black_rocks
+            &self.black.rocks
         } else {
-            &self.white_rocks
+            &self.white.rocks
         };
         for rock in rocks.iter() {
             let pos = Board::index_to_coordinates(*rock);
@@ -972,9 +1077,9 @@ impl Board {
     // [0 0 0 2 0 0]                        in this "row" ^
     pub fn has_uncaptured_five_in_a_row(&self, player: Player) -> bool {
         let rocks = if player == Player::Black {
-            &self.black_rocks
+            &self.black.rocks
         } else {
-            &self.white_rocks
+            &self.white.rocks
         };
         let mut buf = FixedVecDeque::<[u8; 5]>::new();
         let mut index_buf = FixedVecDeque::<[usize; 5]>::new();
@@ -1026,61 +1131,75 @@ impl Board {
         false
     }
 
-    pub fn has_five_in_a_row(&self, player: Player) -> bool {
-        let five_in_a_row = bits![0; 5];
-
-        // Iterate on each bitboards for the current player to search for the [1 1 1 1 1] pattern
+    // Iterate on each bitboards for the current player to search for the given pattern
+    pub fn match_pattern_five(&self, rock: usize, player: Player, pattern: &BitSlice) -> bool {
         if player == Player::Black {
             // Iterate on each rocks to know if any of them make a five in a row
-            for rock in &self.black_rocks {
-                let slice = WINDOW_HORIZONTAL_SLICE_FIVE[*rock];
-                if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_VERTICAL_SLICE_FIVE[*rock];
-                if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_DIAGONAL_SLICE_FIVE[*rock];
-                if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[*rock];
-                if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
+            let slice = WINDOW_HORIZONTAL_SLICE_FIVE[rock];
+            if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_VERTICAL_SLICE_FIVE[rock];
+            if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_DIAGONAL_SLICE_FIVE[rock];
+            if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[rock];
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
             }
             false
         } else {
             // Iterate on each rocks to know if any of them make a five in a row
-            for rock in self.white_rocks.iter() {
-                let slice = WINDOW_HORIZONTAL_SLICE_FIVE[*rock];
-                if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_VERTICAL_SLICE_FIVE[*rock];
-                if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_DIAGONAL_SLICE_FIVE[*rock];
-                if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
-                let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[*rock];
-                if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(&five_in_a_row) {
-                    return true;
-                }
+            let slice = WINDOW_HORIZONTAL_SLICE_FIVE[rock];
+            if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_VERTICAL_SLICE_FIVE[rock];
+            if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_DIAGONAL_SLICE_FIVE[rock];
+            if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[rock];
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
             }
             false
         }
+    }
+
+    pub fn has_five_in_a_row(&self, player: Player) -> bool {
+        let five_in_a_row = bits![0; 5];
+
+        // Iterate on each rocks to know if any of them make a five in a row
+        if player == Player::Black {
+            for rock in &self.black.rocks {
+                if self.match_pattern_five(*rock, player, five_in_a_row) {
+                    return true;
+                }
+            }
+        } else {
+            for rock in &self.white.rocks {
+                if self.match_pattern_five(*rock, player, five_in_a_row) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
     pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
         if rules.capture
-            && ((player == Player::Black && self.black_capture >= 10)
-                || (player == Player::White && self.white_capture >= 10))
+            && ((player == Player::Black && self.black.captures >= 10)
+                || (player == Player::White && self.white.captures >= 10))
         {
             return true;
         }

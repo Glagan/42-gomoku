@@ -20,9 +20,19 @@ pub fn display_swap_vertical(swap: &[usize; 361]) {
     println!("];");
 }
 
+pub fn display_swap_vertical_rev(swap: &[usize; 361]) {
+    println!("\n// Reverse map to match a vertical index to an horizontal index");
+    println!("pub static VERTICAL_TRANSPOSE_REV: [usize; 361] = [");
+    for i in 0..swap.len() {
+        let index = swap.iter().position(|&swapped| swapped == i).unwrap();
+        println!("{},", index);
+    }
+    println!("];");
+}
+
 pub fn display_vertical_window_five_slices(transpose: &[usize; 361]) {
     println!("\n// Slice for the largest vertical window of size 5 for an index");
-    println!("pub const WINDOW_VERTICAL_SLICE_FIVE: [(usize, usize); 361] = [");
+    println!("pub static WINDOW_VERTICAL_SLICE_FIVE: [(usize, usize); 361] = [");
     for y in 0..19 {
         for x in 0..19 {
             let index = transpose[x + y * 19];

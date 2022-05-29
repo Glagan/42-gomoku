@@ -23,10 +23,20 @@ pub fn generate_swap_anti_diagonal() -> [usize; 361] {
 }
 
 pub fn display_swap_anti_diagonal(swap: &[usize; 361]) {
-    println!("// Map an horizontal index to a anti-diagonal index");
+    println!("\n// Map an horizontal index to a anti-diagonal index");
     println!("pub static ANTI_DIAGONAL_TRANSPOSE: [usize; 361] = [");
     for i in swap {
         println!("{},", i);
+    }
+    println!("];");
+}
+
+pub fn display_swap_anti_diagonal_rev(swap: &[usize; 361]) {
+    println!("\n// Reverse map to match a anti-diagonal index to an horizontal index");
+    println!("pub static ANTI_DIAGONAL_TRANSPOSE_REV: [usize; 361] = [");
+    for i in 0..swap.len() {
+        let index = swap.iter().position(|&swapped| swapped == i).unwrap();
+        println!("{},", index);
     }
     println!("];");
 }
