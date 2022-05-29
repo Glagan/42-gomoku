@@ -24,27 +24,29 @@ pub fn generate_swap_anti_diagonal() -> [usize; 361] {
 
 pub fn display_swap_anti_diagonal(swap: &[usize; 361]) {
     println!("\n// Map an horizontal index to a anti-diagonal index");
-    println!("pub static ANTI_DIAGONAL_TRANSPOSE: [usize; 361] = [");
-    for i in swap {
-        println!("{},", i);
+    print!("pub static ANTI_DIAGONAL_TRANSPOSE: [usize; 361] = [");
+    for index in swap {
+        print!("{}, ", index);
     }
     println!("];");
 }
 
 pub fn display_swap_anti_diagonal_rev(swap: &[usize; 361]) {
     println!("\n// Reverse map to match a anti-diagonal index to an horizontal index");
-    println!("pub static ANTI_DIAGONAL_TRANSPOSE_REV: [usize; 361] = [");
+    print!("pub static ANTI_DIAGONAL_TRANSPOSE_REV: [usize; 361] = [");
     for i in 0..swap.len() {
         let index = swap.iter().position(|&swapped| swapped == i).unwrap();
-        println!("{},", index);
+        print!("{}, ", index);
     }
     println!("];");
 }
 
-pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
-    let mut window_anti_diagonal_slice_five: Vec<String> = vec!["".to_string(); 361];
-    println!("\n// Slice for the largest anti-diagonal window of size 5 for an index");
-    println!("pub static WINDOW_ANTI_DIAGONAL_SLICE_FIVE: [(usize, usize); 361] = [");
+pub fn generate_anti_diagonal_slices(
+    transpose: &[usize; 361],
+    left: usize,
+    right: usize,
+) -> Vec<(usize, usize)> {
+    let mut slices: Vec<(usize, usize)> = vec![(0, 0); 361];
     let mut offset = 0;
     let mut length = 1;
     let mut mov_length: i32 = 1;
@@ -54,13 +56,13 @@ pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
                 .iter()
                 .position(|&index| index == (offset + j))
                 .unwrap();
-            let left = if offset + j < 2 {
+            let left = if offset + j < left {
                 0
             } else {
-                (offset + j - 2).max(offset)
+                (offset + j - left).max(offset)
             };
-            let right = (offset + j + 2).min(offset + length - 1);
-            window_anti_diagonal_slice_five[horizontal_index] = format!("({}, {})", left, right);
+            let right = (offset + j + right).min(offset + length - 1);
+            slices[horizontal_index] = (left, right);
         }
         offset += length;
         if d == 18 {
@@ -68,8 +70,5 @@ pub fn display_anti_diagonal_window_five_slices(transpose: &[usize; 361]) {
         }
         length = (length as i32 + mov_length) as usize;
     }
-    for window in window_anti_diagonal_slice_five {
-        println!("{},", window);
-    }
-    println!("];");
+    slices
 }

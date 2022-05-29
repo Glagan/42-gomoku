@@ -1,17 +1,15 @@
 use anti_diagonal::{
-    display_anti_diagonal_window_five_slices, display_swap_anti_diagonal,
-    display_swap_anti_diagonal_rev, generate_swap_anti_diagonal,
+    display_swap_anti_diagonal, display_swap_anti_diagonal_rev, generate_swap_anti_diagonal,
 };
 use bitvec::prelude::*;
 use capture::display_capture_windows;
-use diagonal::{
-    display_diagonal_window_five_slices, display_swap_diagonal, display_swap_diagonal_rev,
-    generate_swap_diagonal,
-};
-use horizontal::display_horizontal_window_five_slices;
-use vertical::{
-    display_swap_vertical, display_swap_vertical_rev, display_vertical_window_five_slices,
-    generate_swap_vertical,
+use diagonal::{display_swap_diagonal, display_swap_diagonal_rev, generate_swap_diagonal};
+use horizontal::generate_horizontal_slices;
+use vertical::{display_swap_vertical, display_swap_vertical_rev, generate_swap_vertical};
+
+use crate::{
+    anti_diagonal::generate_anti_diagonal_slices, diagonal::generate_diagonal_slices,
+    vertical::generate_vertical_slices,
 };
 
 mod anti_diagonal;
@@ -129,6 +127,18 @@ fn set_on_boards(
     other_board.set(transpose[index], true);
 }
 
+fn print_slice_2d_array(slices: &[Vec<(usize, usize)>; 4]) {
+    println!("[");
+    for slice_array in slices {
+        print!("[");
+        for (left, right) in slice_array {
+            print!("({}, {}), ", left, right);
+        }
+        println!("], ");
+    }
+    println!("];");
+}
+
 fn main() {
     //* Swap
     let transpose_vertical = generate_swap_vertical();
@@ -142,10 +152,35 @@ fn main() {
     display_swap_anti_diagonal_rev(&transpose_anti_diagonal);
 
     //* Slices
-    display_horizontal_window_five_slices();
-    display_vertical_window_five_slices(&transpose_vertical);
-    display_diagonal_window_five_slices(&transpose_diagonal);
-    display_anti_diagonal_window_five_slices(&transpose_anti_diagonal);
+    let slice_four = [
+        generate_horizontal_slices(2, 1),
+        generate_vertical_slices(&transpose_vertical, 2, 1),
+        generate_diagonal_slices(&transpose_diagonal, 2, 1),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 2, 1),
+    ];
+    println!("\n// Slice for the largest vertical window of size 4 for an index (right)");
+    println!("pub static WINDOW_SLICE_FOUR_RIGHT: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_four);
+
+    let slice_four = [
+        generate_horizontal_slices(1, 2),
+        generate_vertical_slices(&transpose_vertical, 1, 2),
+        generate_diagonal_slices(&transpose_diagonal, 1, 2),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 1, 2),
+    ];
+    println!("\n// Slice for the largest vertical window of size 4 for an index (left)");
+    println!("pub static WINDOW_SLICE_FOUR_LEFT: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_four);
+
+    let slice_five = [
+        generate_horizontal_slices(2, 2),
+        generate_vertical_slices(&transpose_vertical, 2, 2),
+        generate_diagonal_slices(&transpose_diagonal, 2, 2),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 2, 2),
+    ];
+    println!("\n// Slice for the largest vertical window of size 5 for an index");
+    println!("pub static WINDOW_SLICE_FIVE: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_five);
 
     //* Capture slices
     display_capture_windows();

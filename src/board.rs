@@ -4,9 +4,8 @@ use crate::{
     rules::RuleSet,
     transpose::{
         ANTI_DIAGONAL_TRANSPOSE, ANTI_DIAGONAL_TRANSPOSE_REV, CAPTURE_SLICES, DIAGONAL_TRANSPOSE,
-        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV,
-        WINDOW_ANTI_DIAGONAL_SLICE_FIVE, WINDOW_DIAGONAL_SLICE_FIVE, WINDOW_HORIZONTAL_SLICE_FIVE,
-        WINDOW_VERTICAL_SLICE_FIVE,
+        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV, WINDOW_SLICE_FIVE,
+        WINDOW_SLICE_FOUR_LEFT, WINDOW_SLICE_FOUR_RIGHT,
     },
 };
 use bitvec::prelude::*;
@@ -287,6 +286,121 @@ impl Board {
         x + (y * BOARD_SIZE)
     }
 
+    // Iterate on each bitboards for the current player to search for the given pattern
+    pub fn match_dual_pattern(
+        &self,
+        rock: usize,
+        player: Player,
+        slices: &[[(usize, usize); 361]; 4],
+        pattern_1: &BitSlice,
+        pattern_2: &BitSlice,
+    ) -> bool {
+        if player == Player::Black {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            false
+        } else {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                return true;
+            }
+            false
+        }
+    }
+
+    // Iterate on each bitboards for the current player to search for the given pattern
+    pub fn match_pattern(
+        &self,
+        rock: usize,
+        player: Player,
+        slices: &[[(usize, usize); 361]; 4],
+        pattern: &BitSlice,
+    ) -> bool {
+        if player == Player::Black {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            false
+        } else {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
+                return true;
+            }
+            false
+        }
+    }
+
     // All open intersections for the current Board
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<usize> {
@@ -501,73 +615,20 @@ impl Board {
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
-    fn is_move_legal_recursive_capture(&self, movement: &Move) -> bool {
-        let player = movement.player;
-        let (x, y) = Board::index_to_coordinates(movement.index);
-        let self_pawn = player.rock();
-        let other_pawn = self_pawn.opponent();
-
-        // Left
-        if (x > 1
-            && x < BOARD_SIZE - 1
-            && self.get(x - 1, y) == self_pawn
-            && self.get(x - 2, y) == other_pawn
-            && self.get(x + 1, y) == other_pawn)
-            // Right
-            || (x > 0
-                && x < BOARD_SIZE - 2
-                && self.get(x - 1, y) == other_pawn
-                && self.get(x + 1, y) == self_pawn
-                && self.get(x + 2, y) == other_pawn)
-            // Top
-            || (y > 1
-                && y < BOARD_SIZE - 1
-                && self.get(x, y - 1) == self_pawn
-                && self.get(x, y - 2) == other_pawn
-                && self.get(x, y + 1) == other_pawn)
-            // Bottom
-            || (y > 0
-                && y < BOARD_SIZE - 2
-                && self.get(x, y - 1) == other_pawn
-                && self.get(x, y + 1) == self_pawn
-                && self.get(x, y + 2) == other_pawn)
-            // Top-Left
-            || (x > 1
-                && y > 1
-                && x < BOARD_SIZE - 1
-                && y < BOARD_SIZE - 1
-                && self.get(x - 1, y - 1) == self_pawn
-                && self.get(x - 2, y - 2) == other_pawn
-                && self.get(x + 1, y + 1) == other_pawn)
-            // Top-Right
-            || (x > 0
-                && y > 1
-                && x < BOARD_SIZE - 2
-                && y < BOARD_SIZE - 1
-                && self.get(x + 1, y - 1) == self_pawn
-                && self.get(x + 2, y - 2) == other_pawn
-                && self.get(x - 1, y + 1) == other_pawn)
-            // Bottom-Left
-            || (x > 1
-                && y > 0
-                && x < BOARD_SIZE - 1
-                && y < BOARD_SIZE - 2
-                && self.get(x - 1, y + 1) == self_pawn
-                && self.get(x - 2, y + 2) == other_pawn
-                && self.get(x + 1, y - 1) == other_pawn)
-            // Bottom-Right
-            || (x > 0
-                && y > 0
-                && x < BOARD_SIZE - 2
-                && y < BOARD_SIZE - 2
-                && self.get(x + 1, y + 1) == self_pawn
-                && self.get(x + 2, y + 2) == other_pawn
-                && self.get(x - 1, y - 1) == other_pawn)
-        {
-            return false;
-        }
-
-        true
+    fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
+        self.match_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_FOUR_LEFT,
+            bits![1, 1, 0, 1],
+            bits![0, 1, 1, 0],
+        ) || self.match_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_FOUR_RIGHT,
+            bits![1, 0, 1, 1],
+            bits![0, 1, 1, 0],
+        )
     }
 
     // Check if a move *can* be executed according to the rules
@@ -577,12 +638,12 @@ impl Board {
         // Pattern: [1 1 1 0 >< 0 1 1 1] where [><] means any direction change
         if rules.no_double_three && !self.is_move_legal_double_free_three(movement) {
             return false;
-        }
-        // Forbid movements that would put a pawn in a "recursive capture" state
-        if rules.capture && !self.is_move_legal_recursive_capture(movement) {
-            return false;
         }*/
         // TODO <
+        // Forbid movements that would put a pawn in a "recursive capture" state
+        if rules.capture && self.movement_create_recursive_capture(movement) {
+            return false;
+        }
         true
     }
 
@@ -1131,62 +1192,19 @@ impl Board {
         false
     }
 
-    // Iterate on each bitboards for the current player to search for the given pattern
-    pub fn match_pattern_five(&self, rock: usize, player: Player, pattern: &BitSlice) -> bool {
-        if player == Player::Black {
-            // Iterate on each rocks to know if any of them make a five in a row
-            let slice = WINDOW_HORIZONTAL_SLICE_FIVE[rock];
-            if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_VERTICAL_SLICE_FIVE[rock];
-            if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_DIAGONAL_SLICE_FIVE[rock];
-            if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[rock];
-            if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            false
-        } else {
-            // Iterate on each rocks to know if any of them make a five in a row
-            let slice = WINDOW_HORIZONTAL_SLICE_FIVE[rock];
-            if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_VERTICAL_SLICE_FIVE[rock];
-            if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_DIAGONAL_SLICE_FIVE[rock];
-            if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            let slice = WINDOW_ANTI_DIAGONAL_SLICE_FIVE[rock];
-            if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern) {
-                return true;
-            }
-            false
-        }
-    }
-
     pub fn has_five_in_a_row(&self, player: Player) -> bool {
         let five_in_a_row = bits![0; 5];
 
         // Iterate on each rocks to know if any of them make a five in a row
         if player == Player::Black {
             for rock in &self.black.rocks {
-                if self.match_pattern_five(*rock, player, five_in_a_row) {
+                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE, five_in_a_row) {
                     return true;
                 }
             }
         } else {
             for rock in &self.white.rocks {
-                if self.match_pattern_five(*rock, player, five_in_a_row) {
+                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE, five_in_a_row) {
                     return true;
                 }
             }

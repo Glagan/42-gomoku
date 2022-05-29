@@ -1,15 +1,18 @@
 use bitvec::{array::BitArray, bitarr, order::Lsb0};
 
-pub fn display_horizontal_window_five_slices() {
-    println!("\n// Slice for the largest horizontal window of size 5 for an index");
-    println!("pub static WINDOW_HORIZONTAL_SLICE_FIVE: [(usize, usize); 361] = [");
+pub fn generate_horizontal_slices(left: usize, right: usize) -> Vec<(usize, usize)> {
+    let mut slices: Vec<(usize, usize)> = vec![];
     for y in 0..19 {
         for x in 0..19 {
             let index = x + y * 19;
-            let left = (index - 2).max(y * 19);
-            let right = (index + 2).min((y + 1) * 19 - 1);
-            println!("({}, {}),", left, right);
+            let left = if index < left {
+                0
+            } else {
+                (index - left).max(y * 19)
+            };
+            let right = (index + right).min((y + 1) * 19 - 1);
+            slices.push((left, right));
         }
     }
-    println!("];");
+    slices
 }

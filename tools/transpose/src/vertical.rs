@@ -13,38 +13,45 @@ pub fn generate_swap_vertical() -> [usize; 361] {
 
 pub fn display_swap_vertical(swap: &[usize; 361]) {
     println!("// Map an horizontal index to a vertical index");
-    println!("pub static VERTICAL_TRANSPOSE: [usize; 361] = [");
-    for i in swap {
-        println!("{},", i);
+    print!("pub static VERTICAL_TRANSPOSE: [usize; 361] = [");
+    for index in swap {
+        print!("{}, ", index);
     }
     println!("];");
 }
 
 pub fn display_swap_vertical_rev(swap: &[usize; 361]) {
     println!("\n// Reverse map to match a vertical index to an horizontal index");
-    println!("pub static VERTICAL_TRANSPOSE_REV: [usize; 361] = [");
+    print!("pub static VERTICAL_TRANSPOSE_REV: [usize; 361] = [");
     for i in 0..swap.len() {
         let index = swap.iter().position(|&swapped| swapped == i).unwrap();
-        println!("{},", index);
+        print!("{}, ", index);
     }
     println!("];");
 }
 
-pub fn display_vertical_window_five_slices(transpose: &[usize; 361]) {
-    println!("\n// Slice for the largest vertical window of size 5 for an index");
-    println!("pub static WINDOW_VERTICAL_SLICE_FIVE: [(usize, usize); 361] = [");
+pub fn generate_vertical_slices(
+    transpose: &[usize; 361],
+    left: usize,
+    right: usize,
+) -> Vec<(usize, usize)> {
+    // let size = (
+    //     (size as f32 / 2.).ceil() as usize,
+    //     (size as f32 / 2.).floor() as usize,
+    // );
+    let mut slices: Vec<(usize, usize)> = vec![];
     for y in 0..19 {
         for x in 0..19 {
             let index = transpose[x + y * 19];
             let swapped_y = index / 19;
-            let left = if index < 2 {
+            let left = if index < left {
                 0
             } else {
-                (index - 2).max(swapped_y * 19)
+                (index - left).max(swapped_y * 19)
             };
-            let right = (index + 2).min((swapped_y + 1) * 19 - 1);
-            println!("({}, {}),", left, right);
+            let right = (index + right).min((swapped_y + 1) * 19 - 1);
+            slices.push((left, right));
         }
     }
-    println!("];");
+    slices
 }
