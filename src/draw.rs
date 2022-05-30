@@ -149,7 +149,7 @@ pub fn draw_rock_preview(game: &Game) {
     }
 }
 
-pub fn game_selector(game: &mut Game) {
+pub fn game_selector(game: &mut Game) -> bool {
     let pvp_button = widgets::Button::new("Start PvP game")
         .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
         .position(Vec2::new(
@@ -182,6 +182,9 @@ pub fn game_selector(game: &mut Game) {
         } else {
             GameMode::AvA
         });
+        true
+    } else {
+        false
     }
 }
 

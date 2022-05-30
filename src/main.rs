@@ -47,7 +47,9 @@ async fn main() {
 
         // Draw grid
         if !game.playing {
-            game_selector(&mut game);
+            if game_selector(&mut game) {
+                b_mouse_pressed = true;
+            }
         } else {
             // Draw game
             draw_goban(&game);
