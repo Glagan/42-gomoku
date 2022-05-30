@@ -1,14 +1,4 @@
-use crate::{
-    pattern::Finder,
-    player::Player,
-    rules::RuleSet,
-    transpose::{
-        ANTI_DIAGONAL_TRANSPOSE, ANTI_DIAGONAL_TRANSPOSE_REV, CAPTURE_SLICES, DIAGONAL_TRANSPOSE,
-        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV, WINDOW_SLICE_FIVE_1,
-        WINDOW_SLICE_FIVE_2, WINDOW_SLICE_FIVE_3, WINDOW_SLICE_FOUR_LEFT, WINDOW_SLICE_FOUR_RIGHT,
-        WINDOW_SLICE_SIX_1, WINDOW_SLICE_SIX_2, WINDOW_SLICE_SIX_3, WINDOW_SLICE_SIX_4,
-    },
-};
+use crate::{bitboard::BitBoard, pattern::Finder, player::Player, rules::RuleSet};
 use bitvec::prelude::*;
 use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
@@ -490,9 +480,9 @@ impl Board {
         // Check the [0 1 1 1 0] pattern match in any sliding window
         // -- and add the border index to the list of breakable free three index
         let patterns = [
-            (&WINDOW_SLICE_FIVE_1, bits![1, 1, 0, 0, 1]),
-            (&WINDOW_SLICE_FIVE_2, bits![1, 0, 1, 0, 1]),
-            (&WINDOW_SLICE_FIVE_3, bits![1, 0, 0, 1, 1]),
+            (&BitBoard.window_five[0], bits![1, 1, 0, 0, 1]),
+            (&BitBoard.window_five[1], bits![1, 0, 1, 0, 1]),
+            (&BitBoard.window_five[2], bits![1, 0, 0, 1, 1]),
         ];
         let opponent_pattern = bits![1, 1, 1, 1, 1];
         for (slices, pattern) in patterns {
@@ -510,8 +500,8 @@ impl Board {
             if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::VERTICAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(VERTICAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(VERTICAL_TRANSPOSE_REV[slice.1]);
+                indexes.push(BitBoard.transpose_rev.vertical[slice.0]);
+                indexes.push(BitBoard.transpose_rev.vertical[slice.1]);
                 return indexes;
             }
             // Diagonal
@@ -519,8 +509,8 @@ impl Board {
             if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(DIAGONAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(DIAGONAL_TRANSPOSE_REV[slice.1]);
+                indexes.push(BitBoard.transpose_rev.diagonal[slice.0]);
+                indexes.push(BitBoard.transpose_rev.diagonal[slice.1]);
                 return indexes;
             }
             // Anti-diagonal
@@ -528,20 +518,20 @@ impl Board {
             if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(ANTI_DIAGONAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(ANTI_DIAGONAL_TRANSPOSE_REV[slice.1]);
+                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0]);
+                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.1]);
                 return indexes;
             }
         }
         // ... same with the [0 1 1 1 0] pattern
         let patterns = [
             // Central bit                 v--v-----v
-            (&WINDOW_SLICE_SIX_1, bits![1, 1, 0, 1, 0, 1], 3),
-            (&WINDOW_SLICE_SIX_1, bits![1, 1, 1, 0, 0, 1], 2),
-            (&WINDOW_SLICE_SIX_2, bits![1, 0, 1, 1, 0, 1], 3),
-            (&WINDOW_SLICE_SIX_3, bits![1, 0, 1, 1, 0, 1], 2),
-            (&WINDOW_SLICE_SIX_4, bits![1, 0, 0, 1, 1, 1], 3),
-            (&WINDOW_SLICE_SIX_4, bits![1, 0, 1, 0, 1, 1], 2),
+            (&BitBoard.window_six[0], bits![1, 1, 0, 1, 0, 1], 3),
+            (&BitBoard.window_six[0], bits![1, 1, 1, 0, 0, 1], 2),
+            (&BitBoard.window_six[1], bits![1, 0, 1, 1, 0, 1], 3),
+            (&BitBoard.window_six[2], bits![1, 0, 1, 1, 0, 1], 2),
+            (&BitBoard.window_six[3], bits![1, 0, 0, 1, 1, 1], 3),
+            (&BitBoard.window_six[3], bits![1, 0, 1, 0, 1, 1], 2),
         ];
         let opponent_pattern = bits![1, 1, 1, 1, 1, 1];
         for (slices, pattern, extract) in patterns {
@@ -560,9 +550,9 @@ impl Board {
             if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::VERTICAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(VERTICAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(VERTICAL_TRANSPOSE_REV[slice.0 + extract]);
-                indexes.push(VERTICAL_TRANSPOSE_REV[slice.0 + 5]);
+                indexes.push(BitBoard.transpose_rev.vertical[slice.0]);
+                indexes.push(BitBoard.transpose_rev.vertical[slice.0 + extract]);
+                indexes.push(BitBoard.transpose_rev.vertical[slice.0 + 5]);
                 return indexes;
             }
             // Diagonal
@@ -570,9 +560,9 @@ impl Board {
             if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(DIAGONAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(DIAGONAL_TRANSPOSE_REV[slice.0 + extract]);
-                indexes.push(DIAGONAL_TRANSPOSE_REV[slice.0 + 5]);
+                indexes.push(BitBoard.transpose_rev.diagonal[slice.0]);
+                indexes.push(BitBoard.transpose_rev.diagonal[slice.0 + extract]);
+                indexes.push(BitBoard.transpose_rev.diagonal[slice.0 + 5]);
                 return indexes;
             }
             // Anti-diagonal
@@ -580,9 +570,9 @@ impl Board {
             if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern)
                 && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
             {
-                indexes.push(ANTI_DIAGONAL_TRANSPOSE_REV[slice.0]);
-                indexes.push(ANTI_DIAGONAL_TRANSPOSE_REV[slice.0 + extract]);
-                indexes.push(ANTI_DIAGONAL_TRANSPOSE_REV[slice.0 + 5]);
+                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0]);
+                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0 + extract]);
+                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0 + 5]);
                 return indexes;
             }
         }
@@ -595,63 +585,63 @@ impl Board {
         self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_FIVE_1,
+            &BitBoard.window_five[0],
             // Central bit     v
             bits![1, 1, 0, 0, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_FIVE_2,
+            &BitBoard.window_five[1],
             // Central bit        v
             bits![1, 0, 1, 0, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_FIVE_3,
+            &BitBoard.window_five[2],
             // Central bit           v
             bits![1, 0, 0, 1, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_1,
+            &BitBoard.window_six[0],
             // Central bit     v
             bits![1, 1, 0, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_1,
+            &BitBoard.window_six[0],
             // Central bit     v
             bits![1, 1, 1, 0, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_2,
+            &BitBoard.window_six[1],
             // Central bit        v
             bits![1, 0, 1, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_3,
+            &BitBoard.window_six[2],
             // Central bit           v
             bits![1, 0, 1, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_4,
+            &BitBoard.window_six[3],
             // Central bit              v
             bits![1, 0, 0, 1, 1, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_SIX_4,
+            &BitBoard.window_six[3],
             // Central bit              v
             bits![1, 0, 1, 0, 1, 1],
             bits![1, 1, 1, 1, 1, 1],
@@ -685,13 +675,15 @@ impl Board {
         self.match_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_FOUR_LEFT,
+            &BitBoard.window_four[0],
+            // using bit       v
             bits![1, 1, 0, 1],
             bits![0, 1, 1, 0],
         ) || self.match_dual_pattern(
             movement.index,
             movement.player,
-            &WINDOW_SLICE_FOUR_RIGHT,
+            &BitBoard.window_four[1],
+            // using bit          v
             bits![1, 0, 1, 1],
             bits![0, 1, 1, 0],
         )
@@ -747,8 +739,6 @@ impl Board {
         moves
     }
 
-    // TODO Update to use the sliding window 4 slices (two patterns in a loop instead of top/bottom)
-    // TODO like in ``movement_create_recursive_capture``
     fn get_movement_captures(&mut self, movement: &Move) -> Vec<usize> {
         // Check all 8 directions on a window of 4
         // -- with the movement rock on the "center" of all directions (star pattern)
@@ -756,7 +746,8 @@ impl Board {
         let capture_pattern_opponent = bits![1, 0, 0, 1];
         let index = movement.index;
         let mut captures: Vec<usize> = vec![];
-        let slices = CAPTURE_SLICES[movement.index];
+        let slices_left = BitBoard.window_five[2];
+        let slices_right = BitBoard.window_five[0];
         let boards: [BitArray<[usize; 6]>; 4];
         let opponent_boards: [BitArray<[usize; 6]>; 4];
         if movement.player == Player::Black {
@@ -767,69 +758,77 @@ impl Board {
             opponent_boards = self.boards[Index::BLACK];
         };
         // Left Horizontal
-        if boards[Index::HORIZONTAL][slices.0 .0..=index].eq(capture_pattern_self)
-            && opponent_boards[Index::HORIZONTAL][slices.0 .0..=index].eq(capture_pattern_opponent)
+        let slice = slices_left[Index::HORIZONTAL][index];
+        if boards[Index::HORIZONTAL][slice.0..=index].eq(capture_pattern_self)
+            && opponent_boards[Index::HORIZONTAL][slice.0..=index].eq(capture_pattern_opponent)
         {
             captures.push(index - 1);
             captures.push(index - 2);
         }
         // Right Horizontal
-        if boards[Index::HORIZONTAL][index..=slices.0 .1].eq(capture_pattern_self)
-            && opponent_boards[Index::HORIZONTAL][index..=slices.0 .1].eq(capture_pattern_opponent)
+        let slice = slices_right[Index::HORIZONTAL][index];
+        if boards[Index::HORIZONTAL][index..=slice.1].eq(capture_pattern_self)
+            && opponent_boards[Index::HORIZONTAL][index..=slice.1].eq(capture_pattern_opponent)
         {
             captures.push(index + 1);
             captures.push(index + 2);
         }
         // Top Vertical
-        let transposed_index = VERTICAL_TRANSPOSE[index];
-        if boards[Index::VERTICAL][slices.1 .0..=transposed_index].eq(capture_pattern_self)
-            && opponent_boards[Index::VERTICAL][slices.1 .0..=transposed_index]
+        let slice = slices_left[Index::VERTICAL][index];
+        let transposed_index = BitBoard.transpose.vertical[index];
+        if boards[Index::VERTICAL][slice.0..=transposed_index].eq(capture_pattern_self)
+            && opponent_boards[Index::VERTICAL][slice.0..=transposed_index]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 1]);
-            captures.push(VERTICAL_TRANSPOSE_REV[transposed_index - 2]);
+            captures.push(BitBoard.transpose_rev.vertical[transposed_index - 1]);
+            captures.push(BitBoard.transpose_rev.vertical[transposed_index - 2]);
         }
         // Bottom Vertical
-        if boards[Index::VERTICAL][transposed_index..=slices.1 .1].eq(capture_pattern_self)
-            && opponent_boards[Index::VERTICAL][transposed_index..=slices.1 .1]
+        let slice = slices_right[Index::VERTICAL][index];
+        if boards[Index::VERTICAL][transposed_index..=slice.1].eq(capture_pattern_self)
+            && opponent_boards[Index::VERTICAL][transposed_index..=slice.1]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 1]);
-            captures.push(VERTICAL_TRANSPOSE_REV[transposed_index + 2]);
+            captures.push(BitBoard.transpose_rev.vertical[transposed_index + 1]);
+            captures.push(BitBoard.transpose_rev.vertical[transposed_index + 2]);
         }
         // Top Diagonal
-        let transposed_index = DIAGONAL_TRANSPOSE[index];
-        if boards[Index::DIAGONAL][slices.2 .0..=transposed_index].eq(capture_pattern_self)
-            && opponent_boards[Index::DIAGONAL][slices.2 .0..=transposed_index]
+        let slice = slices_left[Index::DIAGONAL][index];
+        let transposed_index = BitBoard.transpose.diagonal[index];
+        if boards[Index::DIAGONAL][slice.0..=transposed_index].eq(capture_pattern_self)
+            && opponent_boards[Index::DIAGONAL][slice.0..=transposed_index]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
-            captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            captures.push(BitBoard.transpose_rev.diagonal[transposed_index - 1]);
+            captures.push(BitBoard.transpose_rev.diagonal[transposed_index - 2]);
         }
         // Bottom Diagonal
-        if boards[Index::DIAGONAL][transposed_index..=slices.2 .1].eq(capture_pattern_self)
-            && opponent_boards[Index::DIAGONAL][transposed_index..=slices.2 .1]
+        let slice = slices_right[Index::DIAGONAL][index];
+        if boards[Index::DIAGONAL][transposed_index..=slice.1].eq(capture_pattern_self)
+            && opponent_boards[Index::DIAGONAL][transposed_index..=slice.1]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
-            captures.push(DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
+            captures.push(BitBoard.transpose_rev.diagonal[transposed_index + 1]);
+            captures.push(BitBoard.transpose_rev.diagonal[transposed_index + 2]);
         }
         // Top Anti-diagonal
-        let transposed_index = ANTI_DIAGONAL_TRANSPOSE[index];
-        if boards[Index::ANTI_DIAGONAL][slices.3 .0..=transposed_index].eq(capture_pattern_self)
-            && opponent_boards[Index::ANTI_DIAGONAL][slices.3 .0..=transposed_index]
+        let slice = slices_left[Index::ANTI_DIAGONAL][index];
+        let transposed_index = BitBoard.transpose.anti_diagonal[index];
+        if boards[Index::ANTI_DIAGONAL][slice.0..=transposed_index].eq(capture_pattern_self)
+            && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=transposed_index]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 1]);
-            captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index - 2]);
+            captures.push(BitBoard.transpose_rev.anti_diagonal[transposed_index - 1]);
+            captures.push(BitBoard.transpose_rev.anti_diagonal[transposed_index - 2]);
         }
         // Bottom Anti-diagonal
-        if boards[Index::ANTI_DIAGONAL][transposed_index..=slices.3 .1].eq(capture_pattern_self)
-            && opponent_boards[Index::ANTI_DIAGONAL][transposed_index..=slices.3 .1]
+        let slice = slices_right[Index::ANTI_DIAGONAL][index];
+        if boards[Index::ANTI_DIAGONAL][transposed_index..=slice.1].eq(capture_pattern_self)
+            && opponent_boards[Index::ANTI_DIAGONAL][transposed_index..=slice.1]
                 .eq(capture_pattern_opponent)
         {
-            captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 1]);
-            captures.push(ANTI_DIAGONAL_TRANSPOSE_REV[transposed_index + 2]);
+            captures.push(BitBoard.transpose_rev.anti_diagonal[transposed_index + 1]);
+            captures.push(BitBoard.transpose_rev.anti_diagonal[transposed_index + 2]);
         }
         captures
     }
@@ -837,27 +836,35 @@ impl Board {
     pub fn set_rock(&mut self, index: usize, rock: Rock) {
         if rock == Rock::Black {
             self.boards[Index::BLACK][Index::HORIZONTAL].set(index, false);
-            self.boards[Index::BLACK][Index::VERTICAL].set(VERTICAL_TRANSPOSE[index], false);
-            self.boards[Index::BLACK][Index::DIAGONAL].set(DIAGONAL_TRANSPOSE[index], false);
+            self.boards[Index::BLACK][Index::VERTICAL]
+                .set(BitBoard.transpose.vertical[index], false);
+            self.boards[Index::BLACK][Index::DIAGONAL]
+                .set(BitBoard.transpose.diagonal[index], false);
             self.boards[Index::BLACK][Index::ANTI_DIAGONAL]
-                .set(ANTI_DIAGONAL_TRANSPOSE[index], false);
+                .set(BitBoard.transpose.anti_diagonal[index], false);
         } else if rock == Rock::White {
             self.boards[Index::WHITE][Index::HORIZONTAL].set(index, false);
-            self.boards[Index::WHITE][Index::VERTICAL].set(VERTICAL_TRANSPOSE[index], false);
-            self.boards[Index::WHITE][Index::DIAGONAL].set(DIAGONAL_TRANSPOSE[index], false);
+            self.boards[Index::WHITE][Index::VERTICAL]
+                .set(BitBoard.transpose.vertical[index], false);
+            self.boards[Index::WHITE][Index::DIAGONAL]
+                .set(BitBoard.transpose.diagonal[index], false);
             self.boards[Index::WHITE][Index::ANTI_DIAGONAL]
-                .set(ANTI_DIAGONAL_TRANSPOSE[index], false);
+                .set(BitBoard.transpose.anti_diagonal[index], false);
         } else {
             self.boards[Index::BLACK][Index::HORIZONTAL].set(index, true);
-            self.boards[Index::BLACK][Index::VERTICAL].set(VERTICAL_TRANSPOSE[index], true);
-            self.boards[Index::BLACK][Index::DIAGONAL].set(DIAGONAL_TRANSPOSE[index], true);
+            self.boards[Index::BLACK][Index::VERTICAL]
+                .set(BitBoard.transpose.vertical[index], true);
+            self.boards[Index::BLACK][Index::DIAGONAL]
+                .set(BitBoard.transpose.diagonal[index], true);
             self.boards[Index::BLACK][Index::ANTI_DIAGONAL]
-                .set(ANTI_DIAGONAL_TRANSPOSE[index], true);
+                .set(BitBoard.transpose.anti_diagonal[index], true);
             self.boards[Index::WHITE][Index::HORIZONTAL].set(index, true);
-            self.boards[Index::WHITE][Index::VERTICAL].set(VERTICAL_TRANSPOSE[index], true);
-            self.boards[Index::WHITE][Index::DIAGONAL].set(DIAGONAL_TRANSPOSE[index], true);
+            self.boards[Index::WHITE][Index::VERTICAL]
+                .set(BitBoard.transpose.vertical[index], true);
+            self.boards[Index::WHITE][Index::DIAGONAL]
+                .set(BitBoard.transpose.diagonal[index], true);
             self.boards[Index::WHITE][Index::ANTI_DIAGONAL]
-                .set(ANTI_DIAGONAL_TRANSPOSE[index], true);
+                .set(BitBoard.transpose.anti_diagonal[index], true);
         }
     }
 
@@ -1183,7 +1190,7 @@ impl Board {
             &self.white.rocks
         };
         for rock in rocks {
-            if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE_2, five_in_a_row) {
+            if self.match_pattern(*rock, player, &BitBoard.window_five[1], five_in_a_row) {
                 return true;
             }
         }

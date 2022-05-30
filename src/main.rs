@@ -16,6 +16,7 @@ const SQUARE_SIZE: usize = 42;
 const BUTTTON_HEIGTH: f32 = 70.;
 const BUTTTON_LENGHT: f32 = 200.;
 
+mod bitboard;
 mod board;
 mod computer;
 mod draw;
@@ -24,7 +25,6 @@ mod options;
 mod pattern;
 mod player;
 mod rules;
-mod transpose;
 
 fn window_conf() -> Conf {
     Conf {

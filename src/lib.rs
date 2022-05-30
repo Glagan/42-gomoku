@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate lazy_static;
 
+pub mod bitboard;
 pub mod board;
 pub mod computer;
 pub mod options;
 pub mod pattern;
 pub mod player;
 pub mod rules;
-pub mod transpose;

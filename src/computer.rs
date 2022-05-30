@@ -5,11 +5,7 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashMap},
-    fmt,
-};
+use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 
 #[derive(Debug, Clone)]
 pub struct SortedMove {
