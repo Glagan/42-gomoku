@@ -218,16 +218,15 @@ fn main() {
     println!("\n// Slice for the largest vertical window of size 6 for an index");
     println!("pub static WINDOW_SLICE_SIX_2: [[(usize, usize); 361]; 4] =");
     print_slice_2d_array(&slice_six);
-    // Never used
-    // let slice_six = [
-    //     generate_horizontal_slices(3, 2),
-    //     generate_vertical_slices(&transpose_vertical, 3, 2),
-    //     generate_diagonal_slices(&transpose_diagonal, 3, 2),
-    //     generate_anti_diagonal_slices(&transpose_anti_diagonal, 3, 2),
-    // ];
-    // println!("\n// Slice for the largest vertical window of size 6 for an index");
-    // println!("pub static WINDOW_SLICE_SIX_3: [[(usize, usize); 361]; 4] =");
-    // print_slice_2d_array(&slice_six);
+    let slice_six = [
+        generate_horizontal_slices(3, 2),
+        generate_vertical_slices(&transpose_vertical, 3, 2),
+        generate_diagonal_slices(&transpose_diagonal, 3, 2),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 3, 2),
+    ];
+    println!("\n// Slice for the largest vertical window of size 6 for an index");
+    println!("pub static WINDOW_SLICE_SIX_3: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_six);
     let slice_six = [
         generate_horizontal_slices(4, 1),
         generate_vertical_slices(&transpose_vertical, 4, 1),
