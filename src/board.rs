@@ -4,8 +4,9 @@ use crate::{
     rules::RuleSet,
     transpose::{
         ANTI_DIAGONAL_TRANSPOSE, ANTI_DIAGONAL_TRANSPOSE_REV, CAPTURE_SLICES, DIAGONAL_TRANSPOSE,
-        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV, WINDOW_SLICE_FIVE,
-        WINDOW_SLICE_FOUR_LEFT, WINDOW_SLICE_FOUR_RIGHT,
+        DIAGONAL_TRANSPOSE_REV, VERTICAL_TRANSPOSE, VERTICAL_TRANSPOSE_REV, WINDOW_SLICE_FIVE_1,
+        WINDOW_SLICE_FIVE_2, WINDOW_SLICE_FIVE_3, WINDOW_SLICE_FOUR_LEFT, WINDOW_SLICE_FOUR_RIGHT,
+        WINDOW_SLICE_SIX_1, WINDOW_SLICE_SIX_2, WINDOW_SLICE_SIX_4,
     },
 };
 use bitvec::prelude::*;
@@ -93,7 +94,22 @@ impl Index {
 #[derive(Default)]
 pub struct PlayerState {
     pub captures: usize,
+    // Number of free threes the player has on the board
+    pub free_three: u8,
+    // Index which removes a free three
+    pub remove_free_three: Vec<usize>,
+    // Index of all of the player rocks
     pub rocks: Vec<usize>,
+}
+
+#[derive(Default)]
+pub struct CreatedPatterns {
+    // Number of free threes to restore
+    pub black_free_three: u8,
+    pub white_free_three: u8,
+    // Index of free three indexes that the move restore
+    pub black_free_three_indexes: Option<Vec<usize>>,
+    pub white_free_three_indexes: Option<Vec<usize>>,
 }
 
 pub const BOARD_SIZE: usize = 19;
@@ -115,11 +131,14 @@ pub struct Board {
     pub black: PlayerState,
     pub white: PlayerState,
     pub all_rocks: Vec<usize>,
+    pub patterns_restore: Vec<CreatedPatterns>,
     pub moves_restore: Vec<Vec<usize>>,
 }
 
 impl Default for Board {
     fn default() -> Board {
+        let mut patterns_restore = vec![];
+        patterns_restore.reserve(360);
         let mut moves_restore = vec![];
         moves_restore.reserve(360);
         let mut board = Board {
@@ -137,6 +156,7 @@ impl Default for Board {
             black: PlayerState::default(),
             white: PlayerState::default(),
             all_rocks: vec![],
+            patterns_restore,
             moves_restore,
         };
         for bitboard in board.boards.iter_mut() {
@@ -353,6 +373,73 @@ impl Board {
     }
 
     // Iterate on each bitboards for the current player to search for the given pattern
+    // -- and count the number of occurences
+    pub fn count_dual_pattern(
+        &self,
+        rock: usize,
+        player: Player,
+        slices: &[[(usize, usize); 361]; 4],
+        pattern_1: &BitSlice,
+        pattern_2: &BitSlice,
+    ) -> u8 {
+        let mut total = 0;
+        if player == Player::Black {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+        } else {
+            // Iterate on each rocks to know if any of them make a five in a row
+            let slice = slices[0][rock];
+            if self.boards[Index::HORIZONTAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::HORIZONTAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[1][rock];
+            if self.boards[Index::VERTICAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::VERTICAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[2][rock];
+            if self.boards[Index::DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+            let slice = slices[3][rock];
+            if self.boards[Index::ANTI_DIAGONAL_WHITE][slice.0..=slice.1].eq(pattern_1)
+                && self.boards[Index::ANTI_DIAGONAL_BLACK][slice.0..=slice.1].eq(pattern_2)
+            {
+                total += 1;
+            }
+        }
+        total
+    }
+
+    // Iterate on each bitboards for the current player to search for the given pattern
     pub fn match_pattern(
         &self,
         rock: usize,
@@ -433,185 +520,64 @@ impl Board {
         intersections
     }
 
-    // Pattern: [0 1 1 1 0]
-    // Since the move rock can be in any 1 position, we need to check all possible patterns:
-    // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
-    pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
-        let player = movement.player;
-        let self_pawn = player.rock();
-        let no_pawn = Rock::None;
-        let (x, y) = Board::index_to_coordinates(movement.index);
-
-        // Horizontal
-        let mut total = 0;
-        if (x > 0
-            && x < BOARD_SIZE - 3
-            && self.get(x - 1, y) == no_pawn
-            && self.get(x + 1, y) == self_pawn
-            && self.get(x + 2, y) == self_pawn
-            && self.get(x + 3, y) == no_pawn)
-            || (x > 1
-                && x < BOARD_SIZE - 2
-                && self.get(x - 2, y) == no_pawn
-                && self.get(x - 1, y) == self_pawn
-                && self.get(x + 1, y) == self_pawn
-                && self.get(x + 2, y) == no_pawn)
-            || (x > 2
-                && x < BOARD_SIZE - 1
-                && self.get(x - 3, y) == no_pawn
-                && self.get(x - 2, y) == self_pawn
-                && self.get(x - 1, y) == self_pawn
-                && self.get(x + 1, y) == no_pawn)
-        {
-            total += 1;
-        }
-
-        // Vertical
-        if (y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x, y - 1) == no_pawn
-            && self.get(x, y + 1) == self_pawn
-            && self.get(x, y + 2) == self_pawn
-            && self.get(x, y + 3) == no_pawn)
-            || (y > 1
-                && y < BOARD_SIZE - 2
-                && self.get(x, y - 2) == no_pawn
-                && self.get(x, y - 1) == self_pawn
-                && self.get(x, y + 1) == self_pawn
-                && self.get(x, y + 2) == no_pawn)
-            || (y > 2
-                && y < BOARD_SIZE - 1
-                && self.get(x, y - 3) == no_pawn
-                && self.get(x, y - 2) == self_pawn
-                && self.get(x, y - 1) == self_pawn
-                && self.get(x, y + 1) == no_pawn)
-        {
-            total += 1;
-        }
-
-        // Left Diagonal
-        if (x > 0
-            && x < BOARD_SIZE - 3
-            && y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x - 1, y - 1) == no_pawn
-            && self.get(x + 1, y + 1) == self_pawn
-            && self.get(x + 2, y + 2) == self_pawn
-            && self.get(x + 3, y + 3) == no_pawn)
-            || (x > 1
-                && x < BOARD_SIZE - 2
-                && y > 1
-                && y < BOARD_SIZE - 2
-                && self.get(x - 2, y - 2) == no_pawn
-                && self.get(x - 1, y - 1) == self_pawn
-                && self.get(x + 1, y + 1) == self_pawn
-                && self.get(x + 2, y + 2) == no_pawn)
-            || (x > 2
-                && x < BOARD_SIZE - 1
-                && y > 2
-                && y < BOARD_SIZE - 1
-                && self.get(x - 3, y - 3) == no_pawn
-                && self.get(x - 2, y - 2) == self_pawn
-                && self.get(x - 1, y - 1) == self_pawn
-                && self.get(x + 1, y + 1) == no_pawn)
-        {
-            total += 1;
-        }
-
-        // Right Diagonal
-        if (x > 2
-            && x < BOARD_SIZE - 1
-            && y > 0
-            && y < BOARD_SIZE - 3
-            && self.get(x + 1, y - 1) == no_pawn
-            && self.get(x - 1, y + 1) == self_pawn
-            && self.get(x - 2, y + 2) == self_pawn
-            && self.get(x - 3, y + 3) == no_pawn)
-            || (x > 1
-                && x < BOARD_SIZE - 2
-                && y > 1
-                && y < BOARD_SIZE - 2
-                && self.get(x + 2, y - 2) == no_pawn
-                && self.get(x + 1, y - 1) == self_pawn
-                && self.get(x - 1, y + 1) == self_pawn
-                && self.get(x - 2, y + 2) == no_pawn)
-            || (x > 0
-                && x < BOARD_SIZE - 3
-                && y > 2
-                && y < BOARD_SIZE - 1
-                && self.get(x + 3, y - 3) == no_pawn
-                && self.get(x + 2, y - 2) == self_pawn
-                && self.get(x + 1, y - 1) == self_pawn
-                && self.get(x - 1, y + 1) == no_pawn)
-        {
-            total += 1;
-        }
-
-        total
+    // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0]
+    pub fn count_created_free_threes(&self, movement: &Move) -> u8 {
+        self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_FIVE_1,
+            // Central bit     v
+            bits![1, 1, 0, 0, 1],
+            bits![1, 1, 1, 1, 1],
+        ) + self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_FIVE_2,
+            // Central bit        v
+            bits![1, 0, 1, 0, 1],
+            bits![1, 1, 1, 1, 1],
+        ) + self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_FIVE_3,
+            // Central bit           v
+            bits![1, 0, 0, 1, 1],
+            bits![1, 1, 1, 1, 1],
+        ) + self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_SIX_1,
+            // Central bit      v
+            bits![1, 1, 0, 1, 0, 1],
+            bits![1, 1, 1, 1, 1, 1],
+        ) + self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_SIX_2,
+            // Central bit        v
+            bits![1, 0, 1, 1, 0, 1],
+            bits![1, 1, 1, 1, 1, 1],
+        ) + self.count_dual_pattern(
+            movement.index,
+            movement.player,
+            &WINDOW_SLICE_SIX_4,
+            // Central bit              v
+            bits![1, 0, 0, 1, 1, 1],
+            bits![1, 1, 1, 1, 1, 1],
+        )
     }
 
-    // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
-    pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
-        let player = movement.player;
-        let player_pawn = player.rock();
-        let pos = Board::index_to_coordinates(movement.index);
-        let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
-        let mut buf = FixedVecDeque::<[u8; 6]>::new();
-        let mut total = 0;
-        // Check all 8 directions from the rock to see if there is a free three pattern
-        for (dir_x, dir_y) in DIRECTIONS {
-            // Create a window of length 6 and update it on each move
-            // If there is the given pattern, return true
-            let mut length = 0;
-            let mut mov_x = dir_x * -6;
-            let mut mov_y = dir_y * -6;
-            for _ in 0..12 {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
-                // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
-                {
-                    // 1 for player pawn and 0 for anything else
-                    *buf.push_back() = if new_x == x && new_y == y
-                        || self.get(new_x as usize, new_y as usize) == player_pawn
-                    {
-                        1
-                    } else {
-                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, player)
-                    };
-                    length += 1;
-                    if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
-                        total += 1;
-                        continue; // TODO the pattern is counted twice (left/right -> 1 + 1)
-                    }
-                }
-                mov_x += dir_x;
-                mov_y += dir_y;
-            }
+    fn movement_create_double_free_three(&self, movement: &Move) -> bool {
+        let created_free_three = self.count_created_free_threes(movement);
+        let existing_free_threes = if movement.player == Player::Black {
+            self.black.free_three
+        } else {
+            self.white.free_three
+        };
+        if created_free_three + existing_free_threes >= 2 {
+            return true;
         }
-
-        total
-    }
-
-    // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
-    // For the pattern to be considered a free-three, it strictly need to have both ends "free"
-    // -- so borders does *not* count
-    pub fn move_create_free_three(&self, movement: &Move) -> u8 {
-        self.move_create_free_three_direct_pattern(movement)
-            + self.move_create_free_three_secondary_pattern(movement)
-    }
-
-    fn is_move_legal_double_free_three(&self, movement: &Move) -> bool {
-        let created_free_threes = self.move_create_free_three(movement);
-        if created_free_threes >= 2 {
-            return false;
-        }
-        if created_free_threes == 1 {
-            return !self.has_free_three(movement.player);
-        }
-        true
+        false
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
@@ -633,13 +599,10 @@ impl Board {
 
     // Check if a move *can* be executed according to the rules
     pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
-        // TODO >
-        /*// Forbid movements that would create a "double three"
-        // Pattern: [1 1 1 0 >< 0 1 1 1] where [><] means any direction change
-        if rules.no_double_three && !self.is_move_legal_double_free_three(movement) {
+        // Forbid movements that would create a "double three"
+        if rules.no_double_three && self.movement_create_double_free_three(movement) {
             return false;
-        }*/
-        // TODO <
+        }
         // Forbid movements that would put a pawn in a "recursive capture" state
         if rules.capture && self.movement_create_recursive_capture(movement) {
             return false;
@@ -869,6 +832,66 @@ impl Board {
 
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
+        // Add free threes
+        if rules.no_double_three {
+            // Check if the move remove a free three for any player
+            let removed_free_three = (
+                self.black.remove_free_three.contains(&movement.index),
+                self.white.remove_free_three.contains(&movement.index),
+            );
+            let mut free_three_previous_count = (
+                if removed_free_three.0 {
+                    self.black.free_three -= 1;
+                    1
+                } else {
+                    0
+                },
+                if removed_free_three.1 {
+                    self.white.free_three -= 1;
+                    1
+                } else {
+                    0
+                },
+            );
+            // Count the number of created free threes and add that to the total
+            let created_free_threes = self.count_created_free_threes(movement);
+            if movement.player == Player::Black {
+                self.black.free_three += created_free_threes;
+                // TODO update self.black.remove_free_three list to add the current free three indexes that break it
+                if free_three_previous_count.0 > 0 {
+                    free_three_previous_count.0 = 0;
+                } else {
+                    free_three_previous_count.0 = 1;
+                }
+            } else {
+                self.white.free_three += created_free_threes;
+                // TODO update self.white.remove_free_three list to add the current free three indexes that break it
+                if free_three_previous_count.1 > 0 {
+                    free_three_previous_count.1 = 0;
+                } else {
+                    free_three_previous_count.1 = 1;
+                }
+            }
+            // Keep track of what index to restore to keep track of free threes on undo move
+            self.patterns_restore.push(CreatedPatterns {
+                black_free_three: free_three_previous_count.0,
+                white_free_three: free_three_previous_count.1,
+                black_free_three_indexes: if removed_free_three.0 {
+                    let copy = self.black.remove_free_three.clone();
+                    self.black.remove_free_three.clear();
+                    Some(copy)
+                } else {
+                    None
+                },
+                white_free_three_indexes: if removed_free_three.1 {
+                    let copy = self.white.remove_free_three.clone();
+                    self.white.remove_free_three.clear();
+                    Some(copy)
+                } else {
+                    None
+                },
+            });
+        }
         // Set rock
         if movement.player == Player::Black {
             self.set_rock(movement.index, Rock::Black);
@@ -921,6 +944,18 @@ impl Board {
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
+        // Remove free threes patterns count
+        if rules.no_double_three {
+            let created_patterns = self.patterns_restore.pop().unwrap();
+            self.black.free_three -= created_patterns.black_free_three;
+            if let Some(indexes) = created_patterns.black_free_three_indexes {
+                self.black.remove_free_three = indexes;
+            }
+            self.white.free_three -= created_patterns.white_free_three;
+            if let Some(indexes) = created_patterns.white_free_three_indexes {
+                self.white.remove_free_three = indexes;
+            }
+        }
         // Restored the captured rocks
         if rules.capture {
             let opponent_rock = movement.player.rock().opponent();
@@ -968,68 +1003,6 @@ impl Board {
                 .unwrap(),
         );
         self.moves -= 1;
-    }
-
-    pub fn has_free_three(&self, player: Player) -> bool {
-        let free_three_pattern: [usize; 5] = [0, 1, 1, 1, 0];
-        let rocks = if player == Player::Black {
-            &self.black.rocks
-        } else {
-            &self.white.rocks
-        };
-        for rock in rocks.iter() {
-            let pos = Board::index_to_coordinates(*rock);
-            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
-            // Check all 8 directions from the rock to see if there is a free three pattern
-            for (dir_x, dir_y) in DIRECTIONS {
-                // Create a window of length 6 and update it on each move
-                // If there is the given pattern, return true
-                let mut length = 0;
-                // from [? ? ? ? ?] ? ? ? ? I ? ? ? ?
-                // to    ? ? ? ? ?  ? ? ? ? [I ? ? ? ?]
-                let mut buf = FixedVecDeque::<[usize; 6]>::new();
-                let mut mov_x = dir_x * -6;
-                let mut mov_y = dir_y * -6;
-                for _ in 0..12 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
-                    // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
-                    {
-                        // 1 for player pawn and 0 for anything else
-                        *buf.push_back() = Finder::pawn_to_pattern_pawn(
-                            self,
-                            new_x as usize,
-                            new_y as usize,
-                            player,
-                        ) as usize;
-                        length += 1;
-                        // buf.contains([0, 1, 1, 1, 0]
-                        if length >= 5 {
-                            let mut i = 0;
-                            for value in &buf {
-                                if *value == free_three_pattern[i] {
-                                    i += 1;
-                                    if i == 5 {
-                                        return true;
-                                    }
-                                } else {
-                                    i = 0;
-                                }
-                            }
-                        }
-                        if length >= 6 && buf == [0, 1, 0, 1, 1, 0] {
-                            return true;
-                        }
-                    }
-                    mov_x += dir_x;
-                    mov_y += dir_y;
-                }
-            }
-        }
-        false
     }
 
     // Pattern: [0 1 1 2] where
@@ -1198,13 +1171,13 @@ impl Board {
         // Iterate on each rocks to know if any of them make a five in a row
         if player == Player::Black {
             for rock in &self.black.rocks {
-                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE, five_in_a_row) {
+                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE_2, five_in_a_row) {
                     return true;
                 }
             }
         } else {
             for rock in &self.white.rocks {
-                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE, five_in_a_row) {
+                if self.match_pattern(*rock, player, &WINDOW_SLICE_FIVE_2, five_in_a_row) {
                     return true;
                 }
             }

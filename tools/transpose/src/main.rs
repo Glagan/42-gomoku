@@ -152,6 +152,7 @@ fn main() {
     display_swap_anti_diagonal_rev(&transpose_anti_diagonal);
 
     //* Slices
+    //* Four
     let slice_four = [
         generate_horizontal_slices(2, 1),
         generate_vertical_slices(&transpose_vertical, 2, 1),
@@ -161,7 +162,6 @@ fn main() {
     println!("\n// Slice for the largest vertical window of size 4 for an index (right)");
     println!("pub static WINDOW_SLICE_FOUR_RIGHT: [[(usize, usize); 361]; 4] =");
     print_slice_2d_array(&slice_four);
-
     let slice_four = [
         generate_horizontal_slices(1, 2),
         generate_vertical_slices(&transpose_vertical, 1, 2),
@@ -171,7 +171,16 @@ fn main() {
     println!("\n// Slice for the largest vertical window of size 4 for an index (left)");
     println!("pub static WINDOW_SLICE_FOUR_LEFT: [[(usize, usize); 361]; 4] =");
     print_slice_2d_array(&slice_four);
-
+    //* Five
+    let slice_five = [
+        generate_horizontal_slices(1, 3),
+        generate_vertical_slices(&transpose_vertical, 1, 3),
+        generate_diagonal_slices(&transpose_diagonal, 1, 3),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 1, 3),
+    ];
+    println!("\n// Slice for the largest vertical window of size 5 for an index");
+    println!("pub static WINDOW_SLICE_FIVE_1: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_five);
     let slice_five = [
         generate_horizontal_slices(2, 2),
         generate_vertical_slices(&transpose_vertical, 2, 2),
@@ -179,8 +188,55 @@ fn main() {
         generate_anti_diagonal_slices(&transpose_anti_diagonal, 2, 2),
     ];
     println!("\n// Slice for the largest vertical window of size 5 for an index");
-    println!("pub static WINDOW_SLICE_FIVE: [[(usize, usize); 361]; 4] =");
+    println!("pub static WINDOW_SLICE_FIVE_2: [[(usize, usize); 361]; 4] =");
     print_slice_2d_array(&slice_five);
+    let slice_five = [
+        generate_horizontal_slices(3, 1),
+        generate_vertical_slices(&transpose_vertical, 3, 1),
+        generate_diagonal_slices(&transpose_diagonal, 3, 1),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 3, 1),
+    ];
+    println!("\n// Slice for the largest vertical window of size 5 for an index");
+    println!("pub static WINDOW_SLICE_FIVE_3: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_five);
+    //* Six
+    let slice_six = [
+        generate_horizontal_slices(1, 4),
+        generate_vertical_slices(&transpose_vertical, 1, 4),
+        generate_diagonal_slices(&transpose_diagonal, 1, 4),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 1, 4),
+    ];
+    println!("\n// Slice for the largest vertical window of size 6 for an index");
+    println!("pub static WINDOW_SLICE_SIX_1: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_six);
+    let slice_six = [
+        generate_horizontal_slices(2, 3),
+        generate_vertical_slices(&transpose_vertical, 2, 3),
+        generate_diagonal_slices(&transpose_diagonal, 2, 3),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 2, 3),
+    ];
+    println!("\n// Slice for the largest vertical window of size 6 for an index");
+    println!("pub static WINDOW_SLICE_SIX_2: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_six);
+    // Never used
+    // let slice_six = [
+    //     generate_horizontal_slices(3, 2),
+    //     generate_vertical_slices(&transpose_vertical, 3, 2),
+    //     generate_diagonal_slices(&transpose_diagonal, 3, 2),
+    //     generate_anti_diagonal_slices(&transpose_anti_diagonal, 3, 2),
+    // ];
+    // println!("\n// Slice for the largest vertical window of size 6 for an index");
+    // println!("pub static WINDOW_SLICE_SIX_3: [[(usize, usize); 361]; 4] =");
+    // print_slice_2d_array(&slice_six);
+    let slice_six = [
+        generate_horizontal_slices(4, 1),
+        generate_vertical_slices(&transpose_vertical, 4, 1),
+        generate_diagonal_slices(&transpose_diagonal, 4, 1),
+        generate_anti_diagonal_slices(&transpose_anti_diagonal, 4, 1),
+    ];
+    println!("\n// Slice for the largest vertical window of size 6 for an index");
+    println!("pub static WINDOW_SLICE_SIX_4: [[(usize, usize); 361]; 4] =");
+    print_slice_2d_array(&slice_six);
 
     //* Capture slices
     display_capture_windows();
