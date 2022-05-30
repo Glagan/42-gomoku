@@ -330,5 +330,5 @@ impl Finder {
 }
 
 lazy_static! {
-    pub static ref PATTERN_FINDER: Finder = Finder::default();
+    pub static ref PatternFinder: Finder = Finder::default();
 }

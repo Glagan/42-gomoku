@@ -1,4 +1,4 @@
-use crate::pattern::{Pattern, PATTERN_FINDER};
+use crate::pattern::{Pattern, PatternFinder};
 use crate::{
     board::{Board, Move},
     player::Player,
@@ -103,7 +103,7 @@ impl Computer {
 
     // Calculate the patterns created by a movement and return it's score
     pub fn evaluate_action(&self, action: &MinimaxAction) -> i64 {
-        PATTERN_FINDER.movement_score(action.board, &action.movement.unwrap())
+        PatternFinder.movement_score(action.board, &action.movement.unwrap())
     }
 
     /*pub fn cache(&mut self, player: Player) -> &mut HashMap<([usize; 6], [usize; 6]), CacheEntry> {
@@ -374,7 +374,7 @@ impl Computer {
             .iter()
             .map(|&movement| SortedMove {
                 movement,
-                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
+                pattern: PatternFinder.best_pattern_for_rock(action.board, movement.index),
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
