@@ -1,4 +1,4 @@
-use crate::pattern::{Category, PatternFinder};
+use crate::pattern::{PatternCount, PatternFinder};
 use crate::{
     board::{Board, Move},
     player::Player,
@@ -10,33 +10,21 @@ use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 #[derive(Debug, Clone)]
 pub struct SortedMove {
     pub movement: Move,
-    pub pattern: Option<Category>,
+    pub pattern_count: PatternCount,
+    pub best_pattern: usize,
 }
 
 impl Eq for SortedMove {}
 
 impl PartialEq for SortedMove {
     fn eq(&self, other: &Self) -> bool {
-        self.pattern == other.pattern
+        self.best_pattern == other.best_pattern
     }
 }
 
 impl Ord for SortedMove {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_is_none = self.pattern.is_none();
-        let other_is_none = other.pattern.is_none();
-        if self_is_none && other_is_none {
-            return std::cmp::Ordering::Equal;
-        } else if self_is_none {
-            return std::cmp::Ordering::Less;
-        } else if other_is_none {
-            return std::cmp::Ordering::Greater;
-        }
-        other
-            .pattern
-            .unwrap()
-            .partial_cmp(&self.pattern.unwrap())
-            .unwrap()
+        self.best_pattern.cmp(&other.best_pattern)
     }
 }
 
@@ -87,6 +75,7 @@ pub struct AlphaBetaIteration {
 pub struct MinimaxAction<'a> {
     board: &'a mut Board,
     movement: Option<Move>,
+    patterns: Option<PatternCount>,
 }
 
 #[derive(Default)]
@@ -102,8 +91,9 @@ impl Computer {
     }
 
     // Calculate the patterns created by a movement and return it's score
+    #[inline(always)]
     pub fn evaluate_action(&self, action: &MinimaxAction) -> i64 {
-        PatternFinder.movement_score(action.board, &action.movement.unwrap())
+        PatternFinder.movement_patterns_score(action.patterns.as_ref().unwrap())
     }
 
     /*pub fn cache(&mut self, player: Player) -> &mut HashMap<([usize; 6], [usize; 6]), CacheEntry> {
@@ -372,9 +362,29 @@ impl Computer {
             .board
             .intersections_legal_moves(rules, player)
             .iter()
-            .map(|&movement| SortedMove {
-                movement,
-                pattern: PatternFinder.best_pattern_for_rock(action.board, movement.index),
+            .map(|&movement| {
+                let pattern_count = PatternFinder.count_movement_patterns(action.board, &movement);
+                SortedMove {
+                    movement,
+                    best_pattern: if pattern_count.five_in_row > 0 {
+                        7
+                    } else if pattern_count.live_four > 0 {
+                        6
+                    } else if pattern_count.dead_four > 0 {
+                        5
+                    } else if pattern_count.live_three > 0 {
+                        4
+                    } else if pattern_count.dead_three > 0 {
+                        3
+                    } else if pattern_count.live_two > 0 {
+                        2
+                    } else if pattern_count.dead_two > 0 {
+                        1
+                    } else {
+                        0
+                    },
+                    pattern_count,
+                }
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
@@ -384,6 +394,7 @@ impl Computer {
                 MinimaxAction {
                     board: action.board,
                     movement: Some(sorted_movement.movement),
+                    patterns: Some(sorted_movement.pattern_count),
                 },
                 AlphaBetaIteration {
                     depth: iteration.depth - 1,
@@ -447,6 +458,7 @@ impl Computer {
             MinimaxAction {
                 board,
                 movement: None,
+                patterns: None,
             },
             AlphaBetaIteration {
                 depth,

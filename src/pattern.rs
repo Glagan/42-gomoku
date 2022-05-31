@@ -17,7 +17,7 @@ pub enum Category {
     DeadTwo = 6,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct PatternCount {
     pub five_in_row: usize,
     pub live_four: usize,
@@ -31,6 +31,7 @@ pub struct PatternCount {
 pub struct DualPattern {
     pub left: BitArray,
     pub right: BitArray,
+    pub central_bit: Vec<usize>,
     pub category: Category,
 }
 
@@ -53,33 +54,39 @@ impl Default for Finder {
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 0, 1],
                 right: bitarr![0, 1, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 3, 4],
                 category: Category::LiveFour,
             },
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 1, 0],
+                central_bit: vec![1, 2, 3, 4],
                 category: Category::LiveFour,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 1, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 4, 5],
                 category: Category::LiveFour,
             },
             DualPattern {
                 left: bitarr![0, 0, 1, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 1, 1],
+                central_bit: vec![0, 1, 3, 4],
                 category: Category::LiveFour,
             },
             // --
             DualPattern {
                 left: bitarr![0, 0, 1, 0, 1, 1],
                 right: bitarr![1, 1, 1, 1, 0, 1],
+                central_bit: vec![0, 1, 3],
                 category: Category::LiveFour,
             },
             DualPattern {
                 left: bitarr![1, 1, 0, 1, 0, 0],
                 right: bitarr![1, 0, 1, 1, 1, 1],
+                central_bit: vec![2, 4, 5],
                 category: Category::DeadThree,
             },
         ]);
@@ -88,123 +95,145 @@ impl Default for Finder {
             DualPattern {
                 left: bitarr![0, 0, 0, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 1, 2, 4],
                 category: Category::FiveInRow,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 3, 4],
                 category: Category::LiveFour,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 0, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 2, 3, 4],
                 category: Category::LiveFour,
             },
             DualPattern {
                 left: bitarr![0, 0, 1, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 1, 3, 4],
                 category: Category::LiveFour,
             },
             DualPattern {
                 left: bitarr![0, 0, 0, 1, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 1, 2, 4],
                 category: Category::LiveFour,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 3],
                 category: Category::LiveThree,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![1, 2, 3],
                 category: Category::LiveThree,
             },
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 3],
                 category: Category::LiveThree,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 0, 1, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 2, 4],
                 category: Category::LiveThree,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 0, 1, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![0, 2],
                 category: Category::DeadThree,
             },
             DualPattern {
                 left: bitarr![1, 1, 0, 1, 0],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![2, 4],
                 category: Category::DeadThree,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 1, 0],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 4],
                 category: Category::DeadThree,
             },
             DualPattern {
                 left: bitarr![0, 1, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![0, 2, 3],
                 category: Category::DeadThree,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 1, 0, 0],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![1, 3, 4],
                 category: Category::DeadThree,
             },
             DualPattern {
                 left: bitarr![0, 0, 1, 0, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![0, 1, 3],
                 category: Category::DeadThree,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 1, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 3, 4],
                 category: Category::DeadThree,
             },
             DualPattern {
                 left: bitarr![0, 0, 1, 1, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![0, 1, 4],
                 category: Category::DeadThree,
             },
             // --
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![1, 2, 3],
                 category: Category::DeadThree,
             },
             DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![1, 2, 3],
                 category: Category::DeadThree,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 1, 0, 1],
                 right: bitarr![1, 1, 1, 1, 0],
+                central_bit: vec![0, 3],
                 category: Category::LiveTwo,
             },
             DualPattern {
                 left: bitarr![1, 0, 1, 1, 0],
                 right: bitarr![0, 1, 1, 1, 1],
+                central_bit: vec![1, 4],
                 category: Category::LiveTwo,
             },
             // --
             DualPattern {
                 left: bitarr![0, 1, 1, 1, 0],
                 right: bitarr![1, 1, 1, 1, 1],
+                central_bit: vec![1, 4],
                 category: Category::DeadTwo,
             },
         ]);
@@ -213,26 +242,31 @@ impl Default for Finder {
             DualPattern {
                 left: bitarr![1, 0, 1, 1],
                 right: bitarr![1, 1, 1, 1],
+                central_bit: vec![1],
                 category: Category::LiveThree,
             },
             DualPattern {
                 left: bitarr![1, 1, 0, 1],
                 right: bitarr![1, 1, 1, 1],
+                central_bit: vec![2],
                 category: Category::LiveThree,
             },
             DualPattern {
                 left: bitarr![0, 1, 0, 1],
                 right: bitarr![1, 1, 1, 0],
+                central_bit: vec![0, 2],
                 category: Category::LiveTwo,
             },
             DualPattern {
                 left: bitarr![1, 0, 1, 0],
                 right: bitarr![0, 1, 1, 1],
+                central_bit: vec![1, 3],
                 category: Category::LiveTwo,
             },
             DualPattern {
                 left: bitarr![0, 1, 1, 0],
                 right: bitarr![1, 1, 1, 1],
+                central_bit: vec![0, 3],
                 category: Category::LiveTwo,
             },
         ]);
@@ -241,21 +275,25 @@ impl Default for Finder {
             DualPattern {
                 left: bitarr![0, 0, 0],
                 right: bitarr![1, 1, 1],
+                central_bit: vec![0, 1, 2],
                 category: Category::LiveThree,
             },
             DualPattern {
                 left: bitarr![0, 1, 0],
                 right: bitarr![1, 1, 1],
+                central_bit: vec![0, 2],
                 category: Category::LiveTwo,
             },
             DualPattern {
                 left: bitarr![0, 0, 1],
                 right: bitarr![1, 1, 0],
+                central_bit: vec![0, 1],
                 category: Category::DeadTwo,
             },
             DualPattern {
                 left: bitarr![1, 0, 0],
                 right: bitarr![0, 1, 1],
+                central_bit: vec![1, 2],
                 category: Category::DeadTwo,
             },
         ]);
@@ -277,90 +315,6 @@ impl Finder {
         } else {
             2
         }
-    }
-
-    pub fn best_pattern_for_rock(&self, board: &Board, rock_index: usize) -> Option<Category> {
-        let mut best_pattern: Option<Category> = None;
-        /*let (x, y) = Board::index_to_coordinates(rock_index);
-        let rock = board.get(x, y);
-        if rock == Rock::None {
-            let player = if rock == Rock::Black {
-                Player::Black
-            } else {
-                Player::White
-            };
-            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-            let mut best_pattern_index: Option<usize> = None;
-            // Sliding window of 7 (patterns length)
-            let mut buf = FixedVecDeque::<[u8; 7]>::new();
-            for (dir_x, dir_y) in DIRECTIONS {
-                // Initialize to -7 so the first 7 elements
-                // -- can be set and the last one is the initial rock
-                let mut length = 0;
-                // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
-                // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
-                let mut mov_x = dir_x * -7;
-                let mut mov_y = dir_y * -7;
-                for _ in 0..13 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
-                    // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
-                    {
-                        *buf.push_back() = if new_x == x && new_y == y {
-                            1
-                        } else {
-                            Finder::pawn_to_pattern_pawn(
-                                board,
-                                new_x as usize,
-                                new_y as usize,
-                                player,
-                            )
-                        };
-                        length += 1;
-                        if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                            let has_best_pattern = best_pattern_index.is_some();
-                            let has_no_best_pattern = best_pattern_index.is_none();
-                            if let Some((index, (_, _, category))) =
-                                self.patterns.iter().enumerate().find(
-                                    |&(index, (pattern, length, _))| {
-                                        if has_best_pattern && best_pattern_index.unwrap() < index {
-                                            return false;
-                                        }
-                                        let mut i: u8 = 0;
-                                        for value in &buf {
-                                            if *value == pattern[i as usize] {
-                                                i += 1;
-                                                if i == *length {
-                                                    return true;
-                                                }
-                                            } else {
-                                                i = 0;
-                                            }
-                                        }
-                                        i == *length
-                                    },
-                                )
-                            {
-                                // println!("Found pattern {:#?} in {:#?}", category, buf);
-                                if has_no_best_pattern || best_pattern_index.unwrap() > index {
-                                    best_pattern_index = Some(index);
-                                    best_pattern = Some(*category);
-                                    if category == &Category::FiveInRow {
-                                        return best_pattern;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    mov_x += dir_x;
-                    mov_y += dir_y;
-                }
-            }
-        }*/
-        best_pattern
     }
 
     // For each rocks on the board check all 8 directions to count all patterns
@@ -387,106 +341,46 @@ impl Finder {
             &BitBoard.window_three,
         ];
         for (window_index, window) in self.patterns_by_window.iter().enumerate() {
-            let slices = windows[window_index][0];
+            let slices = windows[window_index];
             for pattern in window {
-                // Iterate on all directions
-                let slice = slices[0][index];
-                if boards[Index::HORIZONTAL][slice.0..=slice.1].eq(pattern.left.as_bitslice())
-                    && opponent_boards[Index::HORIZONTAL][slice.0..=slice.1]
-                        .eq(pattern.right.as_bitslice())
-                {
-                    patterns.push(pattern.category);
-                }
-                let slice = slices[1][index];
-                if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern.left.as_bitslice())
-                    && opponent_boards[Index::VERTICAL][slice.0..=slice.1]
-                        .eq(pattern.right.as_bitslice())
-                {
-                    patterns.push(pattern.category);
-                }
-                let slice = slices[2][index];
-                if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern.left.as_bitslice())
-                    && opponent_boards[Index::DIAGONAL][slice.0..=slice.1]
-                        .eq(pattern.right.as_bitslice())
-                {
-                    patterns.push(pattern.category);
-                }
-                let slice = slices[3][index];
-                if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern.left.as_bitslice())
-                    && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1]
-                        .eq(pattern.right.as_bitslice())
-                {
-                    patterns.push(pattern.category);
+                for &central_bit in pattern.central_bit.iter() {
+                    let slices = slices[central_bit];
+                    // Iterate on all directions
+                    let slice = slices[0][index];
+                    if boards[Index::HORIZONTAL][slice.0..=slice.1]
+                        .eq(&pattern.left[0..6 - window_index])
+                        && opponent_boards[Index::HORIZONTAL][slice.0..=slice.1]
+                            .eq(&pattern.right[0..6 - window_index])
+                    {
+                        patterns.push(pattern.category);
+                    }
+                    let slice = slices[1][index];
+                    if boards[Index::VERTICAL][slice.0..=slice.1]
+                        .eq(&pattern.left[0..6 - window_index])
+                        && opponent_boards[Index::VERTICAL][slice.0..=slice.1]
+                            .eq(&pattern.right[0..6 - window_index])
+                    {
+                        patterns.push(pattern.category);
+                    }
+                    let slice = slices[2][index];
+                    if boards[Index::DIAGONAL][slice.0..=slice.1]
+                        .eq(&pattern.left[0..6 - window_index])
+                        && opponent_boards[Index::DIAGONAL][slice.0..=slice.1]
+                            .eq(&pattern.right[0..6 - window_index])
+                    {
+                        patterns.push(pattern.category);
+                    }
+                    let slice = slices[3][index];
+                    if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1]
+                        .eq(&pattern.left[0..6 - window_index])
+                        && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1]
+                            .eq(&pattern.right[0..6 - window_index])
+                    {
+                        patterns.push(pattern.category);
+                    }
                 }
             }
         }
-        /*let player = movement.player;
-        // Sliding window of 6 (patterns length)
-        let mut buf = FixedVecDeque::<[u8; 7]>::new();
-        // Iterate trough each rocks on the board
-        let (x, y) = Board::index_to_coordinates(movement.index);
-        let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
-        for (dir_x, dir_y) in DIRECTIONS {
-            // Initialize to -7 so the first 7 elements
-            // -- can be set and the last one is the initial rock
-            let mut length = 0;
-            let mut best_pattern_index: Option<usize> = None;
-            let mut best_pattern_value: Option<Category> = None;
-            // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
-            // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
-            let mut mov_x = dir_x * -7;
-            let mut mov_y = dir_y * -7;
-            for _ in 0..13 {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
-                // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
-                {
-                    *buf.push_back() =
-                        Finder::pawn_to_pattern_pawn(board, new_x as usize, new_y as usize, player);
-                    length += 1;
-                    if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
-                        let has_best_pattern = best_pattern_index.is_some();
-                        let has_no_best_pattern = best_pattern_index.is_none();
-                        if let Some((index, (_, _, category))) =
-                            self.patterns.iter().enumerate().find(
-                                |&(index, (pattern, length, _))| {
-                                    if has_best_pattern && best_pattern_index.unwrap() < index {
-                                        return false;
-                                    }
-                                    let mut i: u8 = 0;
-                                    for value in &buf {
-                                        if *value == pattern[i as usize] {
-                                            i += 1;
-                                            if i == *length {
-                                                return true;
-                                            }
-                                        } else {
-                                            i = 0;
-                                        }
-                                    }
-                                    i == *length
-                                },
-                            )
-                        {
-                            if has_no_best_pattern || best_pattern_index.unwrap() > index {
-                                best_pattern_index = Some(index);
-                                best_pattern_value = Some(*category);
-                            }
-                        }
-                    }
-                }
-                mov_x += dir_x;
-                mov_y += dir_y;
-            }
-            // Save the pattern if there was one
-            if let Some(best_pattern) = best_pattern_value {
-                patterns.push(best_pattern);
-            }
-        }*/
-
         patterns
     }
 
@@ -523,7 +417,7 @@ impl Finder {
         //     score += 50000;
         // }
         if patterns.live_four > 0 {
-            score += 25000;
+            score += 50000;
         }
         if patterns.live_three >= 1 {
             score += 15000;
@@ -544,11 +438,6 @@ impl Finder {
             score += 200;
         }
         score
-    }
-
-    pub fn movement_score(&self, board: &Board, movement: &Move) -> i64 {
-        let patterns = self.count_movement_patterns(board, movement);
-        self.movement_patterns_score(&patterns)
     }
 }
 
