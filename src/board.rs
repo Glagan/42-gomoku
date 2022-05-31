@@ -83,22 +83,8 @@ impl Index {
 #[derive(Default)]
 pub struct PlayerState {
     pub captures: usize,
-    // Number of free threes the player has on the board
-    pub free_three: u8,
-    // Index which removes a free three
-    pub remove_free_three: Vec<usize>,
     // Index of all of the player rocks
     pub rocks: Vec<usize>,
-}
-
-#[derive(Default)]
-pub struct CreatedPatterns {
-    // Number of free threes to restore
-    pub black_free_three: u8,
-    pub white_free_three: u8,
-    // Index of free three indexes that the move restore
-    pub black_free_three_indexes: Vec<usize>,
-    pub white_free_three_indexes: Vec<usize>,
 }
 
 pub const BOARD_SIZE: usize = 19;
@@ -120,14 +106,11 @@ pub struct Board {
     pub black: PlayerState,
     pub white: PlayerState,
     pub all_rocks: Vec<usize>,
-    pub patterns_restore: Vec<CreatedPatterns>,
     pub moves_restore: Vec<Vec<usize>>,
 }
 
 impl Default for Board {
     fn default() -> Board {
-        let mut patterns_restore = vec![];
-        patterns_restore.reserve(360);
         let mut moves_restore = vec![];
         moves_restore.reserve(360);
         let mut board = Board {
@@ -149,7 +132,6 @@ impl Default for Board {
             black: PlayerState::default(),
             white: PlayerState::default(),
             all_rocks: vec![],
-            patterns_restore,
             moves_restore,
         };
         for player_bitboards in board.boards.iter_mut() {
@@ -500,120 +482,6 @@ impl Board {
         intersections
     }
 
-    fn get_free_threes_break_indexes(&mut self, movement: &Move) -> Vec<usize> {
-        let mut indexes: Vec<usize> = vec![];
-        let index = movement.index;
-        let boards: &[BitArray<[usize; 6]>; 4];
-        let opponent_boards: &[BitArray<[usize; 6]>; 4];
-        if movement.player == Player::Black {
-            boards = &self.boards[Index::BLACK];
-            opponent_boards = &self.boards[Index::WHITE];
-        } else {
-            boards = &self.boards[Index::WHITE];
-            opponent_boards = &self.boards[Index::BLACK];
-        };
-        // Check the [0 1 1 1 0] pattern match in any sliding window
-        // -- and add the border index to the list of breakable free three index
-        let patterns = [
-            (&BitBoard.window_five[1], bits![1, 1, 0, 0, 1]),
-            (&BitBoard.window_five[2], bits![1, 0, 1, 0, 1]),
-            (&BitBoard.window_five[3], bits![1, 0, 0, 1, 1]),
-        ];
-        let opponent_pattern = bits![1, 1, 1, 1, 1];
-        for (slices, pattern) in patterns {
-            // Horizontal
-            let slice = slices[0][index];
-            if boards[Index::HORIZONTAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::HORIZONTAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(slice.0);
-                indexes.push(slice.1);
-                return indexes;
-            }
-            // Vertical
-            let slice = slices[1][index];
-            if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::VERTICAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.vertical[slice.0]);
-                indexes.push(BitBoard.transpose_rev.vertical[slice.1]);
-                return indexes;
-            }
-            // Diagonal
-            let slice = slices[2][index];
-            if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.diagonal[slice.0]);
-                indexes.push(BitBoard.transpose_rev.diagonal[slice.1]);
-                return indexes;
-            }
-            // Anti-diagonal
-            let slice = slices[3][index];
-            if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0]);
-                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.1]);
-                return indexes;
-            }
-        }
-        // ... same with the [0 1 1 1 0] pattern
-        let patterns = [
-            // Central bit                 v--v-----v
-            (&BitBoard.window_six[1], bits![1, 1, 0, 1, 0, 1], 3),
-            (&BitBoard.window_six[1], bits![1, 1, 1, 0, 0, 1], 2),
-            (&BitBoard.window_six[2], bits![1, 0, 1, 1, 0, 1], 3),
-            (&BitBoard.window_six[3], bits![1, 0, 1, 1, 0, 1], 2),
-            (&BitBoard.window_six[4], bits![1, 0, 0, 1, 1, 1], 3),
-            (&BitBoard.window_six[4], bits![1, 0, 1, 0, 1, 1], 2),
-        ];
-        let opponent_pattern = bits![1, 1, 1, 1, 1, 1];
-        for (slices, pattern, extract) in patterns {
-            // Horizontal
-            let slice = slices[0][index];
-            if boards[Index::HORIZONTAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::HORIZONTAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(slice.0);
-                indexes.push(slice.0 + extract);
-                indexes.push(slice.0 + 5);
-                return indexes;
-            }
-            // Vertical
-            let slice = slices[1][index];
-            if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::VERTICAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.vertical[slice.0]);
-                indexes.push(BitBoard.transpose_rev.vertical[slice.0 + extract]);
-                indexes.push(BitBoard.transpose_rev.vertical[slice.0 + 5]);
-                return indexes;
-            }
-            // Diagonal
-            let slice = slices[2][index];
-            if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.diagonal[slice.0]);
-                indexes.push(BitBoard.transpose_rev.diagonal[slice.0 + extract]);
-                indexes.push(BitBoard.transpose_rev.diagonal[slice.0 + 5]);
-                return indexes;
-            }
-            // Anti-diagonal
-            let slice = slices[3][index];
-            if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern)
-                && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(opponent_pattern)
-            {
-                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0]);
-                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0 + extract]);
-                indexes.push(BitBoard.transpose_rev.anti_diagonal[slice.0 + 5]);
-                return indexes;
-            }
-        }
-        indexes
-    }
-
     // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0]
     // Three variations per pattern to create a "sliding window"
     pub fn count_created_free_threes(&self, movement: &Move) -> u8 {
@@ -684,25 +552,7 @@ impl Board {
     }
 
     fn movement_create_double_free_three(&self, movement: &Move) -> bool {
-        let created_free_three = self.count_created_free_threes(movement);
-        let existing_free_threes = if movement.player == Player::Black {
-            self.black.free_three
-        } else {
-            self.white.free_three
-        };
-        // Handle moves that break a free three while creating one
-        let break_current_free_three = if movement.player == Player::Black {
-            self.black.remove_free_three.contains(&movement.index)
-        } else {
-            self.white.remove_free_three.contains(&movement.index)
-        };
-        let break_free_three = if break_current_free_three { 1 } else { 0 };
-        // Beware of negative usize
-        if created_free_three > 0 {
-            created_free_three + (existing_free_threes - break_free_three) >= 2
-        } else {
-            false
-        }
+        self.count_created_free_threes(movement) >= 2
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
@@ -906,47 +756,6 @@ impl Board {
 
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
-        // Add free threes
-        if rules.no_double_three {
-            // Save the current free three state to restore on undo move
-            let black_free_three_save = self.black.free_three;
-            let white_free_three_save = self.white.free_three;
-            let black_remove_free_three_save = self.black.remove_free_three.clone();
-            let white_remove_free_three_save = self.white.remove_free_three.clone();
-            // Check if the move remove a free three for any player
-            // -- and clean free three indexes if a free three was deleted
-            if self.black.remove_free_three.contains(&movement.index) {
-                self.black.free_three -= 1;
-                self.black.remove_free_three.clear();
-            }
-            if self.white.remove_free_three.contains(&movement.index) {
-                self.white.free_three -= 1;
-                self.white.remove_free_three.clear();
-            }
-            // Count the number of created free threes and add that to the total
-            let created_free_threes = self.count_created_free_threes(movement);
-            // Check the new indexes that break the created free three to remove it if a rock is placed
-            if movement.player == Player::Black {
-                self.black.free_three += created_free_threes;
-                if created_free_threes > 0 {
-                    let break_indexes = self.get_free_threes_break_indexes(movement);
-                    self.black.remove_free_three = break_indexes;
-                }
-            } else {
-                self.white.free_three += created_free_threes;
-                if created_free_threes > 0 {
-                    let break_indexes = self.get_free_threes_break_indexes(movement);
-                    self.white.remove_free_three = break_indexes;
-                }
-            }
-            // Keep track of what index to restore to keep track of free threes on undo move
-            self.patterns_restore.push(CreatedPatterns {
-                black_free_three: black_free_three_save,
-                white_free_three: white_free_three_save,
-                black_free_three_indexes: black_remove_free_three_save,
-                white_free_three_indexes: white_remove_free_three_save,
-            });
-        }
         // Set rock
         if movement.player == Player::Black {
             self.set_rock(movement.index, Rock::Black);
@@ -999,14 +808,6 @@ impl Board {
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
-        // Remove free threes patterns count
-        if rules.no_double_three {
-            let created_patterns = self.patterns_restore.pop().unwrap();
-            self.black.free_three = created_patterns.black_free_three;
-            self.black.remove_free_three = created_patterns.black_free_three_indexes;
-            self.white.free_three = created_patterns.white_free_three;
-            self.white.remove_free_three = created_patterns.white_free_three_indexes;
-        }
         // Restored the captured rocks
         if rules.capture {
             let opponent_rock = movement.player.rock().opponent();
