@@ -399,6 +399,41 @@ impl Board {
     }
 
     // Iterate on each bitboards for the current player to search for the given pattern
+    // -- and count the number of occurences
+    /*pub fn count_pattern(
+        &self,
+        rock: usize,
+        player: Player,
+        slices: &[[(usize, usize); 361]; 4],
+        pattern: &BitSlice,
+    ) -> u8 {
+        let mut total = 0;
+        let boards = if player == Player::Black {
+            &self.boards[Index::BLACK]
+        } else {
+            &self.boards[Index::WHITE]
+        };
+        // Iterate on each rocks to know if any of them make a five in a row
+        let slice = slices[0][rock];
+        if boards[Index::HORIZONTAL][slice.0..=slice.1].eq(pattern) {
+            total += 1;
+        }
+        let slice = slices[1][rock];
+        if boards[Index::VERTICAL][slice.0..=slice.1].eq(pattern) {
+            total += 1;
+        }
+        let slice = slices[2][rock];
+        if boards[Index::DIAGONAL][slice.0..=slice.1].eq(pattern) {
+            total += 1;
+        }
+        let slice = slices[3][rock];
+        if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1].eq(pattern) {
+            total += 1;
+        }
+        total
+    }*/
+
+    // Iterate on each bitboards for the current player to search for the given pattern
     // -- given the current slice around the rock
     pub fn match_pattern(
         &self,
@@ -480,9 +515,9 @@ impl Board {
         // Check the [0 1 1 1 0] pattern match in any sliding window
         // -- and add the border index to the list of breakable free three index
         let patterns = [
-            (&BitBoard.window_five[0], bits![1, 1, 0, 0, 1]),
-            (&BitBoard.window_five[1], bits![1, 0, 1, 0, 1]),
-            (&BitBoard.window_five[2], bits![1, 0, 0, 1, 1]),
+            (&BitBoard.window_five[1], bits![1, 1, 0, 0, 1]),
+            (&BitBoard.window_five[2], bits![1, 0, 1, 0, 1]),
+            (&BitBoard.window_five[3], bits![1, 0, 0, 1, 1]),
         ];
         let opponent_pattern = bits![1, 1, 1, 1, 1];
         for (slices, pattern) in patterns {
@@ -526,12 +561,12 @@ impl Board {
         // ... same with the [0 1 1 1 0] pattern
         let patterns = [
             // Central bit                 v--v-----v
-            (&BitBoard.window_six[0], bits![1, 1, 0, 1, 0, 1], 3),
-            (&BitBoard.window_six[0], bits![1, 1, 1, 0, 0, 1], 2),
-            (&BitBoard.window_six[1], bits![1, 0, 1, 1, 0, 1], 3),
-            (&BitBoard.window_six[2], bits![1, 0, 1, 1, 0, 1], 2),
-            (&BitBoard.window_six[3], bits![1, 0, 0, 1, 1, 1], 3),
-            (&BitBoard.window_six[3], bits![1, 0, 1, 0, 1, 1], 2),
+            (&BitBoard.window_six[1], bits![1, 1, 0, 1, 0, 1], 3),
+            (&BitBoard.window_six[1], bits![1, 1, 1, 0, 0, 1], 2),
+            (&BitBoard.window_six[2], bits![1, 0, 1, 1, 0, 1], 3),
+            (&BitBoard.window_six[3], bits![1, 0, 1, 1, 0, 1], 2),
+            (&BitBoard.window_six[4], bits![1, 0, 0, 1, 1, 1], 3),
+            (&BitBoard.window_six[4], bits![1, 0, 1, 0, 1, 1], 2),
         ];
         let opponent_pattern = bits![1, 1, 1, 1, 1, 1];
         for (slices, pattern, extract) in patterns {
@@ -585,63 +620,63 @@ impl Board {
         self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_five[0],
+            &BitBoard.window_five[1],
             // Central bit     v
             bits![1, 1, 0, 0, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_five[1],
+            &BitBoard.window_five[2],
             // Central bit        v
             bits![1, 0, 1, 0, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_five[2],
+            &BitBoard.window_five[3],
             // Central bit           v
             bits![1, 0, 0, 1, 1],
             bits![1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[0],
+            &BitBoard.window_six[1],
             // Central bit     v
             bits![1, 1, 0, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[0],
+            &BitBoard.window_six[1],
             // Central bit     v
             bits![1, 1, 1, 0, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[1],
+            &BitBoard.window_six[2],
             // Central bit        v
             bits![1, 0, 1, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[2],
+            &BitBoard.window_six[3],
             // Central bit           v
             bits![1, 0, 1, 1, 0, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[3],
+            &BitBoard.window_six[4],
             // Central bit              v
             bits![1, 0, 0, 1, 1, 1],
             bits![1, 1, 1, 1, 1, 1],
         ) + self.count_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_six[3],
+            &BitBoard.window_six[4],
             // Central bit              v
             bits![1, 0, 1, 0, 1, 1],
             bits![1, 1, 1, 1, 1, 1],
@@ -675,14 +710,14 @@ impl Board {
         self.match_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_four[0],
+            &BitBoard.window_four[1],
             // using bit       v
             bits![1, 1, 0, 1],
             bits![0, 1, 1, 0],
         ) || self.match_dual_pattern(
             movement.index,
             movement.player,
-            &BitBoard.window_four[1],
+            &BitBoard.window_four[2],
             // using bit          v
             bits![1, 0, 1, 1],
             bits![0, 1, 1, 0],
@@ -739,6 +774,7 @@ impl Board {
         moves
     }
 
+    // This function is called *after* the rock as been placed
     fn get_movement_captures(&mut self, movement: &Move) -> Vec<usize> {
         // Check all 8 directions on a window of 4
         // -- with the movement rock on the "center" of all directions (star pattern)
@@ -746,8 +782,8 @@ impl Board {
         let capture_pattern_opponent = bits![1, 0, 0, 1];
         let index = movement.index;
         let mut captures: Vec<usize> = vec![];
-        let slices_left = BitBoard.window_five[2];
-        let slices_right = BitBoard.window_five[0];
+        let slices_left = BitBoard.window_four[0];
+        let slices_right = BitBoard.window_four[3];
         let boards: [BitArray<[usize; 6]>; 4];
         let opponent_boards: [BitArray<[usize; 6]>; 4];
         if movement.player == Player::Black {
@@ -1190,7 +1226,7 @@ impl Board {
             &self.white.rocks
         };
         for rock in rocks {
-            if self.match_pattern(*rock, player, &BitBoard.window_five[1], five_in_a_row) {
+            if self.match_pattern(*rock, player, &BitBoard.window_five[2], five_in_a_row) {
                 return true;
             }
         }

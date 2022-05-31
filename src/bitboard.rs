@@ -7,9 +7,10 @@ pub struct Transpose {
 pub struct _BitBoard {
     pub transpose: Transpose,
     pub transpose_rev: Transpose,
-    pub window_four: [[[(usize, usize); 361]; 4]; 2],
-    pub window_five: [[[(usize, usize); 361]; 4]; 3],
-    pub window_six: [[[(usize, usize); 361]; 4]; 4],
+    pub window_three: Vec<[[(usize, usize); 361]; 4]>,
+    pub window_four: Vec<[[(usize, usize); 361]; 4]>,
+    pub window_five: Vec<[[(usize, usize); 361]; 4]>,
+    pub window_six: Vec<[[(usize, usize); 361]; 4]>,
 }
 
 // Generate tranpose for each directions
@@ -22,6 +23,21 @@ impl _BitBoard {
             new_transpose[i] = index;
         }
         new_transpose
+    }
+
+    fn generate_slice(
+        vertical_transpose: &[usize; 361],
+        diagonal_transpose: &[usize; 361],
+        anti_diagonal_transpose: &[usize; 361],
+        left: usize,
+        right: usize,
+    ) -> [[(usize, usize); 361]; 4] {
+        [
+            _BitBoard::generate_horizontal_slices(left, right),
+            _BitBoard::generate_vertical_slices(&vertical_transpose, left, right),
+            _BitBoard::generate_diagonal_slices(&diagonal_transpose, left, right),
+            _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, left, right),
+        ]
     }
 
     // * Horizontal
@@ -197,77 +213,151 @@ impl _BitBoard {
 
 impl Default for _BitBoard {
     fn default() -> Self {
-        let vertical_tranpose = _BitBoard::generate_vertical_transpose();
+        let vertical_transpose = _BitBoard::generate_vertical_transpose();
         let diagonal_transpose = _BitBoard::generate_diagonal_transpose();
         let anti_diagonal_transpose = _BitBoard::generate_anti_diagonal_transpose();
         _BitBoard {
-            window_four: [
-                [
-                    _BitBoard::generate_horizontal_slices(1, 2),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 1, 2),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 1, 2),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 1, 2),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(2, 1),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 2, 1),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 2, 1),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 2, 1),
-                ],
+            window_three: vec![
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    0,
+                    2,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    1,
+                    1,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    2,
+                    0,
+                ),
             ],
-            window_five: [
-                [
-                    _BitBoard::generate_horizontal_slices(1, 3),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 1, 3),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 1, 3),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 1, 3),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(2, 2),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 2, 2),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 2, 2),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 2, 2),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(3, 1),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 3, 1),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 3, 1),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 3, 1),
-                ],
+            window_four: vec![
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    0,
+                    3,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    1,
+                    2,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    2,
+                    1,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    3,
+                    0,
+                ),
             ],
-            window_six: [
-                [
-                    _BitBoard::generate_horizontal_slices(1, 4),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 1, 4),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 1, 4),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 1, 4),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(2, 3),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 2, 3),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 2, 3),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 2, 3),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(3, 2),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 3, 2),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 3, 2),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 3, 2),
-                ],
-                [
-                    _BitBoard::generate_horizontal_slices(4, 1),
-                    _BitBoard::generate_vertical_slices(&vertical_tranpose, 4, 1),
-                    _BitBoard::generate_diagonal_slices(&diagonal_transpose, 4, 1),
-                    _BitBoard::generate_anti_diagonal_slices(&anti_diagonal_transpose, 4, 1),
-                ],
+            window_five: vec![
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    0,
+                    4,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    1,
+                    3,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    2,
+                    2,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    3,
+                    1,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    4,
+                    0,
+                ),
+            ],
+            window_six: vec![
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    0,
+                    5,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    1,
+                    4,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    2,
+                    3,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    3,
+                    2,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    4,
+                    1,
+                ),
+                _BitBoard::generate_slice(
+                    &vertical_transpose,
+                    &diagonal_transpose,
+                    &anti_diagonal_transpose,
+                    5,
+                    0,
+                ),
             ],
             transpose_rev: Transpose {
-                vertical: _BitBoard::generate_tranpose_rev(&vertical_tranpose),
+                vertical: _BitBoard::generate_tranpose_rev(&vertical_transpose),
                 diagonal: _BitBoard::generate_tranpose_rev(&diagonal_transpose),
                 anti_diagonal: _BitBoard::generate_tranpose_rev(&anti_diagonal_transpose),
             },
             transpose: Transpose {
-                vertical: vertical_tranpose,
+                vertical: vertical_transpose,
                 diagonal: diagonal_transpose,
                 anti_diagonal: anti_diagonal_transpose,
             },

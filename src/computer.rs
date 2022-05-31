@@ -1,4 +1,4 @@
-use crate::pattern::{Pattern, PatternFinder};
+use crate::pattern::{Category, PatternFinder};
 use crate::{
     board::{Board, Move},
     player::Player,
@@ -10,7 +10,7 @@ use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 #[derive(Debug, Clone)]
 pub struct SortedMove {
     pub movement: Move,
-    pub pattern: Option<Pattern>,
+    pub pattern: Option<Category>,
 }
 
 impl Eq for SortedMove {}
