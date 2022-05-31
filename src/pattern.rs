@@ -1,6 +1,6 @@
 use crate::{
     bitboard::BitBoard,
-    board::{Board, Index, Move, Rock},
+    board::{Board, Index, Move, WINDOW_DIRECTIONS},
     player::Player,
 };
 use bitvec::prelude::*;
@@ -439,19 +439,6 @@ impl Default for Finder {
 }
 
 impl Finder {
-    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: Player) -> u8 {
-        let pawn = board.get(x, y);
-        if pawn == Rock::None {
-            0
-        } else if (pawn == Rock::Black && player == Player::Black)
-            || (pawn == Rock::White && player == Player::White)
-        {
-            1
-        } else {
-            2
-        }
-    }
-
     // For each rocks on the board check all 8 directions to count all patterns
     // -- in a sliding window of 6 around the rock
     pub fn get_patterns_for_movement(&self, board: &Board, movement: &Move) -> Vec<Category> {
@@ -481,37 +468,15 @@ impl Finder {
                 for &central_bit in pattern.central_bit.iter() {
                     let slices = slices[central_bit];
                     // Iterate on all directions
-                    let slice = slices[0][index];
-                    if boards[Index::HORIZONTAL][slice.0..=slice.1]
-                        .eq(&pattern.left[0..6 - window_index])
-                        && opponent_boards[Index::HORIZONTAL][slice.0..=slice.1]
-                            .eq(&pattern.right[0..6 - window_index])
-                    {
-                        patterns.push(pattern.category);
-                    }
-                    let slice = slices[1][index];
-                    if boards[Index::VERTICAL][slice.0..=slice.1]
-                        .eq(&pattern.left[0..6 - window_index])
-                        && opponent_boards[Index::VERTICAL][slice.0..=slice.1]
-                            .eq(&pattern.right[0..6 - window_index])
-                    {
-                        patterns.push(pattern.category);
-                    }
-                    let slice = slices[2][index];
-                    if boards[Index::DIAGONAL][slice.0..=slice.1]
-                        .eq(&pattern.left[0..6 - window_index])
-                        && opponent_boards[Index::DIAGONAL][slice.0..=slice.1]
-                            .eq(&pattern.right[0..6 - window_index])
-                    {
-                        patterns.push(pattern.category);
-                    }
-                    let slice = slices[3][index];
-                    if boards[Index::ANTI_DIAGONAL][slice.0..=slice.1]
-                        .eq(&pattern.left[0..6 - window_index])
-                        && opponent_boards[Index::ANTI_DIAGONAL][slice.0..=slice.1]
-                            .eq(&pattern.right[0..6 - window_index])
-                    {
-                        patterns.push(pattern.category);
+                    for direction in WINDOW_DIRECTIONS {
+                        let slice = slices[direction][index];
+                        if boards[direction][slice.0..=slice.1]
+                            .eq(&pattern.left[0..6 - window_index])
+                            && opponent_boards[direction][slice.0..=slice.1]
+                                .eq(&pattern.right[0..6 - window_index])
+                        {
+                            patterns.push(pattern.category);
+                        }
                     }
                 }
             }
