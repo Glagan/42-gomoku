@@ -189,23 +189,55 @@ pub fn game_selector(game: &mut Game) -> bool {
 }
 
 pub fn display_panel_text(game: &mut Game) {
+    let play_time = game.play_time.elapsed().as_millis();
     draw_text(
-        format!(
-            "Time: {}ms",
-            if game.winner != Winner::None {
-                0
-            } else {
-                game.play_time.elapsed().as_millis()
-            }
-        )
+        if play_time > 1000 {
+            format!(
+                "Time: {:.2}s",
+                if game.winner != Winner::None {
+                    0.
+                } else {
+                    game.play_time.elapsed().as_secs_f32()
+                },
+            )
+        } else {
+            format!(
+                "Time: {}ms",
+                if game.winner != Winner::None {
+                    0
+                } else {
+                    play_time
+                },
+            )
+        }
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET,
         POLICE_SIZE,
         BLACK,
     );
+    let previous_play_time = game.previous_play_time.as_millis();
     draw_text(
-        format!("Previous: {}ms", game.previous_play_time.as_millis()).as_str(),
+        if previous_play_time > 1000 {
+            format!(
+                "Previous: {:.2}s",
+                if game.winner != Winner::None {
+                    0.
+                } else {
+                    game.previous_play_time.as_secs_f32()
+                },
+            )
+        } else {
+            format!(
+                "Previous: {}ms",
+                if game.winner != Winner::None {
+                    0
+                } else {
+                    previous_play_time
+                },
+            )
+        }
+        .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         TEXT_OFFSET * 2.,
         POLICE_SIZE,
