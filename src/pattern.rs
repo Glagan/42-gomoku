@@ -8,24 +8,64 @@ use bitvec::prelude::*;
 #[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Category {
-    FiveInRow = 0,
-    LiveFour = 1,
-    DeadFour = 2,
-    LiveThree = 3,
-    DeadThree = 4,
-    LiveTwo = 5,
-    DeadTwo = 6,
+    FiveInRow,
+    KilledFive,
+    LiveFour,
+    KilledFour,
+    DeadFour,
+    KilledThree,
+    LiveThree,
+    CutThree,
+    DeadThree,
+    LiveTwo,
+    DeadTwo,
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct PatternCount {
     pub five_in_row: usize,
+    pub killed_five: usize,
     pub live_four: usize,
+    pub killed_four: usize,
     pub dead_four: usize,
+    pub killed_three: usize,
     pub live_three: usize,
+    pub cut_three: usize,
     pub dead_three: usize,
     pub live_two: usize,
     pub dead_two: usize,
+}
+
+impl PatternCount {
+    // Order by which to sort the generated moves
+    // Gives priority to moves that save the game or end the game
+    pub fn best_pattern(&self) -> usize {
+        if self.five_in_row > 0 {
+            11
+        } else if self.killed_five > 0 {
+            10
+        } else if self.live_four > 0 {
+            9
+        } else if self.killed_four > 0 {
+            8
+        } else if self.killed_three > 0 {
+            7
+        } else if self.dead_four > 0 {
+            6
+        } else if self.live_three > 0 {
+            5
+        } else if self.cut_three > 0 {
+            4
+        } else if self.dead_three > 0 {
+            3
+        } else if self.live_two > 0 {
+            2
+        } else if self.dead_two > 0 {
+            1
+        } else {
+            0
+        }
+    }
 }
 
 pub struct DualPattern {
@@ -65,6 +105,13 @@ impl Default for Finder {
             },
             // --
             DualPattern {
+                left: bitarr![0, 1, 1, 1, 1, 0],
+                right: bitarr![1, 0, 0, 0, 0, 1],
+                central_bit: vec![0, 5],
+                category: Category::KilledFive,
+            },
+            // --
+            DualPattern {
                 left: bitarr![1, 0, 0, 1, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1, 1],
                 central_bit: vec![1, 2, 4, 5],
@@ -83,6 +130,7 @@ impl Default for Finder {
                 central_bit: vec![0, 1, 3],
                 category: Category::LiveFour,
             },
+            // --
             DualPattern {
                 left: bitarr![1, 1, 0, 1, 0, 0],
                 right: bitarr![1, 0, 1, 1, 1, 1],
@@ -126,6 +174,39 @@ impl Default for Finder {
             },
             // --
             DualPattern {
+                left: bitarr![0, 1, 1, 1, 1],
+                right: bitarr![1, 0, 0, 0, 0],
+                central_bit: vec![0],
+                category: Category::KilledFive,
+            },
+            DualPattern {
+                left: bitarr![1, 1, 1, 1, 0],
+                right: bitarr![0, 0, 0, 0, 1],
+                central_bit: vec![4],
+                category: Category::KilledFive,
+            },
+            // --
+            DualPattern {
+                left: bitarr![1, 1, 1, 0, 1],
+                right: bitarr![0, 0, 0, 1, 0],
+                central_bit: vec![3],
+                category: Category::KilledFive,
+            },
+            DualPattern {
+                left: bitarr![1, 0, 1, 1, 1],
+                right: bitarr![0, 1, 0, 0, 0],
+                central_bit: vec![1],
+                category: Category::KilledFive,
+            },
+            // --
+            DualPattern {
+                left: bitarr![0, 1, 1, 1, 0],
+                right: bitarr![1, 0, 0, 0, 1],
+                central_bit: vec![0, 4],
+                category: Category::KilledFour,
+            },
+            // --
+            DualPattern {
                 left: bitarr![1, 0, 0, 0, 1],
                 right: bitarr![1, 1, 1, 1, 1],
                 central_bit: vec![1, 2, 3],
@@ -150,6 +231,32 @@ impl Default for Finder {
                 right: bitarr![1, 1, 1, 1, 1],
                 central_bit: vec![0, 2, 4],
                 category: Category::LiveThree,
+            },
+            // --
+            DualPattern {
+                left: bitarr![1, 1, 1, 1, 0],
+                right: bitarr![1, 0, 0, 0, 1],
+                central_bit: vec![4],
+                category: Category::CutThree,
+            },
+            DualPattern {
+                left: bitarr![0, 1, 1, 1, 1],
+                right: bitarr![1, 0, 0, 0, 1],
+                central_bit: vec![0],
+                category: Category::CutThree,
+            },
+            // --
+            DualPattern {
+                left: bitarr![1, 1, 1, 0, 1],
+                right: bitarr![1, 0, 0, 1, 0],
+                central_bit: vec![3],
+                category: Category::CutThree,
+            },
+            DualPattern {
+                left: bitarr![1, 0, 1, 1, 1],
+                right: bitarr![0, 1, 0, 0, 1],
+                central_bit: vec![1],
+                category: Category::CutThree,
             },
             // --
             DualPattern {
@@ -241,6 +348,32 @@ impl Default for Finder {
         patterns_by_window.push(vec![
             DualPattern {
                 left: bitarr![1, 0, 1, 1],
+                right: bitarr![0, 1, 0, 0],
+                central_bit: vec![1],
+                category: Category::KilledFour,
+            },
+            DualPattern {
+                left: bitarr![1, 1, 0, 1],
+                right: bitarr![0, 0, 1, 0],
+                central_bit: vec![2],
+                category: Category::KilledFour,
+            },
+            // --
+            DualPattern {
+                left: bitarr![1, 1, 1, 0],
+                right: bitarr![0, 0, 0, 1],
+                central_bit: vec![3],
+                category: Category::KilledFour,
+            },
+            DualPattern {
+                left: bitarr![0, 1, 1, 1],
+                right: bitarr![1, 0, 0, 0],
+                central_bit: vec![0],
+                category: Category::KilledFour,
+            },
+            // --
+            DualPattern {
+                left: bitarr![1, 0, 1, 1],
                 right: bitarr![1, 1, 1, 1],
                 central_bit: vec![1],
                 category: Category::LiveThree,
@@ -251,6 +384,7 @@ impl Default for Finder {
                 central_bit: vec![2],
                 category: Category::LiveThree,
             },
+            // --
             DualPattern {
                 left: bitarr![0, 1, 0, 1],
                 right: bitarr![1, 1, 1, 0],
@@ -263,6 +397,7 @@ impl Default for Finder {
                 central_bit: vec![1, 3],
                 category: Category::LiveTwo,
             },
+            // --
             DualPattern {
                 left: bitarr![0, 1, 1, 0],
                 right: bitarr![1, 1, 1, 1],
@@ -390,10 +525,18 @@ impl Finder {
         for pattern in patterns {
             if pattern == Category::FiveInRow {
                 pattern_count.five_in_row += 1;
+            } else if pattern == Category::KilledFive {
+                pattern_count.killed_five += 1;
             } else if pattern == Category::LiveFour {
                 pattern_count.live_four += 1;
+            } else if pattern == Category::KilledFour {
+                pattern_count.killed_four += 1;
             } else if pattern == Category::DeadFour {
                 pattern_count.dead_four += 1;
+            } else if pattern == Category::KilledThree {
+                pattern_count.killed_three += 1;
+            } else if pattern == Category::CutThree {
+                pattern_count.cut_three += 1;
             } else if pattern == Category::LiveThree {
                 pattern_count.live_three += 1;
             } else if pattern == Category::DeadThree {
@@ -413,14 +556,23 @@ impl Finder {
         if patterns.five_in_row > 0 {
             score += 100000;
         }
-        // if other_patterns.dead_four > 0 {
-        //     score += 50000;
-        // }
+        if patterns.killed_five > 0 {
+            score += 99999;
+        }
+        if patterns.killed_four > 0 {
+            score += 75000;
+        }
+        if patterns.killed_three > 0 {
+            score += 60000;
+        }
         if patterns.live_four > 0 {
             score += 50000;
         }
-        if patterns.live_three >= 1 {
+        if patterns.live_three > 0 {
             score += 15000;
+        }
+        if patterns.cut_three > 0 {
+            score += 10000;
         }
         // if other_patterns.dead_three >= 1 {
         //     score += 8000;

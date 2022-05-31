@@ -39,6 +39,7 @@ pub struct Evaluation {
     pub score: i64,
     pub movement: Option<Move>,
     pub win_move: bool,
+    pub save_move: bool,
 }
 
 impl fmt::Display for Evaluation {
@@ -340,12 +341,16 @@ impl Computer {
         }*/
 
         // Check if it's a leaf and compute it's value
-        let win_move = if let Some(movement) = &action.movement {
-            action.board.move_make_win(rules, movement)
+        let win_move: bool;
+        let save_move: bool;
+        if let Some(movement) = &action.movement {
+            win_move = action.board.move_make_win(rules, movement);
+            save_move = action.patterns.as_ref().unwrap().killed_five > 0;
         } else {
-            false
+            win_move = false;
+            save_move = false;
         };
-        if iteration.depth == 0 || win_move {
+        if iteration.depth == 0 || win_move || save_move {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
@@ -355,6 +360,7 @@ impl Computer {
                 score: color * score,
                 movement: None,
                 win_move,
+                save_move,
             });
         }
 
@@ -363,6 +369,7 @@ impl Computer {
             score: i64::min_value() + 1,
             movement: None,
             win_move: false,
+            save_move: false,
         };
 
         // Iterate each neighbor moves
@@ -376,23 +383,7 @@ impl Computer {
                 action.board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
-                    best_pattern: if pattern_count.five_in_row > 0 {
-                        7
-                    } else if pattern_count.live_four > 0 {
-                        6
-                    } else if pattern_count.dead_four > 0 {
-                        5
-                    } else if pattern_count.live_three > 0 {
-                        4
-                    } else if pattern_count.dead_three > 0 {
-                        3
-                    } else if pattern_count.live_two > 0 {
-                        2
-                    } else if pattern_count.dead_two > 0 {
-                        1
-                    } else {
-                        0
-                    },
+                    best_pattern: pattern_count.best_pattern(),
                     pattern_count,
                 }
             })
@@ -419,13 +410,19 @@ impl Computer {
                 maximize,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
+            eval.score = -eval.score;
             if eval.win_move {
                 best_eval.score = eval.score;
                 best_eval.movement = Some(sorted_movement.movement);
                 best_eval.win_move = true;
                 break;
             }
-            eval.score = -eval.score;
+            if eval.save_move {
+                best_eval.score = eval.score;
+                best_eval.movement = Some(sorted_movement.movement);
+                best_eval.save_move = true;
+                break;
+            }
             if eval.score > best_eval.score {
                 alpha = eval.score;
                 best_eval.score = eval.score;
