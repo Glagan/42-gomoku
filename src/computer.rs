@@ -5,6 +5,7 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
+use std::collections::HashMap;
 use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 
 #[derive(Debug, Clone)]
@@ -64,6 +65,8 @@ pub enum CacheFlag {
 pub struct CacheEntry {
     pub score: i64,
     pub moves: u16,
+    pub win_move: bool,
+    pub save_move: bool,
     pub flag: CacheFlag,
     pub movement: Option<Move>,
 }
@@ -82,14 +85,14 @@ pub struct MinimaxAction<'a> {
 
 #[derive(Default)]
 pub struct Computer {
-    // pub black_cache: HashMap<([usize; 6], [usize; 6]), CacheEntry>,
-// pub white_cache: HashMap<([usize; 6], [usize; 6]), CacheEntry>,
+    pub black_cache: HashMap<([usize; 6], [usize; 6]), CacheEntry>,
+    pub white_cache: HashMap<([usize; 6], [usize; 6]), CacheEntry>,
 }
 
 impl Computer {
     pub fn clean(&mut self) {
-        // self.black_cache = HashMap::new();
-        // self.white_cache = HashMap::new();
+        self.black_cache = HashMap::new();
+        self.white_cache = HashMap::new();
     }
 
     // Calculate the patterns created by a movement and return it's score
@@ -98,13 +101,13 @@ impl Computer {
         PatternFinder.movement_patterns_score(action.patterns.as_ref().unwrap())
     }
 
-    /*pub fn cache(&mut self, player: Player) -> &mut HashMap<([usize; 6], [usize; 6]), CacheEntry> {
+    pub fn cache(&mut self, player: Player) -> &mut HashMap<([usize; 6], [usize; 6]), CacheEntry> {
         if player == Player::Black {
             &mut self.black_cache
         } else {
             &mut self.white_cache
         }
-    }*/
+    }
 
     // #[allow(dead_code)]
     // fn minimax(
@@ -306,22 +309,27 @@ impl Computer {
         player: Player,
         maximize: Player,
     ) -> Result<Evaluation, String> {
-        // let alpha_orig = iteration.alpha;
+        let alpha_orig = iteration.alpha;
         let mut alpha = iteration.alpha;
-        let beta = iteration.beta;
+        let mut beta = iteration.beta;
 
         // Check cache to see if the board was already computed
-        /*let cache_key = (
+        let cache_key = (
             action.board.boards[0][0].data,
             action.board.boards[1][0].data,
         );
         if self.cache(player).contains_key(&cache_key) {
             let cache_entry = self.cache(player).get(&cache_key).unwrap();
             if cache_entry.moves >= action.board.moves {
-                if cache_entry.flag == CacheFlag::Exact {
+                if cache_entry.flag == CacheFlag::Exact
+                    || cache_entry.win_move
+                    || cache_entry.save_move
+                {
                     return Ok(Evaluation {
                         score: cache_entry.score,
                         movement: cache_entry.movement,
+                        win_move: cache_entry.win_move,
+                        save_move: cache_entry.save_move,
                     });
                 } else if cache_entry.flag == CacheFlag::Lowerbound {
                     if cache_entry.score > alpha {
@@ -335,10 +343,12 @@ impl Computer {
                     return Ok(Evaluation {
                         score: cache_entry.score,
                         movement: cache_entry.movement,
+                        win_move: cache_entry.win_move,
+                        save_move: cache_entry.save_move,
                     });
                 }
             }
-        }*/
+        }
 
         // Check if it's a leaf and compute it's value
         let win_move: bool;
@@ -434,7 +444,7 @@ impl Computer {
         }
 
         // Add to cache
-        /*let cache_entry = self.cache(player).entry(cache_key).or_insert(CacheEntry {
+        let cache_entry = self.cache(player).entry(cache_key).or_insert(CacheEntry {
             score: if player == maximize {
                 best_eval.score
             } else {
@@ -443,12 +453,14 @@ impl Computer {
             moves: action.board.moves,
             flag: CacheFlag::Exact,
             movement: best_eval.movement,
+            win_move: best_eval.win_move,
+            save_move: best_eval.save_move,
         });
         if best_eval.score <= alpha_orig {
             cache_entry.flag = CacheFlag::Upperbound;
         } else if best_eval.score >= beta {
             cache_entry.flag = CacheFlag::Lowerbound;
-        }*/
+        }
 
         Ok(best_eval)
     }

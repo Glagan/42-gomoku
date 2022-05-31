@@ -568,11 +568,11 @@ impl Finder {
         if patterns.live_four > 0 {
             score += 50000;
         }
+        if patterns.cut_three > 0 {
+            score += 25000;
+        }
         if patterns.live_three > 0 {
             score += 15000;
-        }
-        if patterns.cut_three > 0 {
-            score += 10000;
         }
         // if other_patterns.dead_three >= 1 {
         //     score += 8000;
