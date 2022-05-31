@@ -38,6 +38,7 @@ impl PartialOrd for SortedMove {
 pub struct Evaluation {
     pub score: i64,
     pub movement: Option<Move>,
+    pub win_move: bool,
 }
 
 impl fmt::Display for Evaluation {
@@ -339,7 +340,12 @@ impl Computer {
         }*/
 
         // Check if it's a leaf and compute it's value
-        if iteration.depth == 0 || action.board.is_winning(rules, player) {
+        let win_move = if let Some(movement) = &action.movement {
+            action.board.move_make_win(rules, movement)
+        } else {
+            false
+        };
+        if iteration.depth == 0 || win_move {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
@@ -348,6 +354,7 @@ impl Computer {
             return Ok(Evaluation {
                 score: color * score,
                 movement: None,
+                win_move,
             });
         }
 
@@ -355,6 +362,7 @@ impl Computer {
         let mut best_eval = Evaluation {
             score: i64::min_value() + 1,
             movement: None,
+            win_move: false,
         };
 
         // Iterate each neighbor moves
@@ -363,7 +371,9 @@ impl Computer {
             .intersections_legal_moves(rules, player)
             .iter()
             .map(|&movement| {
+                action.board.set_move(rules, &movement);
                 let pattern_count = PatternFinder.count_movement_patterns(action.board, &movement);
+                action.board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
                     best_pattern: if pattern_count.five_in_row > 0 {
@@ -409,6 +419,12 @@ impl Computer {
                 maximize,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
+            if eval.win_move {
+                best_eval.score = eval.score;
+                best_eval.movement = Some(sorted_movement.movement);
+                best_eval.win_move = true;
+                break;
+            }
             eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = eval.score;

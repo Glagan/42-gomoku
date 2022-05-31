@@ -1216,29 +1216,27 @@ impl Board {
         false
     }
 
-    pub fn has_five_in_a_row(&self, player: Player) -> bool {
+    pub fn move_create_five_in_a_row(&self, movement: &Move) -> bool {
         let five_in_a_row = bits![0; 5];
-
-        // Iterate on each rocks to know if any of them make a five in a row
-        let rocks = if player == Player::Black {
-            &self.black.rocks
-        } else {
-            &self.white.rocks
-        };
-        for rock in rocks {
-            if self.match_pattern(*rock, player, &BitBoard.window_five[2], five_in_a_row) {
+        for central_bit in 0..5 {
+            if self.match_pattern(
+                movement.index,
+                movement.player,
+                &BitBoard.window_five[central_bit],
+                five_in_a_row,
+            ) {
                 return true;
             }
         }
         false
     }
 
-    // Check if the given player is winning on the current board
+    // Check if the given player is winning with the rock from the given movement
     // (Has an unbreakable winning position according to the rules)
-    pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
+    pub fn move_make_win(&self, rules: &RuleSet, movement: &Move) -> bool {
         if rules.capture
-            && ((player == Player::Black && self.black.captures >= 10)
-                || (player == Player::White && self.white.captures >= 10))
+            && ((movement.player == Player::Black && self.black.captures >= 10)
+                || (movement.player == Player::White && self.white.captures >= 10))
         {
             return true;
         }
@@ -1249,6 +1247,6 @@ impl Board {
         //     self.has_five_in_a_row(player)
         // }
         // TODO <
-        self.has_five_in_a_row(player)
+        self.move_create_five_in_a_row(movement)
     }
 }
