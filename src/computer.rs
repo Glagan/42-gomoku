@@ -325,8 +325,9 @@ impl Computer {
                     || cache_entry.win_move
                     || cache_entry.save_move
                 {
+                    let color = if player == maximize { 1 } else { -1 };
                     return Ok(Evaluation {
-                        score: cache_entry.score,
+                        score: color * cache_entry.score,
                         movement: cache_entry.movement,
                         win_move: cache_entry.win_move,
                         save_move: cache_entry.save_move,
@@ -340,8 +341,9 @@ impl Computer {
                 }
 
                 if alpha >= beta {
+                    let color = if player == maximize { 1 } else { -1 };
                     return Ok(Evaluation {
-                        score: cache_entry.score,
+                        score: color * cache_entry.score,
                         movement: cache_entry.movement,
                         win_move: cache_entry.win_move,
                         save_move: cache_entry.save_move,
