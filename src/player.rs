@@ -1,4 +1,4 @@
-use crate::board::Pawn;
+use crate::board::Rock;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Player {
@@ -7,11 +7,11 @@ pub enum Player {
 }
 
 impl Player {
-    pub fn pawn(&self) -> Pawn {
+    pub fn rock(&self) -> Rock {
         if *self == Player::Black {
-            Pawn::Black
+            Rock::Black
         } else {
-            Pawn::White
+            Rock::White
         }
     }
 }

@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct RuleSet {
     pub capture: bool,
     pub game_ending_capture: bool,

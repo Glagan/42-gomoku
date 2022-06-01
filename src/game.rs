@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Move, Pawn},
+    board::{Board, Move, Rock},
     computer::Computer,
     player::Player,
     rules::RuleSet,
@@ -7,7 +7,7 @@ use crate::{
 use colored::Colorize;
 use std::time::{Duration, Instant};
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum GameMode {
     None,
     PvP,
@@ -105,7 +105,7 @@ impl Game {
     }
 
     pub fn play_player(&mut self, x: usize, y: usize) {
-        if self.board.pieces[Board::coordinates_to_index(x, y)] == Pawn::None {
+        if self.board.pieces[Board::coordinates_to_index(x, y)] == Rock::None {
             let movement = Move {
                 index: Board::coordinates_to_index(x, y),
                 player: self.current_player,

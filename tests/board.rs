@@ -1,5 +1,5 @@
 use gomoku::{
-    board::{Board, Move, Pawn, BOARD_PIECES, BOARD_SIZE},
+    board::{Board, Move, Rock, BOARD_PIECES, BOARD_SIZE},
     player::Player,
     rules::RuleSet,
 };
@@ -53,8 +53,8 @@ fn board_set_move() {
             index: 180,
         },
     );
-    let mut raw_board = [Pawn::None; BOARD_PIECES];
-    raw_board[180] = Pawn::Black;
+    let mut raw_board = [Rock::None; BOARD_PIECES];
+    raw_board[180] = Rock::Black;
     assert_eq!(board.pieces, raw_board);
 }
 
@@ -70,8 +70,8 @@ fn board_set_move() {
 //             },
 //         )
 //         .is_ok());
-//     let mut raw_board = [Pawn::None; BOARD_PIECES];
-//     raw_board[180] = Pawn::Black;
+//     let mut raw_board = [Rock::None; BOARD_PIECES];
+//     raw_board[180] = Rock::Black;
 //     assert_eq!(board.pieces, raw_board);
 //     assert!(board
 //         .set_move(
@@ -886,7 +886,7 @@ fn free_three_1_detected_horizontal() {
         index: 3,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -919,7 +919,7 @@ fn free_three_1_detected_vertical() {
         index: 58,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -952,7 +952,7 @@ fn free_three_1_detected_diagonal_left() {
         index: 58,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -985,7 +985,7 @@ fn free_three_1_detected_diagonal_right() {
         index: 60,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -1018,7 +1018,7 @@ fn free_three_2_detected_horizontal() {
         index: 4,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -1051,7 +1051,7 @@ fn free_three_2_detected_vertical() {
         index: 77,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -1084,7 +1084,7 @@ fn free_three_2_detected_diagonal_left() {
         index: 77,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));
@@ -1117,7 +1117,7 @@ fn free_three_2_detected_diagonal_right() {
         index: 80,
         player: Player::Black,
     };
-    assert!(board.move_create_free_three(&free_three_move));
+    assert_eq!(board.move_create_free_three(&free_three_move), 1);
 
     board.set_move(&rules, &free_three_move);
     assert!(board.has_free_three(&Player::Black));

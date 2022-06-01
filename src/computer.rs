@@ -1,6 +1,6 @@
 use crate::pattern::{Pattern, PATTERN_FINDER};
 use crate::{
-    board::{Board, Move, Pawn, BOARD_PIECES},
+    board::{Board, Move, Rock, BOARD_PIECES},
     player::Player,
     rules::RuleSet,
 };
@@ -94,8 +94,8 @@ pub struct MinimaxAction<'a> {
 #[derive(Default)]
 pub struct Computer {
     // (black_heuristic, white_heuristic)
-    pub black_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
-    pub white_cache: HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry>,
+    pub black_cache: HashMap<[Rock; BOARD_PIECES as usize], CacheEntry>,
+    pub white_cache: HashMap<[Rock; BOARD_PIECES as usize], CacheEntry>,
 }
 
 impl Computer {
@@ -113,7 +113,7 @@ impl Computer {
     pub fn cache(
         &mut self,
         player: &Player,
-    ) -> &mut HashMap<[Pawn; BOARD_PIECES as usize], CacheEntry> {
+    ) -> &mut HashMap<[Rock; BOARD_PIECES as usize], CacheEntry> {
         if player == &Player::Black {
             &mut self.black_cache
         } else {

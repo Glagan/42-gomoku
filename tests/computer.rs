@@ -1,7 +1,7 @@
 use gomoku::{
     board::{Board, Move},
     computer::SortedMove,
-    pattern::{Pattern, PATTERN_FINDER},
+    pattern::{Pattern, PatternFinder},
     player::Player,
     rules::RuleSet,
 };
@@ -26,7 +26,7 @@ fn find_pattern_live_two_horizontal() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_three,
         1
@@ -60,7 +60,7 @@ fn find_pattern_live_three_horizontal() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_three,
         1
@@ -87,7 +87,7 @@ fn find_pattern_live_two_vertical() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_three,
         1
@@ -121,7 +121,7 @@ fn find_pattern_live_three_vertical() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_three,
         1
@@ -155,7 +155,7 @@ fn find_pattern_live_three_vertical_border() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_three,
         1
@@ -182,7 +182,7 @@ fn find_pattern_live_two_diagonal_left_down() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_two,
         1
@@ -209,7 +209,7 @@ fn find_pattern_live_two_diagonal_right_down() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_two,
         1
@@ -236,7 +236,7 @@ fn find_pattern_live_two_diagonal_left_up() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_two,
         1
@@ -263,7 +263,7 @@ fn find_pattern_live_two_diagonal_right_up() {
         },
     );
     assert_eq!(
-        PATTERN_FINDER
+        PatternFinder
             .count_patterns(&board, &Player::Black)
             .live_two,
         1

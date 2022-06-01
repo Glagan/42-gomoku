@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Move, Pawn, BOARD_SIZE, DIRECTIONS},
+    board::{Board, Move, Rock, BOARD_SIZE, DIRECTIONS},
     player::Player,
 };
 use fixed_vec_deque::FixedVecDeque;
@@ -97,11 +97,11 @@ impl Default for Finder {
 
 impl Finder {
     pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: &Player) -> u8 {
-        let pawn = board.get(x, y);
-        if pawn == Pawn::None {
+        let rock = board.get(x, y);
+        if rock == Rock::None {
             0
-        } else if (pawn == Pawn::Black && *player == Player::Black)
-            || (pawn == Pawn::White && *player == Player::White)
+        } else if (rock == Rock::Black && *player == Player::Black)
+            || (rock == Rock::White && *player == Player::White)
         {
             1
         } else {
@@ -113,8 +113,8 @@ impl Finder {
         let mut best_pattern: Option<Pattern> = None;
         let (x, y) = Board::index_to_coordinates(rock_index);
         let rock = board.get(x, y);
-        if rock == Pawn::None {
-            let player = if rock == Pawn::Black {
+        if rock == Rock::None {
+            let player = if rock == Rock::Black {
                 &Player::Black
             } else {
                 &Player::White
@@ -150,7 +150,7 @@ impl Finder {
                             )
                         };
                         length += 1;
-                        if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                        if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
                             let has_best_pattern = best_pattern_index.is_some();
                             let has_no_best_pattern = best_pattern_index.is_none();
                             if let Some((index, (_, _, category))) =
@@ -228,7 +228,7 @@ impl Finder {
                         &player,
                     );
                     length += 1;
-                    if length >= 7 && buf.iter().filter(|pawn| *pawn == &1).count() >= 2 {
+                    if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
                         let has_best_pattern = best_pattern_index.is_some();
                         let has_no_best_pattern = best_pattern_index.is_none();
                         if let Some((index, (_, _, category))) =
