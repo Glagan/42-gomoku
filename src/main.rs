@@ -2,12 +2,12 @@
 extern crate lazy_static;
 
 use crate::{
+    board::Rock,
     draw::{
-        display_panel_text, display_winner, draw_goban, draw_recommended_move, draw_rock_preview,
-        game_selector, options_selector,
+        color_selector, display_panel_text, display_winner, draw_goban, draw_recommended_move,
+        draw_rock_preview, game_selector, options_selector,
     },
     game::{Game, GameMode, Winner},
-    player::Player,
 };
 use macroquad::prelude::*;
 use macroquad::ui::{root_ui, Skin};
@@ -17,7 +17,7 @@ const PANEL_WINDOW_SIZE: usize = 200;
 const BORDER_OFFSET: usize = 22;
 const SQUARE_SIZE: usize = 42;
 const BUTTTON_HEIGTH: f32 = 70.;
-const BUTTTON_LENGHT: f32 = 200.;
+const BUTTTON_LENGTH: f32 = 200.;
 
 mod bitboard;
 mod board;
@@ -75,6 +75,12 @@ async fn main() {
                 b_mouse_pressed = true;
             }
         }
+        // Color selector in PvA
+        else if game.mode == GameMode::PvA && game.player_color == Rock::None {
+            if color_selector(&mut game) {
+                b_mouse_pressed = true;
+            }
+        }
         // Draw game
         else {
             draw_goban(&game);
@@ -87,7 +93,7 @@ async fn main() {
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
                     // Computer Play
-                    if game.mode == GameMode::PvA && game.current_player == Player::Black {
+                    if game.mode == GameMode::PvA && game.current_player == game.computer_play_as {
                         game.play_computer()
                     }
                     // Move preview and await input
@@ -104,7 +110,7 @@ async fn main() {
                             && !b_mouse_pressed
                             && (game.mode == GameMode::PvP
                                 || (game.mode == GameMode::PvA
-                                    && game.current_player == Player::White))
+                                    && game.current_player != game.computer_play_as))
                         {
                             b_mouse_pressed = true;
                             let (mouse_x, mouse_y) = mouse_position();

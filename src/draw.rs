@@ -2,7 +2,7 @@ use crate::{
     board::{Board, Rock, BOARD_PIECES, BOARD_SIZE},
     game::{Game, GameMode, Winner},
     player::Player,
-    BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGHT, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
+    BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
     SQUARE_SIZE,
 };
 use macroquad::{
@@ -169,9 +169,9 @@ pub fn options_selector(game: &mut Game) {
     );
 
     let back_button = widgets::Button::new("Back")
-        .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(
-            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
             GRID_WINDOW_SIZE as f32 - 70.,
         ))
         .ui(ui);
@@ -182,9 +182,9 @@ pub fn options_selector(game: &mut Game) {
 
 pub fn game_selector(game: &mut Game) -> bool {
     let options_button = widgets::Button::new("Options")
-        .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(
-            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
             GRID_WINDOW_SIZE as f32 - 70.,
         ))
         .ui(&mut root_ui());
@@ -194,25 +194,25 @@ pub fn game_selector(game: &mut Game) -> bool {
     }
 
     let pvp_button = widgets::Button::new("Start PvP game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. - 100.,
         ))
         .ui(&mut root_ui());
 
     let pva_button = widgets::Button::new("Start PvA game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
         ))
         .ui(&mut root_ui());
 
     let ava_button = widgets::Button::new("Start AvA game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. + 100.,
         ))
         .ui(&mut root_ui());
@@ -229,6 +229,56 @@ pub fn game_selector(game: &mut Game) -> bool {
     } else {
         false
     }
+}
+
+pub fn color_selector(game: &mut Game) -> bool {
+    let back_button = widgets::Button::new("Back")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(&mut root_ui());
+    if back_button {
+        game.reset();
+        return false;
+    }
+
+    draw_text(
+        "Play as",
+        ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH - BUTTTON_LENGTH / 3.,
+        (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH + BUTTTON_HEIGTH / 3.,
+        POLICE_SIZE,
+        BLACK,
+    );
+
+    let black_button = widgets::Button::new("Black")
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32
+                - BUTTTON_LENGTH
+                - BUTTTON_LENGTH / 3.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
+        ))
+        .ui(&mut root_ui());
+    if black_button {
+        game.start_pva(Rock::Black);
+        return true;
+    }
+
+    let white_button = widgets::Button::new("White")
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 + BUTTTON_LENGTH / 3.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
+        ))
+        .ui(&mut root_ui());
+    if white_button {
+        game.start_pva(Rock::White);
+        return true;
+    }
+
+    false
 }
 
 pub fn display_panel_text(game: &mut Game) {
@@ -276,7 +326,7 @@ pub fn display_panel_text(game: &mut Game) {
         BLACK,
     );
 
-    if game.mode != GameMode::PvP {
+    if game.mode != GameMode::PvP && game.computer_average_play_time != 0. {
         y_offset += TEXT_OFFSET;
         let highest_play_time = game.computer_highest_play_time.as_millis();
         draw_text(
@@ -298,7 +348,7 @@ pub fn display_panel_text(game: &mut Game) {
         y_offset += TEXT_OFFSET;
         draw_text(
             if game.computer_average_play_time > 1000. {
-                format!("Average: {:.2}s", game.computer_average_play_time)
+                format!("Average: {:.2}s", game.computer_average_play_time / 1000.)
             } else {
                 format!("Average: {:.0}ms", game.computer_average_play_time)
             }
@@ -372,9 +422,9 @@ pub fn display_panel_text(game: &mut Game) {
             "Surrender"
         },
     )
-    .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+    .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
     .position(Vec2::new(
-        (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+        (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
         GRID_WINDOW_SIZE as f32 - 70.,
     ))
     .ui(&mut root_ui());

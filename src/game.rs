@@ -30,6 +30,8 @@ pub struct Game {
     pub playing: bool,
     pub board: Board,
     pub mode: GameMode,
+    pub player_color: Rock,
+    pub computer_play_as: Player,
     pub rules: RuleSet,
     pub computer: Computer,
     pub generate_recommended_move: bool,
@@ -52,6 +54,8 @@ impl Default for Game {
             playing: false,
             board: Board::default(),
             mode: GameMode::None,
+            player_color: Rock::None,
+            computer_play_as: Player::Black,
             rules: RuleSet::default(),
             computer: Computer::default(),
             generate_recommended_move: false,
@@ -74,6 +78,8 @@ impl Game {
         self.playing = false;
         self.board = Board::default();
         self.mode = GameMode::None;
+        self.player_color = Rock::None;
+        self.computer_play_as = Player::Black;
         self.computer = Computer::default();
         self.recommended_move = None;
         self.play_time = Instant::now();
@@ -85,6 +91,26 @@ impl Game {
         self.winner = Winner::None;
         self.rock_move = vec![];
         self.computer.clean();
+    }
+
+    pub fn start_pva(&mut self, color: Rock) {
+        self.reset();
+        if self.rules.game_ending_capture && !self.rules.capture {
+            self.rules.game_ending_capture = false;
+        }
+        self.player_color = color;
+        if color == Rock::Black {
+            self.computer_play_as = Player::White;
+        } else {
+            self.computer_play_as = Player::Black;
+        }
+        self.mode = GameMode::PvA;
+        println!(
+            "Starting a game [{:#?}] with rules: {:#?}",
+            GameMode::PvA,
+            self.rules
+        );
+        self.playing = true;
     }
 
     pub fn start(&mut self, mode: GameMode) {
@@ -148,7 +174,7 @@ impl Game {
         }
         let play_result = self
             .computer
-            .play(&self.rules, &mut self.board, 10, self.current_player);
+            .play(&self.rules, &mut self.board, 6, self.current_player);
         if let Ok(play) = play_result {
             self.recommended_move = play.movement;
         }
@@ -158,7 +184,7 @@ impl Game {
     pub fn play_computer(&mut self) {
         let play_result = self
             .computer
-            .play(&self.rules, &mut self.board, 10, self.current_player);
+            .play(&self.rules, &mut self.board, 6, self.current_player);
         if let Ok(play) = play_result {
             let play_time = self.play_time.elapsed();
             if self.computer_average_play_time == 0. {
