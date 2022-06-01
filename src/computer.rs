@@ -1,7 +1,8 @@
-use crate::pattern::{Pattern, PATTERN_FINDER};
 use crate::{
-    board::{Board, Move, Rock, BOARD_PIECES},
+    board::{Board, Move, BOARD_PIECES},
+    pattern::{Pattern, PATTERN_FINDER},
     player::Player,
+    rock::Rock,
     rules::RuleSet,
 };
 use colored::Colorize;

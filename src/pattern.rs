@@ -1,6 +1,7 @@
 use crate::{
-    board::{Board, Move, Rock, BOARD_SIZE, DIRECTIONS},
+    board::{Board, Move, BOARD_SIZE, DIRECTIONS},
     player::Player,
+    rock::Rock,
 };
 use fixed_vec_deque::FixedVecDeque;
 

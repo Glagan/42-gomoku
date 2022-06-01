@@ -1,13 +1,14 @@
 use crate::{
-    board::{Board, Rock, BOARD_PIECES, BOARD_SIZE},
+    board::{Board, BOARD_PIECES, BOARD_SIZE},
     game::{Game, GameMode, Winner},
     player::Player,
-    BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGHT, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
+    rock::Rock,
+    BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
     SQUARE_SIZE,
 };
 use macroquad::{
     color::Color,
-    color_u8,
+    color_u8, hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
         measure_text, mouse_position, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
@@ -57,7 +58,7 @@ pub fn draw_goban(game: &Game) {
         BLACK,
     );
 
-    // Draw circle
+    // Draw circles
     let mut y = BORDER_OFFSET + 3 * SQUARE_SIZE;
     while y < (17 * SQUARE_SIZE) {
         let mut x = BORDER_OFFSET + 3 * SQUARE_SIZE;
@@ -134,7 +135,7 @@ pub fn draw_rock_preview(game: &Game) {
     if mouse_x < (GRID_WINDOW_SIZE - 2) as f32 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32 {
         let rock_x = (mouse_x - 1.) as usize / SQUARE_SIZE;
         let rock_y = (mouse_y - 1.) as usize / SQUARE_SIZE;
-        if game.board.pieces[Board::coordinates_to_index(rock_x, rock_y)] == Rock::None {
+        if game.board.get(rock_x, rock_y) == Rock::None {
             draw_circle(
                 (rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32,
                 (rock_y * SQUARE_SIZE + BORDER_OFFSET) as f32,
@@ -149,27 +150,70 @@ pub fn draw_rock_preview(game: &Game) {
     }
 }
 
-pub fn game_selector(game: &mut Game) {
-    let pvp_button = widgets::Button::new("Start PvP game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+pub fn options_selector(game: &mut Game) {
+    let ui = &mut root_ui();
+    ui.checkbox(hash!(), "Enable Capture", &mut game.rules.capture);
+    ui.checkbox(
+        hash!(),
+        "Enable game ending capture",
+        &mut game.rules.game_ending_capture,
+    );
+    ui.checkbox(
+        hash!(),
+        "Disallow double free three",
+        &mut game.rules.no_double_three,
+    );
+    ui.checkbox(
+        hash!(),
+        "Generate recommended moves",
+        &mut game.generate_recommended_move,
+    );
+
+    let back_button = widgets::Button::new("Back")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(ui);
+    if back_button {
+        game.in_options = false;
+    }
+}
+
+pub fn game_selector(game: &mut Game) -> bool {
+    let options_button = widgets::Button::new("Options")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(&mut root_ui());
+    if options_button {
+        game.in_options = true;
+        return false;
+    }
+
+    let pvp_button = widgets::Button::new("Start PvP game")
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. - 100.,
         ))
         .ui(&mut root_ui());
 
     let pva_button = widgets::Button::new("Start PvA game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
         ))
         .ui(&mut root_ui());
 
     let ava_button = widgets::Button::new("Start AvA game")
-        .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
-            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGHT / 2.,
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
             (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2. + 100.,
         ))
         .ui(&mut root_ui());
@@ -182,47 +226,180 @@ pub fn game_selector(game: &mut Game) {
         } else {
             GameMode::AvA
         });
+        true
+    } else {
+        false
     }
 }
 
-pub fn display_panel_text(game: &mut Game) {
+pub fn color_selector(game: &mut Game) -> bool {
+    let back_button = widgets::Button::new("Back")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(&mut root_ui());
+    if back_button {
+        game.reset();
+        return false;
+    }
+
     draw_text(
-        format!(
-            "Time: {}ms",
-            if game.winner != Winner::None {
-                0
-            } else {
-                game.play_time.elapsed().as_millis()
-            }
-        )
-        .as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET,
-        POLICE_SIZE,
-        BLACK,
-    );
-    draw_text(
-        format!("Previous: {}ms", game.previous_play_time.as_millis()).as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 2.,
+        "Play as",
+        ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH - BUTTTON_LENGTH / 3.,
+        (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH + BUTTTON_HEIGTH / 3.,
         POLICE_SIZE,
         BLACK,
     );
 
+    let black_button = widgets::Button::new("Black")
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32
+                - BUTTTON_LENGTH
+                - BUTTTON_LENGTH / 3.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
+        ))
+        .ui(&mut root_ui());
+    if black_button {
+        game.start_pva(Rock::Black);
+        return true;
+    }
+
+    let white_button = widgets::Button::new("White")
+        .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
+        .position(Vec2::new(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 + BUTTTON_LENGTH / 3.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH / 2.,
+        ))
+        .ui(&mut root_ui());
+    if white_button {
+        game.start_pva(Rock::White);
+        return true;
+    }
+
+    false
+}
+
+pub fn display_panel_text(game: &mut Game) {
+    let mut y_offset = TEXT_OFFSET;
+    let play_time = game.play_time.elapsed().as_millis();
     draw_text(
-        format!("Black capture: {}", game.board.black_capture).as_str(),
+        if play_time > 1000 {
+            format!(
+                "Time: {:.2}s",
+                if game.winner != Winner::None {
+                    0.
+                } else {
+                    game.play_time.elapsed().as_secs_f32()
+                },
+            )
+        } else {
+            format!(
+                "Time: {}ms",
+                if game.winner != Winner::None {
+                    0
+                } else {
+                    play_time
+                },
+            )
+        }
+        .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 3.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
+    y_offset += TEXT_OFFSET;
+    let previous_play_time = game.previous_play_time.as_millis();
     draw_text(
-        format!("White capture: {}", game.board.white_capture).as_str(),
+        if previous_play_time > 1000 {
+            format!("Previous: {:.2}s", game.previous_play_time.as_secs_f32())
+        } else {
+            format!("Previous: {}ms", previous_play_time)
+        }
+        .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 4.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
+    if game.mode != GameMode::PvP && game.computer_average_play_time != 0. {
+        y_offset += TEXT_OFFSET;
+        let highest_play_time = game.computer_highest_play_time.as_millis();
+        draw_text(
+            if highest_play_time > 1000 {
+                format!(
+                    "Highest: {:.2}s",
+                    game.computer_highest_play_time.as_secs_f32()
+                )
+            } else {
+                format!("Highest: {:.0}ms", highest_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            if game.computer_average_play_time > 1000. {
+                format!("Average: {:.2}s", game.computer_average_play_time / 1000.)
+            } else {
+                format!("Average: {:.0}ms", game.computer_average_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+
+        y_offset += TEXT_OFFSET;
+        let lowest_play_time = game.computer_lowest_play_time.as_millis();
+        draw_text(
+            if lowest_play_time > 1000 {
+                format!(
+                    "Lowest: {:.2}s",
+                    game.computer_lowest_play_time.as_secs_f32()
+                )
+            } else {
+                format!("Lowest: {:.0}ms", lowest_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+    }
+
+    if game.rules.capture {
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            format!("Black capture: {}", game.board.black.captures).as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            format!("White capture: {}", game.board.white.captures).as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+    }
+
+    y_offset += TEXT_OFFSET;
     draw_text(
         format!(
             "Player: {}",
@@ -234,10 +411,11 @@ pub fn display_panel_text(game: &mut Game) {
         )
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 5.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
     let surrender_button = widgets::Button::new(
         if game.mode == GameMode::AvA || game.winner != Winner::None {
             "Back"
@@ -245,15 +423,23 @@ pub fn display_panel_text(game: &mut Game) {
             "Surrender"
         },
     )
-    .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+    .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
     .position(Vec2::new(
-        (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+        (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
         GRID_WINDOW_SIZE as f32 - 70.,
     ))
     .ui(&mut root_ui());
 
     if surrender_button {
-        game.playing = false;
+        if game.winner == Winner::None {
+            game.winner = if game.current_player == Player::Black {
+                Winner::White
+            } else {
+                Winner::Black
+            };
+        } else {
+            game.playing = false;
+        }
     }
 }
 

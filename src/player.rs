@@ -1,4 +1,4 @@
-use crate::board::Rock;
+use crate::rock::Rock;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Player {

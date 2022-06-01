@@ -1,8 +1,9 @@
 use crate::{
-    board::{Board, Move, Rock},
+    board::{Board, Move},
     computer::Computer,
     options::Options,
     player::Player,
+    rock::Rock,
     rules::RuleSet,
 };
 use colored::Colorize;

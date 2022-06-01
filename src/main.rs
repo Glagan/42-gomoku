@@ -2,19 +2,22 @@
 extern crate lazy_static;
 
 use crate::{
-    draw::{display_panel_text, draw_goban, draw_rock_preview, game_selector},
+    draw::{
+        color_selector, display_panel_text, display_winner, draw_goban, draw_recommended_move,
+        draw_rock_preview, game_selector, options_selector,
+    },
     game::{Game, GameMode, Winner},
-    player::Player,
+    rock::Rock,
 };
-use draw::{display_winner, draw_recommended_move};
 use macroquad::prelude::*;
+use macroquad::ui::{root_ui, Skin};
 
 const GRID_WINDOW_SIZE: usize = 800;
 const PANEL_WINDOW_SIZE: usize = 200;
 const BORDER_OFFSET: usize = 22;
 const SQUARE_SIZE: usize = 42;
 const BUTTTON_HEIGTH: f32 = 70.;
-const BUTTTON_LENGHT: f32 = 200.;
+const BUTTTON_LENGTH: f32 = 200.;
 
 mod board;
 mod computer;
@@ -23,6 +26,7 @@ mod game;
 mod options;
 mod pattern;
 mod player;
+mod rock;
 mod rules;
 
 fn window_conf() -> Conf {
@@ -38,17 +42,47 @@ fn window_conf() -> Conf {
 #[cfg(not(feature = "cli_ava"))]
 #[macroquad::main(window_conf)]
 async fn main() {
+    // Add skin for checkboxes
+    let default_skin = {
+        let checkbox_style = root_ui()
+            .style_builder()
+            .color_selected(GREEN)
+            .color_hovered(RED)
+            .color_clicked(BLUE)
+            .color_selected_hovered(GREEN)
+            .color(RED)
+            .build();
+        Skin {
+            checkbox_style,
+            ..root_ui().default_skin()
+        }
+    };
+    root_ui().push_skin(&default_skin);
+
     let mut game = Game::default();
     let mut b_mouse_pressed: bool = false;
 
     loop {
         clear_background(BEIGE);
 
-        // Draw grid
-        if !game.playing {
-            game_selector(&mut game);
-        } else {
-            // Draw game
+        // Options
+        if game.in_options {
+            options_selector(&mut game);
+        }
+        // Game mode selector
+        else if !game.playing {
+            if game_selector(&mut game) {
+                b_mouse_pressed = true;
+            }
+        }
+        // Color selector in PvA
+        else if game.mode == GameMode::PvA && game.player_color == Rock::None {
+            if color_selector(&mut game) {
+                b_mouse_pressed = true;
+            }
+        }
+        // Draw game
+        else {
             draw_goban(&game);
             display_panel_text(&mut game);
 
@@ -59,12 +93,14 @@ async fn main() {
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
                     // Computer Play
-                    if game.mode == GameMode::PvA && game.current_player == Player::Black {
+                    if game.mode == GameMode::PvA && game.current_player == game.computer_play_as {
                         game.play_computer()
                     }
                     // Move preview and await input
                     else {
-                        draw_recommended_move(&mut game);
+                        if game.generate_recommended_move {
+                            draw_recommended_move(&mut game);
+                        }
                         draw_rock_preview(&game);
 
                         // Player play
@@ -74,7 +110,7 @@ async fn main() {
                             && !b_mouse_pressed
                             && (game.mode == GameMode::PvP
                                 || (game.mode == GameMode::PvA
-                                    && game.current_player == Player::White))
+                                    && game.current_player != game.computer_play_as))
                         {
                             b_mouse_pressed = true;
                             let (mouse_x, mouse_y) = mouse_position();

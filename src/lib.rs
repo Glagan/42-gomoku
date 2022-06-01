@@ -6,4 +6,5 @@ pub mod computer;
 pub mod options;
 pub mod pattern;
 pub mod player;
+pub mod rock;
 pub mod rules;
