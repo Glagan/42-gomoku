@@ -97,7 +97,7 @@ impl Default for Finder {
 }
 
 impl Finder {
-    pub fn pawn_to_pattern_pawn(board: &Board, x: usize, y: usize, player: Player) -> u8 {
+    pub fn rock_to_pattern_rock(board: &Board, x: usize, y: usize, player: Player) -> u8 {
         let rock = board.get(x, y);
         if rock == Rock::None {
             0
@@ -143,7 +143,7 @@ impl Finder {
                         *buf.push_back() = if new_x == x && new_y == y {
                             1
                         } else {
-                            Finder::pawn_to_pattern_pawn(
+                            Finder::rock_to_pattern_rock(
                                 board,
                                 new_x as usize,
                                 new_y as usize,
@@ -223,7 +223,7 @@ impl Finder {
                     && (new_y as usize) < BOARD_SIZE
                 {
                     *buf.push_back() =
-                        Finder::pawn_to_pattern_pawn(board, new_x as usize, new_y as usize, player);
+                        Finder::rock_to_pattern_rock(board, new_x as usize, new_y as usize, player);
                     length += 1;
                     if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
                         let has_best_pattern = best_pattern_index.is_some();
@@ -292,8 +292,8 @@ impl Finder {
     }
 
     // TODO
-    pub fn movement_patterns_score(&self, patterns: &PatternCount) -> i64 {
-        let mut score: i64 = 0;
+    pub fn movement_patterns_score(&self, patterns: &PatternCount) -> i32 {
+        let mut score: i32 = 0;
         if patterns.five_in_row > 0 {
             score += 100000;
         }
@@ -316,7 +316,7 @@ impl Finder {
             score += 2000;
         }
         if patterns.dead_four > 0 {
-            score += patterns.dead_four as i64 * 50;
+            score += patterns.dead_four as i32 * 50;
         }
         if patterns.live_two > 0 {
             score += 200;
@@ -324,7 +324,7 @@ impl Finder {
         score
     }
 
-    pub fn movement_score(&self, board: &Board, movement: &Move) -> i64 {
+    pub fn movement_score(&self, board: &Board, movement: &Move) -> i32 {
         let patterns = self.count_movement_patterns(board, movement);
         self.movement_patterns_score(&patterns)
     }

@@ -157,15 +157,21 @@ impl Game {
             };
             if self.board.is_move_legal(&self.rules, &movement) {
                 self.board.set_move(&self.rules, &movement);
-                // self.board.display_all_bitboards();
                 self.recommended_move = None;
                 self.add_rock_move(Board::coordinates_to_index(x, y));
-                // TODO
+                // TODO >
+                if self.board.is_winning(&self.rules, self.current_player) {
+                    self.player_won();
+                } else {
+                    self.next_player();
+                }
                 /*if self.board.move_make_win(&self.rules, &movement) {
                     self.player_won();
                 } else {
                     self.next_player();
                 }*/
+                // TODO <
+                println!("{}", self.board);
             }
         }
     }
@@ -176,7 +182,7 @@ impl Game {
         }
         let play_result = self
             .computer
-            .play(&self.rules, &mut self.board, 6, self.current_player);
+            .play(&self.rules, &mut self.board, 4, self.current_player);
         if let Ok(play) = play_result {
             self.recommended_move = play.movement;
         }
@@ -186,7 +192,7 @@ impl Game {
     pub fn play_computer(&mut self) {
         let play_result = self
             .computer
-            .play(&self.rules, &mut self.board, 6, self.current_player);
+            .play(&self.rules, &mut self.board, 4, self.current_player);
         if let Ok(play) = play_result {
             let play_time = self.play_time.elapsed();
             if self.computer_average_play_time == 0. {
@@ -204,16 +210,21 @@ impl Game {
             println!("computer played: {} in {}ms", play, play_time.as_millis());
             if let Some(movement) = play.movement {
                 self.board.set_move(&self.rules, &movement);
-                // self.board.display_all_bitboards();
                 self.add_rock_move(movement.index);
-                // TODO
+                // TODO >
+                if self.board.is_winning(&self.rules, self.current_player) {
+                    self.player_won();
+                } else {
+                    self.next_player();
+                }
                 /*if self.board.move_make_win(&self.rules, &movement) {
                     self.player_won();
                 } else {
                     self.next_player();
                 }*/
+                // TODO <
+                println!("{}", self.board);
             }
-            println!("{}", self.board);
         } else {
             println!("{}", "computer returned an empty play result".red());
         }
