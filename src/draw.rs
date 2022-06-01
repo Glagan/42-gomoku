@@ -189,6 +189,7 @@ pub fn game_selector(game: &mut Game) -> bool {
 }
 
 pub fn display_panel_text(game: &mut Game) {
+    let mut y_offset = TEXT_OFFSET;
     let play_time = game.play_time.elapsed().as_millis();
     draw_text(
         if play_time > 1000 {
@@ -212,52 +213,95 @@ pub fn display_panel_text(game: &mut Game) {
         }
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET,
-        POLICE_SIZE,
-        BLACK,
-    );
-    let previous_play_time = game.previous_play_time.as_millis();
-    draw_text(
-        if previous_play_time > 1000 {
-            format!(
-                "Previous: {:.2}s",
-                if game.winner != Winner::None {
-                    0.
-                } else {
-                    game.previous_play_time.as_secs_f32()
-                },
-            )
-        } else {
-            format!(
-                "Previous: {}ms",
-                if game.winner != Winner::None {
-                    0
-                } else {
-                    previous_play_time
-                },
-            )
-        }
-        .as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 2.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
 
+    y_offset += TEXT_OFFSET;
+    let previous_play_time = game.previous_play_time.as_millis();
+    draw_text(
+        if previous_play_time > 1000 {
+            format!("Previous: {:.2}s", game.previous_play_time.as_secs_f32())
+        } else {
+            format!("Previous: {}ms", previous_play_time)
+        }
+        .as_str(),
+        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+        y_offset,
+        POLICE_SIZE,
+        BLACK,
+    );
+
+    y_offset += TEXT_OFFSET;
+    let highest_play_time = game.computer_highest_play_time.as_millis();
+    draw_text(
+        if highest_play_time > 1000 {
+            format!(
+                "Highest: {:.2}s",
+                game.computer_highest_play_time.as_secs_f32()
+            )
+        } else {
+            format!("Highest: {:.0}ms", highest_play_time)
+        }
+        .as_str(),
+        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+        y_offset,
+        POLICE_SIZE,
+        BLACK,
+    );
+
+    y_offset += TEXT_OFFSET;
+    draw_text(
+        if game.computer_average_play_time > 1000. {
+            format!("Average: {:.2}s", game.computer_average_play_time)
+        } else {
+            format!("Average: {:.0}ms", game.computer_average_play_time)
+        }
+        .as_str(),
+        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+        y_offset,
+        POLICE_SIZE,
+        BLACK,
+    );
+
+    y_offset += TEXT_OFFSET;
+    let lowest_play_time = game.computer_lowest_play_time.as_millis();
+    draw_text(
+        if lowest_play_time > 1000 {
+            format!(
+                "Lowest: {:.2}s",
+                game.computer_lowest_play_time.as_secs_f32()
+            )
+        } else {
+            format!("Lowest: {:.0}ms", lowest_play_time)
+        }
+        .as_str(),
+        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+        y_offset,
+        POLICE_SIZE,
+        BLACK,
+    );
+
+    y_offset += TEXT_OFFSET;
     draw_text(
         format!("Black capture: {}", game.board.black.captures).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 3.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
+    y_offset += TEXT_OFFSET;
     draw_text(
         format!("White capture: {}", game.board.white.captures).as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 4.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
+    y_offset += TEXT_OFFSET;
     draw_text(
         format!(
             "Player: {}",
@@ -269,10 +313,11 @@ pub fn display_panel_text(game: &mut Game) {
         )
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        TEXT_OFFSET * 5.,
+        y_offset,
         POLICE_SIZE,
         BLACK,
     );
+
     let surrender_button = widgets::Button::new(
         if game.mode == GameMode::AvA || game.winner != Winner::None {
             "Back"
@@ -288,7 +333,15 @@ pub fn display_panel_text(game: &mut Game) {
     .ui(&mut root_ui());
 
     if surrender_button {
-        game.playing = false;
+        if game.winner == Winner::None {
+            game.winner = if game.current_player == Player::Black {
+                Winner::White
+            } else {
+                Winner::Black
+            };
+        } else {
+            game.playing = false;
+        }
     }
 }
 
