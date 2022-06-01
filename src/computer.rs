@@ -109,198 +109,6 @@ impl Computer {
         }
     }
 
-    // #[allow(dead_code)]
-    // fn minimax(
-    //     &mut self,
-    //     rules: &RuleSet,
-    //     action: MinimaxAction,
-    //     depth: usize,
-    //     player: &Player,
-    //     maximize: &Player,
-    // ) -> Result<Evaluation, String> {
-    //     // Check cache to see if the board was already computed
-    //     if self.cache(player).contains_key(&action.board.pieces) {
-    //         let cache_entry = self.cache(player).get(&action.board.pieces).unwrap();
-    //         if cache_entry.rocks >= action.board.rocks {
-    //             return Ok(Evaluation {
-    //                 score: cache_entry.score,
-    //                 movement: cache_entry.movement,
-    //             });
-    //         }
-    //     }
-
-    //     // Check if it's a leaf and compute it's value
-    //     if depth == 0 || action.board.is_winning(rules, player) {
-    //         if action.movement.is_none() {
-    //             return Err("Empty movement in negamax leaf".to_string());
-    //         }
-    //         let score = self.evaluate_action(&action);
-    //         return Ok(Evaluation {
-    //             score,
-    //             movement: None,
-    //         });
-    //     }
-
-    //     // Iterate each neighbor moves
-    //     let other_player = if *player == Player::Black {
-    //         &Player::White
-    //     } else {
-    //         &Player::Black
-    //     };
-    //     if player == maximize {
-    //         let mut max_eval = Evaluation {
-    //             score: i64::min_value() + 1,
-    //             movement: None,
-    //         };
-    //         for movement in action.board.intersections_legal_moves(rules, player).iter() {
-    //             let new_board = action.board.apply_move(rules, movement);
-    //             let eval = self.minimax(
-    //                 rules,
-    //                 MinimaxAction {
-    //                     board: &new_board,
-    //                     movement: Some(*movement),
-    //                 },
-    //                 depth - 1,
-    //                 other_player,
-    //                 maximize,
-    //             )?;
-    //             if eval.score > max_eval.score {
-    //                 max_eval.score = eval.score;
-    //                 max_eval.movement = Some(*movement);
-    //             }
-    //         }
-
-    //         // Add to cache
-    //         self.cache(player)
-    //             .entry(action.board.pieces)
-    //             .or_insert(CacheEntry {
-    //                 score: max_eval.score,
-    //                 rocks: action.board.rocks,
-    //                 flag: CacheFlag::Exact,
-    //                 movement: max_eval.movement,
-    //             });
-
-    //         Ok(max_eval)
-    //     } else {
-    //         let mut min_eval = Evaluation {
-    //             score: i64::max_value(),
-    //             movement: None,
-    //         };
-    //         for movement in action.board.intersections_legal_moves(rules, player).iter() {
-    //             let new_board = action.board.apply_move(rules, movement);
-    //             let eval = self.minimax(
-    //                 rules,
-    //                 MinimaxAction {
-    //                     board: &new_board,
-    //                     movement: Some(*movement),
-    //                 },
-    //                 depth - 1,
-    //                 other_player,
-    //                 maximize,
-    //             )?;
-    //             if eval.score < min_eval.score {
-    //                 min_eval.score = eval.score;
-    //                 min_eval.movement = Some(*movement);
-    //             }
-    //         }
-
-    //         // Add to cache
-    //         self.cache(player)
-    //             .entry(action.board.pieces)
-    //             .or_insert(CacheEntry {
-    //                 score: min_eval.score,
-    //                 rocks: action.board.rocks,
-    //                 flag: CacheFlag::Exact,
-    //                 movement: min_eval.movement,
-    //             });
-
-    //         Ok(min_eval)
-    //     }
-    // }
-
-    /*fn minimax_alpha_beta(
-        &mut self,
-        rules: &RuleSet,
-        board: &Board,
-        depth: usize,
-        alpha: i64,
-        beta: i64,
-        player: &Player,
-        maximize: &Player,
-    ) -> Result<Evaluation, String> {
-        if depth == 0 || board.is_winning(rules, player) {
-            let scores = Computer::evaluate_board(board);
-            return Ok(Evaluation {
-                score: if player == &Player::Black {
-                    scores.0
-                } else {
-                    scores.1
-                },
-                movement: None,
-            });
-        }
-        let other_player = if *player == Player::Black {
-            &Player::White
-        } else {
-            &Player::Black
-        };
-        if player == maximize {
-            let mut alpha = alpha;
-            let mut best_eval = Evaluation {
-                score: i64::min_value(),
-                movement: None,
-            };
-            for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement);
-                let eval = self.minimax_alpha_beta(
-                    rules,
-                    &new_board,
-                    depth - 1,
-                    alpha,
-                    beta,
-                    other_player,
-                    maximize,
-                )?;
-                if eval.score > alpha {
-                    alpha = eval.score;
-                    best_eval.score = eval.score;
-                    best_eval.movement = Some(movement.clone());
-                }
-                if beta <= alpha {
-                    break;
-                }
-            }
-            Ok(best_eval)
-        } else {
-            let mut beta = beta;
-            let mut best_eval = Evaluation {
-                score: i64::max_value(),
-                movement: None,
-            };
-            for movement in board.intersections_legal_moves(rules, player).iter() {
-                let new_board = board.apply_move(rules, movement);
-                let eval = self.minimax_alpha_beta(
-                    rules,
-                    &new_board,
-                    depth - 1,
-                    alpha,
-                    beta,
-                    other_player,
-                    maximize,
-                )?;
-                if eval.score < beta {
-                    beta = eval.score;
-                    best_eval.score = eval.score;
-                    best_eval.movement = Some(movement.clone());
-                }
-                if beta <= alpha {
-                    break;
-                }
-            }
-            Ok(best_eval)
-        }
-    }*/
-
     fn negamax_alpha_beta(
         &mut self,
         rules: &RuleSet,
@@ -423,7 +231,7 @@ impl Computer {
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
             eval.score = -eval.score;
-            if eval.win_move {
+            /*if eval.win_move {
                 best_eval.score = eval.score;
                 best_eval.movement = Some(sorted_movement.movement);
                 best_eval.win_move = true;
@@ -434,14 +242,14 @@ impl Computer {
                 best_eval.movement = Some(sorted_movement.movement);
                 best_eval.save_move = true;
                 break;
-            }
+            }*/
             if eval.score > best_eval.score {
                 alpha = eval.score;
                 best_eval.score = eval.score;
                 best_eval.movement = Some(sorted_movement.movement);
-            }
-            if alpha >= beta {
-                break;
+                if alpha >= beta {
+                    break;
+                }
             }
         }
 

@@ -112,6 +112,13 @@ impl Default for Finder {
             },
             // --
             DualPattern {
+                left: bitarr![1, 1, 0, 1, 1],
+                right: bitarr![0, 0, 1, 0, 0],
+                central_bit: vec![3],
+                category: Category::KilledFive,
+            },
+            // --
+            DualPattern {
                 left: bitarr![1, 0, 0, 1, 0, 0],
                 right: bitarr![1, 1, 1, 1, 1, 1],
                 central_bit: vec![1, 2, 4, 5],
