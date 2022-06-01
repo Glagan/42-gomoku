@@ -616,7 +616,7 @@ impl Board {
                     self.black.rocks.push(rock);
                 }
                 self.all_rocks.push(rock);
-                self.pieces[movement.index] = opponent_rock;
+                self.pieces[rock] = opponent_rock;
             }
         }
         // Restore rock
