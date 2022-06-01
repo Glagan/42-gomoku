@@ -461,7 +461,7 @@ impl Board {
                     {
                         1
                     } else {
-                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, &player)
+                        Finder::pawn_to_pattern_pawn(self, new_x as usize, new_y as usize, player)
                     };
                     length += 1;
                     if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
@@ -491,7 +491,7 @@ impl Board {
             return false;
         }
         if created_free_threes == 1 {
-            return !self.has_free_three(&movement.player);
+            return !self.has_free_three(movement.player);
         }
         true
     }
@@ -581,14 +581,14 @@ impl Board {
     }
 
     // All *legal* possible movements from the intersections for a given player
-    pub fn intersections_legal_moves(&self, rules: &RuleSet, player: &Player) -> Vec<Move> {
+    pub fn intersections_legal_moves(&self, rules: &RuleSet, player: Player) -> Vec<Move> {
         // Analyze each intersections and check if a Rock can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
         for index in intersections.iter() {
             let movement = Move {
-                player: *player,
+                player,
                 index: *index,
             };
             if self.is_move_legal(rules, &movement) {
@@ -599,14 +599,14 @@ impl Board {
     }
 
     // All possible movements from the intersections for a given player
-    pub fn intersections_all_moves(&self, rules: &RuleSet, player: &Player) -> Vec<PossibleMove> {
+    pub fn intersections_all_moves(&self, rules: &RuleSet, player: Player) -> Vec<PossibleMove> {
         // Analyze each intersections and check if a Rock can be set on it
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<PossibleMove> = vec![];
         for index in intersections.iter() {
             let movement = Move {
-                player: *player,
+                player,
                 index: *index,
             };
             moves.push(PossibleMove {
@@ -801,9 +801,9 @@ impl Board {
         new_board
     }
 
-    pub fn has_free_three(&self, player: &Player) -> bool {
+    pub fn has_free_three(&self, player: Player) -> bool {
         let free_three_pattern: [usize; 5] = [0, 1, 1, 1, 0];
-        let rocks = if player == &Player::Black {
+        let rocks = if player == Player::Black {
             &self.black_rocks
         } else {
             &self.white_rocks
@@ -967,8 +967,8 @@ impl Board {
     // [0 1 0 0 0 0] with 1 in any position, but mirrored v
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
-    pub fn has_uncaptured_five_in_a_row(&self, player: &Player) -> bool {
-        let rocks = if player == &Player::Black {
+    pub fn has_uncaptured_five_in_a_row(&self, player: Player) -> bool {
+        let rocks = if player == Player::Black {
             &self.black_rocks
         } else {
             &self.white_rocks
@@ -1023,8 +1023,8 @@ impl Board {
         false
     }
 
-    pub fn has_five_in_a_row(&self, player: &Player) -> bool {
-        let rocks = if player == &Player::Black {
+    pub fn has_five_in_a_row(&self, player: Player) -> bool {
+        let rocks = if player == Player::Black {
             &self.black_rocks
         } else {
             &self.white_rocks
@@ -1072,10 +1072,10 @@ impl Board {
 
     // Check if the given player is winning on the current board
     // (Has an unbreakable winning position according to the rules)
-    pub fn is_winning(&self, rules: &RuleSet, player: &Player) -> bool {
+    pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
         if rules.capture
-            && ((player == &Player::Black && self.black_capture >= 10)
-                || (player == &Player::White && self.white_capture >= 10))
+            && ((player == Player::Black && self.black_capture >= 10)
+                || (player == Player::White && self.white_capture >= 10))
         {
             return true;
         }
