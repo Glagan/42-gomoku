@@ -2,12 +2,15 @@
 extern crate lazy_static;
 
 use crate::{
-    draw::{display_panel_text, draw_goban, draw_rock_preview, game_selector},
+    draw::{
+        display_panel_text, display_winner, draw_goban, draw_recommended_move, draw_rock_preview,
+        game_selector, options_selector,
+    },
     game::{Game, GameMode, Winner},
     player::Player,
 };
-use draw::{display_winner, draw_recommended_move};
 use macroquad::prelude::*;
+use macroquad::ui::{root_ui, Skin};
 
 const GRID_WINDOW_SIZE: usize = 800;
 const PANEL_WINDOW_SIZE: usize = 200;
@@ -39,19 +42,41 @@ fn window_conf() -> Conf {
 #[cfg(not(feature = "cli_ava"))]
 #[macroquad::main(window_conf)]
 async fn main() {
+    // Add skin for checkboxes
+    let default_skin = {
+        let checkbox_style = root_ui()
+            .style_builder()
+            .color_selected(GREEN)
+            .color_hovered(RED)
+            .color_clicked(BLUE)
+            .color_selected_hovered(GREEN)
+            .color(RED)
+            .build();
+        Skin {
+            checkbox_style,
+            ..root_ui().default_skin()
+        }
+    };
+    root_ui().push_skin(&default_skin);
+
     let mut game = Game::default();
     let mut b_mouse_pressed: bool = false;
 
     loop {
         clear_background(BEIGE);
 
-        // Draw grid
-        if !game.playing {
+        // Options
+        if game.in_options {
+            options_selector(&mut game);
+        }
+        // Game mode selector
+        else if !game.playing {
             if game_selector(&mut game) {
                 b_mouse_pressed = true;
             }
-        } else {
-            // Draw game
+        }
+        // Draw game
+        else {
             draw_goban(&game);
             display_panel_text(&mut game);
 
@@ -67,7 +92,9 @@ async fn main() {
                     }
                     // Move preview and await input
                     else {
-                        draw_recommended_move(&mut game);
+                        if game.generate_recommended_move {
+                            draw_recommended_move(&mut game);
+                        }
                         draw_rock_preview(&game);
 
                         // Player play

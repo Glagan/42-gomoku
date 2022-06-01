@@ -1,13 +1,14 @@
 use crate::{
     board::{Board, Move, Rock},
     computer::Computer,
+    options::Options,
     player::Player,
     rules::RuleSet,
 };
 use colored::Colorize;
 use std::time::{Duration, Instant};
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum GameMode {
     None,
     PvP,
@@ -24,11 +25,14 @@ pub enum Winner {
 }
 
 pub struct Game {
+    pub in_options: bool,
+    pub options: Options,
     pub playing: bool,
     pub board: Board,
     pub mode: GameMode,
     pub rules: RuleSet,
     pub computer: Computer,
+    pub generate_recommended_move: bool,
     pub recommended_move: Option<Move>,
     pub play_time: Instant,
     pub previous_play_time: Duration,
@@ -43,11 +47,14 @@ pub struct Game {
 impl Default for Game {
     fn default() -> Self {
         Game {
+            in_options: false,
+            options: Options::default(),
             playing: false,
             board: Board::default(),
             mode: GameMode::None,
             rules: RuleSet::default(),
             computer: Computer::default(),
+            generate_recommended_move: false,
             recommended_move: None,
             play_time: Instant::now(),
             previous_play_time: Duration::from_millis(0),
@@ -63,10 +70,10 @@ impl Default for Game {
 
 impl Game {
     pub fn reset(&mut self) {
+        self.in_options = false;
         self.playing = false;
         self.board = Board::default();
         self.mode = GameMode::None;
-        self.rules = RuleSet::default();
         self.computer = Computer::default();
         self.recommended_move = None;
         self.play_time = Instant::now();
@@ -86,6 +93,10 @@ impl Game {
             self.rules.game_ending_capture = false;
         }
         self.mode = mode;
+        println!(
+            "Starting a game [{:#?}] with rules: {:#?}",
+            mode, self.rules
+        );
         self.playing = true;
     }
 

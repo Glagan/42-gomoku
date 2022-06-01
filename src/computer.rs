@@ -91,8 +91,8 @@ pub struct Computer {
 
 impl Computer {
     pub fn clean(&mut self) {
-        self.black_cache = HashMap::new();
-        self.white_cache = HashMap::new();
+        // self.black_cache = HashMap::new();
+        // self.white_cache = HashMap::new();
     }
 
     // Calculate the patterns created by a movement and return it's score

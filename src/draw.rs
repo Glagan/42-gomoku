@@ -7,7 +7,7 @@ use crate::{
 };
 use macroquad::{
     color::Color,
-    color_u8,
+    color_u8, hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
         measure_text, mouse_position, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
@@ -149,7 +149,50 @@ pub fn draw_rock_preview(game: &Game) {
     }
 }
 
+pub fn options_selector(game: &mut Game) {
+    let ui = &mut root_ui();
+    ui.checkbox(hash!(), "Enable Capture", &mut game.rules.capture);
+    ui.checkbox(
+        hash!(),
+        "Enable game ending capture",
+        &mut game.rules.game_ending_capture,
+    );
+    ui.checkbox(
+        hash!(),
+        "Disallow double free three",
+        &mut game.rules.no_double_three,
+    );
+    ui.checkbox(
+        hash!(),
+        "Generate recommended moves",
+        &mut game.generate_recommended_move,
+    );
+
+    let back_button = widgets::Button::new("Back")
+        .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(ui);
+    if back_button {
+        game.in_options = false;
+    }
+}
+
 pub fn game_selector(game: &mut Game) -> bool {
+    let options_button = widgets::Button::new("Options")
+        .size(Vec2::new(BUTTTON_LENGHT - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGHT - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70.,
+        ))
+        .ui(&mut root_ui());
+    if options_button {
+        game.in_options = true;
+        return false;
+    }
+
     let pvp_button = widgets::Button::new("Start PvP game")
         .size(Vec2::new(BUTTTON_LENGHT, BUTTTON_HEIGTH))
         .position(Vec2::new(
@@ -233,73 +276,77 @@ pub fn display_panel_text(game: &mut Game) {
         BLACK,
     );
 
-    y_offset += TEXT_OFFSET;
-    let highest_play_time = game.computer_highest_play_time.as_millis();
-    draw_text(
-        if highest_play_time > 1000 {
-            format!(
-                "Highest: {:.2}s",
-                game.computer_highest_play_time.as_secs_f32()
-            )
-        } else {
-            format!("Highest: {:.0}ms", highest_play_time)
-        }
-        .as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        y_offset,
-        POLICE_SIZE,
-        BLACK,
-    );
+    if game.mode != GameMode::PvP {
+        y_offset += TEXT_OFFSET;
+        let highest_play_time = game.computer_highest_play_time.as_millis();
+        draw_text(
+            if highest_play_time > 1000 {
+                format!(
+                    "Highest: {:.2}s",
+                    game.computer_highest_play_time.as_secs_f32()
+                )
+            } else {
+                format!("Highest: {:.0}ms", highest_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
 
-    y_offset += TEXT_OFFSET;
-    draw_text(
-        if game.computer_average_play_time > 1000. {
-            format!("Average: {:.2}s", game.computer_average_play_time)
-        } else {
-            format!("Average: {:.0}ms", game.computer_average_play_time)
-        }
-        .as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        y_offset,
-        POLICE_SIZE,
-        BLACK,
-    );
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            if game.computer_average_play_time > 1000. {
+                format!("Average: {:.2}s", game.computer_average_play_time)
+            } else {
+                format!("Average: {:.0}ms", game.computer_average_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
 
-    y_offset += TEXT_OFFSET;
-    let lowest_play_time = game.computer_lowest_play_time.as_millis();
-    draw_text(
-        if lowest_play_time > 1000 {
-            format!(
-                "Lowest: {:.2}s",
-                game.computer_lowest_play_time.as_secs_f32()
-            )
-        } else {
-            format!("Lowest: {:.0}ms", lowest_play_time)
-        }
-        .as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        y_offset,
-        POLICE_SIZE,
-        BLACK,
-    );
+        y_offset += TEXT_OFFSET;
+        let lowest_play_time = game.computer_lowest_play_time.as_millis();
+        draw_text(
+            if lowest_play_time > 1000 {
+                format!(
+                    "Lowest: {:.2}s",
+                    game.computer_lowest_play_time.as_secs_f32()
+                )
+            } else {
+                format!("Lowest: {:.0}ms", lowest_play_time)
+            }
+            .as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+    }
 
-    y_offset += TEXT_OFFSET;
-    draw_text(
-        format!("Black capture: {}", game.board.black.captures).as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        y_offset,
-        POLICE_SIZE,
-        BLACK,
-    );
+    if game.rules.capture {
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            format!("Black capture: {}", game.board.black.captures).as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
 
-    y_offset += TEXT_OFFSET;
-    draw_text(
-        format!("White capture: {}", game.board.white.captures).as_str(),
-        GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
-        y_offset,
-        POLICE_SIZE,
-        BLACK,
-    );
+        y_offset += TEXT_OFFSET;
+        draw_text(
+            format!("White capture: {}", game.board.white.captures).as_str(),
+            GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
+            y_offset,
+            POLICE_SIZE,
+            BLACK,
+        );
+    }
 
     y_offset += TEXT_OFFSET;
     draw_text(
