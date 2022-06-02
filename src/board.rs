@@ -1,7 +1,5 @@
 use crate::{
-    constants::{
-        BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS, OPPOSITE_DIRECTIONS,
-    },
+    constants::{BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
     macros::coord,
     player::Player,
     rock::Rock,
@@ -184,31 +182,6 @@ impl Board {
             }
         }
         true
-    }
-
-    #[allow(clippy::manual_range_contains)]
-    pub fn count_repeating(
-        &self,
-        coordinates: &Coordinates,
-        direction: &(i16, i16),
-        expect: Rock,
-    ) -> u8 {
-        let mut i: u8 = 1;
-        let (mut check_x, mut check_y) = (
-            coordinates.x + direction.0 * i as i16,
-            coordinates.y + direction.1 * i as i16,
-        );
-        while check_x >= 0
-            && check_x < BOARD_SIZE
-            && check_y >= 0
-            && check_y < BOARD_SIZE
-            && self.get(check_x, check_y) == expect
-        {
-            i += 1;
-            check_x = coordinates.x + direction.0 * i as i16;
-            check_y = coordinates.y + direction.1 * i as i16;
-        }
-        i - 1
     }
 
     // Pattern: [0 1 1 1 0]
@@ -472,19 +445,47 @@ impl Board {
         let self_rock = movement.player.rock();
         let opponent_rock = self_rock.opponent();
 
-        let pattern = &[(-1, Rock::None), (1, self_rock), (2, opponent_rock)];
-        for (left, right) in &OPPOSITE_DIRECTIONS {
-            if self.count_repeating(coordinates, left, self_rock)
-                + self.count_repeating(coordinates, right, self_rock)
-                >= 4
-            {
-                // Pattern: [0 1 1 2] where
-                // With the rock possibly in either [1] positions
-                if DIRECTIONS
-                    .iter()
-                    .all(|direction| !self.check_pattern(coordinates, direction, pattern))
-                {
-                    return true;
+        let five_patterns = [
+            &[
+                (1, self_rock),
+                (2, self_rock),
+                (3, self_rock),
+                (4, self_rock),
+            ],
+            &[
+                (-1, self_rock),
+                (1, self_rock),
+                (2, self_rock),
+                (3, self_rock),
+            ],
+            &[
+                (-2, self_rock),
+                (-1, self_rock),
+                (1, self_rock),
+                (1, self_rock),
+            ],
+        ];
+        let capture_pattern = &[(-1, Rock::None), (1, self_rock), (2, opponent_rock)];
+
+        for direction in &DIRECTIONS {
+            for pattern in five_patterns {
+                if self.check_pattern(coordinates, direction, pattern) {
+                    // Iterate on each rock in the five in a row to check that it's not under capture
+                    if pattern.iter().all(|(mov, _)| {
+                        let other_coord = coord!(
+                            coordinates.x + direction.0 * mov,
+                            coordinates.y + direction.1 * mov
+                        );
+                        // Pattern: [0 1 1 2] where
+                        // With the rock possibly in either [1] positions
+                        DIRECTIONS.iter().all(|direction| {
+                            !self.check_pattern(&other_coord, direction, capture_pattern)
+                        })
+                    }) && DIRECTIONS.iter().all(|direction| {
+                        !self.check_pattern(coordinates, direction, capture_pattern)
+                    }) {
+                        return true;
+                    }
                 }
             }
         }
@@ -495,12 +496,33 @@ impl Board {
     pub fn move_create_five_in_a_row(&self, movement: &Move) -> bool {
         let coordinates = &movement.coordinates;
         let self_rock = movement.player.rock();
-        for (left, right) in &OPPOSITE_DIRECTIONS {
-            if self.count_repeating(coordinates, left, self_rock)
-                + self.count_repeating(coordinates, right, self_rock)
-                >= 4
-            {
-                return true;
+
+        let five_patterns = [
+            &[
+                (1, self_rock),
+                (2, self_rock),
+                (3, self_rock),
+                (4, self_rock),
+            ],
+            &[
+                (-1, self_rock),
+                (1, self_rock),
+                (2, self_rock),
+                (3, self_rock),
+            ],
+            &[
+                (-2, self_rock),
+                (-1, self_rock),
+                (1, self_rock),
+                (1, self_rock),
+            ],
+        ];
+
+        for direction in &DIRECTIONS {
+            for pattern in five_patterns {
+                if self.check_pattern(coordinates, direction, pattern) {
+                    return true;
+                }
             }
         }
         false
