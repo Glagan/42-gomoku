@@ -3,7 +3,6 @@ use macroquad::{color_u8, prelude::Color};
 // Board
 pub const BOARD_SIZE: i16 = 19;
 pub const BOARD_SIZE_USIZE: usize = BOARD_SIZE as usize;
-pub const BOARD_PIECES: i16 = BOARD_SIZE * BOARD_SIZE;
 pub const BOARD_PIECES_USIZE: usize = BOARD_SIZE_USIZE * BOARD_SIZE_USIZE;
 pub const DIRECTIONS: [(i16, i16); 8] = [
     (-1, -1),
