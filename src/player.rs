@@ -7,11 +7,21 @@ pub enum Player {
 }
 
 impl Player {
+    #[inline(always)]
     pub fn rock(&self) -> Rock {
-        if *self == Player::Black {
+        if self == &Player::Black {
             Rock::Black
         } else {
             Rock::White
+        }
+    }
+
+    #[inline(always)]
+    pub fn opponent(&self) -> Player {
+        if self == &Player::Black {
+            Player::White
+        } else {
+            Player::Black
         }
     }
 }

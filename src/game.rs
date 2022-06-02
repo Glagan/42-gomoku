@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Move},
+    board::{Board, Coordinates, Move},
     computer::Computer,
     options::Options,
     player::Player,
@@ -44,7 +44,7 @@ pub struct Game {
     pub computer_lowest_play_time: Duration,
     pub current_player: Player,
     pub winner: Winner,
-    pub rock_move: Vec<usize>,
+    pub rock_move: Vec<Coordinates>,
 }
 
 impl Default for Game {
@@ -127,8 +127,8 @@ impl Game {
         self.playing = true;
     }
 
-    pub fn add_rock_move(&mut self, index: usize) {
-        self.rock_move.push(index)
+    pub fn add_rock_move(&mut self, coordinates: Coordinates) {
+        self.rock_move.push(coordinates)
     }
 
     pub fn player_won(&mut self) {
@@ -149,16 +149,16 @@ impl Game {
         self.play_time = Instant::now();
     }
 
-    pub fn play_player(&mut self, x: usize, y: usize) {
-        if self.board.get(x, y) == Rock::None {
+    pub fn play_player(&mut self, coordinates: Coordinates) {
+        if self.board.get(coordinates.x, coordinates.y) == Rock::None {
             let movement = Move {
-                index: Board::coordinates_to_index(x, y),
+                coordinates,
                 player: self.current_player,
             };
             if self.board.is_move_legal(&self.rules, &movement) {
                 self.board.set_move(&self.rules, &movement);
                 self.recommended_move = None;
-                self.add_rock_move(Board::coordinates_to_index(x, y));
+                self.add_rock_move(coordinates);
                 // TODO >
                 if self.board.is_winning(&self.rules, self.current_player) {
                     self.player_won();
@@ -210,7 +210,7 @@ impl Game {
             println!("computer played: {} in {}ms", play, play_time.as_millis());
             if let Some(movement) = play.movement {
                 self.board.set_move(&self.rules, &movement);
-                self.add_rock_move(movement.index);
+                self.add_rock_move(movement.coordinates);
                 // TODO >
                 if self.board.is_winning(&self.rules, self.current_player) {
                     self.player_won();

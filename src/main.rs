@@ -2,27 +2,24 @@
 extern crate lazy_static;
 
 use crate::{
+    constants::{GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, SQUARE_SIZE},
     draw::{
         color_selector, display_panel_text, display_winner, draw_goban, draw_recommended_move,
         draw_rock_preview, game_selector, options_selector,
     },
     game::{Game, GameMode, Winner},
+    macros::coord,
     rock::Rock,
 };
 use macroquad::prelude::*;
 use macroquad::ui::{root_ui, Skin};
 
-const GRID_WINDOW_SIZE: usize = 800;
-const PANEL_WINDOW_SIZE: usize = 200;
-const BORDER_OFFSET: usize = 22;
-const SQUARE_SIZE: usize = 42;
-const BUTTTON_HEIGTH: f32 = 70.;
-const BUTTTON_LENGTH: f32 = 200.;
-
 mod board;
 mod computer;
+mod constants;
 mod draw;
 mod game;
+mod macros;
 mod options;
 mod pattern;
 mod player;
@@ -117,10 +114,10 @@ async fn main() {
                             if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
                                 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
                             {
-                                game.play_player(
-                                    mouse_x as usize / SQUARE_SIZE,
-                                    mouse_y as usize / SQUARE_SIZE,
-                                );
+                                game.play_player(coord!(
+                                    mouse_x as i16 / SQUARE_SIZE,
+                                    mouse_y as i16 / SQUARE_SIZE
+                                ));
                             }
                         }
                     }

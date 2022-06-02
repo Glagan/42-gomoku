@@ -123,11 +123,10 @@ impl Computer {
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
         player: Player,
-        maximize: Player,
+        color: i32,
     ) -> Result<Evaluation, String> {
         // let alpha_orig = iteration.alpha;
         let mut alpha = iteration.alpha;
-        let beta = iteration.beta;
 
         // Check cache to see if the board was already computed
         /*if self.cache(player).contains_key(&action.board.pieces) {
@@ -162,7 +161,6 @@ impl Computer {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
-            let color = if player == maximize { 1 } else { -1 };
             let score = self.evaluate_action(&action);
             return Ok(Evaluation {
                 score: color * score,
@@ -183,12 +181,12 @@ impl Computer {
             .iter()
             .map(|&movement| SortedMove {
                 movement,
-                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
+                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, &movement.coordinates),
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
-            let mut eval = self.negamax_alpha_beta(
+            let eval = self.negamax_alpha_beta(
                 rules,
                 MinimaxAction {
                     board: action.board,
@@ -196,23 +194,20 @@ impl Computer {
                 },
                 AlphaBetaIteration {
                     depth: iteration.depth - 1,
-                    alpha: -beta,
+                    alpha: -iteration.beta,
                     beta: -alpha,
                 },
-                if player == Player::Black {
-                    Player::White
-                } else {
-                    Player::Black
-                },
-                maximize,
+                player.opponent(),
+                -color,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            //eval.score = -eval.score;
-            if eval.score > best_eval.score {
-                alpha = alpha.max(eval.score);
-                best_eval.score = eval.score;
+            // let score = -eval.score;
+            let score = eval.score;
+            if score > best_eval.score {
+                alpha = score;
+                best_eval.score = score;
                 best_eval.movement = Some(sorted_movement.movement);
-                if alpha >= beta {
+                if alpha >= iteration.beta {
                     break;
                 }
             }
@@ -277,15 +272,16 @@ impl Computer {
                 } else {
                     Player::Black
                 },
-                maximize,
+                1,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
             //eval.score = -eval.score;
-            if eval.score > best_eval.score {
-                alpha = alpha.max(eval.score);
-                best_eval.score = eval.score;
+            let score = eval.score;
+            if score > best_eval.score {
+                alpha = score;
+                best_eval.score = score;
                 best_eval.movement = Some(sorted_movement.movement);
-                if alpha >= beta {
+                if alpha >= iteration.beta {
                     break;
                 }
             }
@@ -305,7 +301,7 @@ impl Computer {
             .iter()
             .map(|&movement| SortedMove {
                 movement,
-                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
+                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, &movement.coordinates),
             })
             .collect();
 
