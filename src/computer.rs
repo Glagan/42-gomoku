@@ -207,7 +207,7 @@ impl Computer {
                 maximize,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            eval.score = -eval.score;
+            //eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = alpha.max(eval.score);
                 best_eval.score = eval.score;
@@ -280,7 +280,7 @@ impl Computer {
                 maximize,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            eval.score = -eval.score;
+            //eval.score = -eval.score;
             if eval.score > best_eval.score {
                 alpha = alpha.max(eval.score);
                 best_eval.score = eval.score;
@@ -333,97 +333,97 @@ impl Computer {
         // self.black_cache.retain(|_, v| v.moves >= board.moves);
         // self.white_cache.retain(|_, v| v.moves >= board.moves);
 
-        let action = MinimaxAction {
-            board,
-            movement: None,
-        };
+        /*WITHOUT THREAD */
+        // let action = MinimaxAction {
+        //     board,
+        //     movement: None,
+        // };
 
-        let moves: BinaryHeap<SortedMove> = action
-            .board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| SortedMove {
-                movement,
-                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
-            })
-            .collect();
+        // let moves: BinaryHeap<SortedMove> = action
+        //     .board
+        //     .intersections_legal_moves(rules, player)
+        //     .iter()
+        //     .map(|&movement| SortedMove {
+        //         movement,
+        //         pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
+        //     })
+        //     .collect();
 
-        let best_move = self.launch_one_thread(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-            },
-            AlphaBetaIteration {
-                depth,
-                alpha: i32::min_value() + 1,
-                beta: i32::max_value(),
-            },
-            player,
-            player,
-            moves,
-        );
-
-        best_move
-
-        // //Get all possible moves to launch them in multiple threads
-        // let sorted_list_of_moves = self.get_all_first_movements_sorted(
+        // let best_move = self.launch_one_thread(
         //     rules,
         //     MinimaxAction {
         //         board,
         //         movement: None,
         //     },
+        //     AlphaBetaIteration {
+        //         depth,
+        //         alpha: i32::min_value() + 1,
+        //         beta: i32::max_value(),
+        //     },
         //     player,
+        //     player,
+        //     moves,
         // );
+        // best_move
+        /* WITHOUT THREAD */
 
-        // //Open channel
-        // let (tx, rx) = mpsc::channel();
+        //Get all possible moves to launch them in multiple threads
+        let sorted_list_of_moves = self.get_all_first_movements_sorted(
+            rules,
+            MinimaxAction {
+                board,
+                movement: None,
+            },
+            player,
+        );
 
-        // for moves in sorted_list_of_moves {
-        //     let rules_clone = rules.clone();
-        //     let mut board_clone = board.clone();
-        //     let mut self_clone = self.clone();
-        //     let tx_clone = tx.clone();
+        //Open channel
+        let (tx, rx) = mpsc::channel();
 
-        //     thread::spawn(move || {
-        //         let thread_result = self_clone.launch_one_thread(
-        //             &rules_clone,
-        //             MinimaxAction {
-        //                 board: &mut board_clone,
-        //                 movement: None,
-        //             },
-        //             AlphaBetaIteration {
-        //                 depth,
-        //                 alpha: i32::min_value() + 1,
-        //                 beta: i32::max_value(),
-        //             },
-        //             player,
-        //             player,
-        //             moves,
-        //         );
-        //         let _ = tx_clone.send(thread_result);
-        //     });
-        // }
+        for moves in sorted_list_of_moves {
+            let rules_clone = rules.clone();
+            let mut board_clone = board.clone();
+            let mut self_clone = self.clone();
+            let tx_clone = tx.clone();
 
-        // let mut best_move = Evaluation {
-        //     score: 0,
-        //     movement: None,
-        // };
+            thread::spawn(move || {
+                let thread_result = self_clone.launch_one_thread(
+                    &rules_clone,
+                    MinimaxAction {
+                        board: &mut board_clone,
+                        movement: None,
+                    },
+                    AlphaBetaIteration {
+                        depth,
+                        alpha: i32::min_value() + 1,
+                        beta: i32::max_value(),
+                    },
+                    player,
+                    player,
+                    moves,
+                );
+                let _ = tx_clone.send(thread_result);
+            });
+        }
 
-        // for i in 0..NB_THREAD {
-        //     let thread_result = rx.recv().unwrap().unwrap();
-        //     println!("Return of thread nb {} | score {}", i, thread_result.score);
-        //     if thread_result.score > best_move.score {
-        //         println!(
-        //             "Better score found, prev {} | new {}",
-        //             best_move.score, thread_result.score
-        //         );
-        //         best_move.score = thread_result.score;
-        //         best_move.movement = thread_result.movement;
-        //     }
-        // }
+        let mut best_move = Evaluation {
+            score: 0,
+            movement: None,
+        };
 
-        // // Apply negamax recursively d);
-        // Ok(best_move)
+        for i in 0..NB_THREAD {
+            let thread_result = rx.recv().unwrap().unwrap();
+            //println!("Return of thread nb {} | score {}", i, thread_result.score);
+            if thread_result.score >= best_move.score {
+                // println!(
+                //     "Better score found, prev {} | new {}",
+                //     best_move.score, thread_result.score
+                // );
+                best_move.score = thread_result.score;
+                best_move.movement = thread_result.movement;
+            }
+        }
+
+        Ok(best_move)
     }
 }

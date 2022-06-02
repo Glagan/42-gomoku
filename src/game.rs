@@ -171,7 +171,7 @@ impl Game {
                     self.next_player();
                 }*/
                 // TODO <
-                println!("{}", self.board);
+                //println!("{}", self.board);
             }
         }
     }
@@ -223,7 +223,7 @@ impl Game {
                     self.next_player();
                 }*/
                 // TODO <
-                println!("{}", self.board);
+                //println!("{}", self.board);
             }
         } else {
             println!("{}", "computer returned an empty play result".red());
