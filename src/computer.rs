@@ -333,64 +333,97 @@ impl Computer {
         // self.black_cache.retain(|_, v| v.moves >= board.moves);
         // self.white_cache.retain(|_, v| v.moves >= board.moves);
 
-        // Get all possible moves to launch them in multiple threads
-        let sorted_list_of_moves = self.get_all_first_movements_sorted(
+        let action = MinimaxAction {
+            board,
+            movement: None,
+        };
+
+        let moves: BinaryHeap<SortedMove> = action
+            .board
+            .intersections_legal_moves(rules, player)
+            .iter()
+            .map(|&movement| SortedMove {
+                movement,
+                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
+            })
+            .collect();
+
+        let best_move = self.launch_one_thread(
             rules,
             MinimaxAction {
                 board,
                 movement: None,
             },
+            AlphaBetaIteration {
+                depth,
+                alpha: i32::min_value() + 1,
+                beta: i32::max_value(),
+            },
             player,
+            player,
+            moves,
         );
 
-        //Open channel
-        let (tx, rx) = mpsc::channel();
+        best_move
 
-        for moves in sorted_list_of_moves {
-            let rules_clone = rules.clone();
-            let mut board_clone = board.clone();
-            let mut self_clone = self.clone();
-            let tx_clone = tx.clone();
+        // //Get all possible moves to launch them in multiple threads
+        // let sorted_list_of_moves = self.get_all_first_movements_sorted(
+        //     rules,
+        //     MinimaxAction {
+        //         board,
+        //         movement: None,
+        //     },
+        //     player,
+        // );
 
-            thread::spawn(move || {
-                let thread_result = self_clone.launch_one_thread(
-                    &rules_clone,
-                    MinimaxAction {
-                        board: &mut board_clone,
-                        movement: None,
-                    },
-                    AlphaBetaIteration {
-                        depth,
-                        alpha: i32::min_value() + 1,
-                        beta: i32::max_value(),
-                    },
-                    player,
-                    player,
-                    moves,
-                );
-                let _ = tx_clone.send(thread_result);
-            });
-        }
+        // //Open channel
+        // let (tx, rx) = mpsc::channel();
 
-        let mut best_move = Evaluation {
-            score: 0,
-            movement: None,
-        };
+        // for moves in sorted_list_of_moves {
+        //     let rules_clone = rules.clone();
+        //     let mut board_clone = board.clone();
+        //     let mut self_clone = self.clone();
+        //     let tx_clone = tx.clone();
 
-        for i in 0..NB_THREAD {
-            let thread_result = rx.recv().unwrap().unwrap();
-            println!("Return of thread nb {} | score {}", i, thread_result.score);
-            if thread_result.score > best_move.score {
-                println!(
-                    "Better score found, prev {} | new {}",
-                    best_move.score, thread_result.score
-                );
-                best_move.score = thread_result.score;
-                best_move.movement = thread_result.movement;
-            }
-        }
+        //     thread::spawn(move || {
+        //         let thread_result = self_clone.launch_one_thread(
+        //             &rules_clone,
+        //             MinimaxAction {
+        //                 board: &mut board_clone,
+        //                 movement: None,
+        //             },
+        //             AlphaBetaIteration {
+        //                 depth,
+        //                 alpha: i32::min_value() + 1,
+        //                 beta: i32::max_value(),
+        //             },
+        //             player,
+        //             player,
+        //             moves,
+        //         );
+        //         let _ = tx_clone.send(thread_result);
+        //     });
+        // }
 
-        // Apply negamax recursively d);
-        Ok(best_move)
+        // let mut best_move = Evaluation {
+        //     score: 0,
+        //     movement: None,
+        // };
+
+        // for i in 0..NB_THREAD {
+        //     let thread_result = rx.recv().unwrap().unwrap();
+        //     println!("Return of thread nb {} | score {}", i, thread_result.score);
+        //     if thread_result.score > best_move.score {
+        //         println!(
+        //             "Better score found, prev {} | new {}",
+        //             best_move.score, thread_result.score
+        //         );
+        //         best_move.score = thread_result.score;
+        //         best_move.movement = thread_result.movement;
+        //     }
+        // }
+
+        // // Apply negamax recursively d);
+        // Ok(best_move)
     }
 }
