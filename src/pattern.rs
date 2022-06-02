@@ -1,5 +1,7 @@
 use crate::{
-    board::{Board, Move, BOARD_SIZE, DIRECTIONS},
+    board::{Board, Coordinates, Move},
+    constants::{BOARD_SIZE, DIRECTIONS},
+    macros::coord,
     player::Player,
     rock::Rock,
 };
@@ -17,15 +19,15 @@ pub enum Pattern {
     DeadTwo = 6,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct PatternCount {
-    pub five_in_row: usize,
-    pub live_four: usize,
-    pub dead_four: usize,
-    pub live_three: usize,
-    pub dead_three: usize,
-    pub live_two: usize,
-    pub dead_two: usize,
+    pub five_in_row: u8,
+    pub live_four: u8,
+    pub dead_four: u8,
+    pub live_three: u8,
+    pub dead_three: u8,
+    pub live_two: u8,
+    pub dead_two: u8,
 }
 
 pub struct Finder {
@@ -97,8 +99,8 @@ impl Default for Finder {
 }
 
 impl Finder {
-    pub fn rock_to_pattern_rock(board: &Board, x: usize, y: usize, player: Player) -> u8 {
-        let rock = board.get(x, y);
+    pub fn rock_to_pattern_rock(board: &Board, coordinates: &Coordinates, player: Player) -> u8 {
+        let rock = board.get(coordinates.x, coordinates.y);
         if rock == Rock::None {
             0
         } else if (rock == Rock::Black && player == Player::Black)
@@ -110,9 +112,13 @@ impl Finder {
         }
     }
 
-    pub fn best_pattern_for_rock(&self, board: &Board, rock_index: usize) -> Option<Pattern> {
+    pub fn best_pattern_for_rock(
+        &self,
+        board: &Board,
+        coordinates: &Coordinates,
+    ) -> Option<Pattern> {
         let mut best_pattern: Option<Pattern> = None;
-        let (x, y) = Board::index_to_coordinates(rock_index);
+        let (x, y) = (coordinates.x, coordinates.y);
         let rock = board.get(x, y);
         if rock == Rock::None {
             let player = if rock == Rock::Black {
@@ -120,7 +126,6 @@ impl Finder {
             } else {
                 Player::White
             };
-            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
             let mut best_pattern_index: Option<usize> = None;
             // Sliding window of 7 (patterns length)
             let mut buf = FixedVecDeque::<[u8; 7]>::new();
@@ -133,22 +138,17 @@ impl Finder {
                 let mut mov_x = dir_x * -7;
                 let mut mov_y = dir_y * -7;
                 for _ in 0..13 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    let new_coords = coord!(x + mov_x, y + mov_y);
                     // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
+                    if new_coords.x >= 0
+                        && new_coords.y >= 0
+                        && new_coords.x < BOARD_SIZE
+                        && new_coords.y < BOARD_SIZE
                     {
-                        *buf.push_back() = if new_x == x && new_y == y {
+                        *buf.push_back() = if new_coords.x == x && new_coords.y == y {
                             1
                         } else {
-                            Finder::rock_to_pattern_rock(
-                                board,
-                                new_x as usize,
-                                new_y as usize,
-                                player,
-                            )
+                            Finder::rock_to_pattern_rock(board, &new_coords, player)
                         };
                         length += 1;
                         if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
@@ -202,8 +202,7 @@ impl Finder {
         // Sliding window of 6 (patterns length)
         let mut buf = FixedVecDeque::<[u8; 7]>::new();
         // Iterate trough each rocks on the board
-        let (x, y) = Board::index_to_coordinates(movement.index);
-        let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
+        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
         for (dir_x, dir_y) in DIRECTIONS {
             // Initialize to -7 so the first 7 elements
             // -- can be set and the last one is the initial rock
@@ -215,15 +214,14 @@ impl Finder {
             let mut mov_x = dir_x * -7;
             let mut mov_y = dir_y * -7;
             for _ in 0..13 {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
+                let new_coords = coord!(x + mov_x, y + mov_y);
                 // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
+                if new_coords.x >= 0
+                    && new_coords.y >= 0
+                    && new_coords.x < BOARD_SIZE
+                    && new_coords.y < BOARD_SIZE
                 {
-                    *buf.push_back() =
-                        Finder::rock_to_pattern_rock(board, new_x as usize, new_y as usize, player);
+                    *buf.push_back() = Finder::rock_to_pattern_rock(board, &new_coords, player);
                     length += 1;
                     if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
                         let has_best_pattern = best_pattern_index.is_some();

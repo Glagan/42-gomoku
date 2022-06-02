@@ -1,29 +1,22 @@
 use crate::{
-    board::{Board, BOARD_PIECES, BOARD_SIZE},
+    constants::{
+        BEIGE_SEMI, BLACK_SEMI, BOARD_SIZE, BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH,
+        FONT_SIZE, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, POLICE_SIZE, SQUARE_SIZE, TEXT_OFFSET,
+        WHITE_SEMI, WIN_FONT_SIZE,
+    },
     game::{Game, GameMode, Winner},
+    macros::coord,
     player::Player,
     rock::Rock,
-    BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE,
-    SQUARE_SIZE,
 };
 use macroquad::{
-    color::Color,
-    color_u8, hash,
+    hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
         measure_text, mouse_position, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
-
-const TEXT_OFFSET: f32 = 20.;
-const FONT_SIZE: u16 = 20;
-const WIN_FONT_SIZE: u16 = 30;
-const POLICE_SIZE: f32 = 20.;
-
-const BLACK_SEMI: Color = color_u8!(0, 0, 0, 200);
-const WHITE_SEMI: Color = color_u8!(255, 255, 255, 200);
-const BEIGE_SEMI: Color = color_u8!(212, 176, 130, 255);
 
 pub fn draw_goban(game: &Game) {
     let board = &game.board;
@@ -74,8 +67,8 @@ pub fn draw_goban(game: &Game) {
         .board
         .intersections_all_moves(&game.rules, game.current_player);
     for movement in movements {
-        if board.pieces[movement.index] == Rock::None {
-            let (x, y) = Board::index_to_coordinates(movement.index);
+        if board.get(movement.coordinates.x, movement.coordinates.y) == Rock::None {
+            let (x, y) = (movement.coordinates.x, movement.coordinates.y);
             let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
             let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
             draw_circle(draw_x, draw_y, 4.0, if movement.legal { BLUE } else { RED });
@@ -84,34 +77,36 @@ pub fn draw_goban(game: &Game) {
     }
 
     // Draw rocks
-    for i in 0..BOARD_PIECES {
-        if board.pieces[i] != Rock::None {
-            let (x, y) = Board::index_to_coordinates(i);
-            draw_circle(
-                (x * SQUARE_SIZE + BORDER_OFFSET) as f32,
-                (y * SQUARE_SIZE + BORDER_OFFSET) as f32,
-                20.,
-                if board.pieces[i] == Rock::Black {
-                    BLACK
-                } else {
-                    WHITE
-                },
-            );
-            // Move number on top of the rock
-            if let Some(move_number) = game.rock_move.iter().rposition(|&r| r == i) {
-                let move_text = format!("{}", move_number + 1).to_string();
-                let text_size = measure_text(&move_text, None, FONT_SIZE, 1.);
-                draw_text(
-                    &move_text,
-                    (x * SQUARE_SIZE + BORDER_OFFSET) as f32 - text_size.width / 2.,
-                    (y * SQUARE_SIZE + BORDER_OFFSET) as f32 + text_size.height / 2.,
-                    POLICE_SIZE,
-                    if board.pieces[i] == Rock::Black {
-                        WHITE
-                    } else {
+    for x in 0..BOARD_SIZE {
+        for y in 0..BOARD_SIZE {
+            if board.get(x, y) != Rock::None {
+                let coordinates = coord!(x, y);
+                draw_circle(
+                    (x * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                    (y * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                    20.,
+                    if board.get(x, y) == Rock::Black {
                         BLACK
+                    } else {
+                        WHITE
                     },
                 );
+                // Move number on top of the rock
+                if let Some(move_number) = game.rock_move.iter().rposition(|&r| r == coordinates) {
+                    let move_text = format!("{}", move_number + 1).to_string();
+                    let text_size = measure_text(&move_text, None, FONT_SIZE, 1.);
+                    draw_text(
+                        &move_text,
+                        (x * SQUARE_SIZE + BORDER_OFFSET) as f32 - text_size.width / 2.,
+                        (y * SQUARE_SIZE + BORDER_OFFSET) as f32 + text_size.height / 2.,
+                        POLICE_SIZE,
+                        if board.get(x, y) == Rock::Black {
+                            WHITE
+                        } else {
+                            BLACK
+                        },
+                    );
+                }
             }
         }
     }
@@ -120,8 +115,12 @@ pub fn draw_goban(game: &Game) {
 pub fn draw_recommended_move(game: &mut Game) {
     let movement = game.computer_recommended_move();
     if let Some(movement) = movement {
-        if game.board.pieces[movement.index] == Rock::None {
-            let (x, y) = Board::index_to_coordinates(movement.index);
+        if game
+            .board
+            .get(movement.coordinates.x, movement.coordinates.y)
+            == Rock::None
+        {
+            let (x, y) = (movement.coordinates.x, movement.coordinates.y);
             let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
             let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
             draw_circle(draw_x, draw_y, 4.0, MAGENTA);
@@ -133,8 +132,8 @@ pub fn draw_recommended_move(game: &mut Game) {
 pub fn draw_rock_preview(game: &Game) {
     let (mouse_x, mouse_y) = mouse_position();
     if mouse_x < (GRID_WINDOW_SIZE - 2) as f32 && mouse_y < (GRID_WINDOW_SIZE - 2) as f32 {
-        let rock_x = (mouse_x - 1.) as usize / SQUARE_SIZE;
-        let rock_y = (mouse_y - 1.) as usize / SQUARE_SIZE;
+        let rock_x = (mouse_x - 1.) as i16 / SQUARE_SIZE;
+        let rock_y = (mouse_y - 1.) as i16 / SQUARE_SIZE;
         if game.board.get(rock_x, rock_y) == Rock::None {
             draw_circle(
                 (rock_x * SQUARE_SIZE + BORDER_OFFSET) as f32,

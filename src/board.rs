@@ -1,40 +1,50 @@
-use crate::{pattern::Finder, player::Player, rock::Rock, rules::RuleSet};
+use crate::{
+    constants::{BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
+    macros::coord,
+    pattern::Finder,
+    player::Player,
+    rock::Rock,
+    rules::RuleSet,
+};
 use colored::Colorize;
 use fixed_vec_deque::FixedVecDeque;
 use std::fmt;
 
+#[derive(Default, PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Coordinates {
+    pub x: i16,
+    pub y: i16,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Move {
     pub player: Player,
-    pub index: usize, // Index of the piece to place
+    pub coordinates: Coordinates, // Index of the piece to place
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct PossibleMove {
-    pub index: usize,
+    pub coordinates: Coordinates,
     pub legal: bool,
 }
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (x, y) = Board::index_to_coordinates(self.index);
         if self.player == Player::Black {
             write!(
                 f,
-                "{} {} ({}x{})",
+                "{} {}x{}",
                 "black".white().on_black(),
-                self.index,
-                x,
-                y
+                self.coordinates.x,
+                self.coordinates.y,
             )
         } else {
             write!(
                 f,
-                "{} {} ({}x{})",
+                "{} {}x{}",
                 "white".black().on_white(),
-                self.index,
-                x,
-                y
+                self.coordinates.x,
+                self.coordinates.y,
             )
         }
     }
@@ -44,48 +54,37 @@ impl fmt::Display for Move {
 pub struct PlayerState {
     pub captures: usize,
     // Index of all of the player rocks
-    pub rocks: Vec<usize>,
+    pub rocks: Vec<Coordinates>,
 }
 
 impl Default for PlayerState {
     fn default() -> Self {
         let mut rocks = vec![];
-        rocks.reserve(BOARD_PIECES);
+        rocks.reserve(BOARD_PIECES_USIZE);
         Self { captures: 0, rocks }
     }
 }
 
-pub const BOARD_SIZE: usize = 19;
-pub const BOARD_PIECES: usize = BOARD_SIZE * BOARD_SIZE;
-pub const DIRECTIONS: [(i16, i16); 8] = [
-    (-1, -1),
-    (-1, 0),
-    (-1, 1),
-    (0, -1),
-    (0, 1),
-    (1, -1),
-    (1, 0),
-    (1, 1),
-];
-
 #[derive(Clone)]
 pub struct Board {
-    pub pieces: [Rock; BOARD_PIECES],
+    pub pieces: [[Rock; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
+    // Number of moves executed to reach the current Board state
     pub moves: u16,
     pub black: PlayerState,
     pub white: PlayerState,
-    pub all_rocks: Vec<usize>,
-    pub moves_restore: Vec<Vec<usize>>,
+    pub all_rocks: Vec<Coordinates>,
+    // Rocks to restore (to undo a capture) when undoing the last move
+    pub moves_restore: Vec<Vec<Coordinates>>,
 }
 
 impl Default for Board {
     fn default() -> Board {
         let mut moves_restore = vec![];
-        moves_restore.reserve(BOARD_PIECES);
+        moves_restore.reserve(BOARD_PIECES_USIZE);
         let mut all_rocks = vec![];
-        all_rocks.reserve(BOARD_PIECES);
+        all_rocks.reserve(BOARD_PIECES_USIZE);
         Board {
-            pieces: [Rock::None; BOARD_PIECES],
+            pieces: [[Rock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
             moves: 0,
             black: PlayerState::default(),
             white: PlayerState::default(),
@@ -97,31 +96,30 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for row in 0..BOARD_SIZE {
+        for (x_index, row) in self.pieces.iter().enumerate() {
             write!(
                 f,
                 "{}",
-                self.pieces[(BOARD_SIZE * row)..(BOARD_SIZE * (row + 1))]
-                    .iter()
+                row.iter()
                     .enumerate()
-                    .map(|(i, p)| format!(
+                    .map(|(y_index, p)| format!(
                         "{: >3}",
                         if p == &Rock::Black {
-                            format!("{}", row * BOARD_SIZE + i)
+                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE)
                                 .white()
                                 .on_bright_black()
                         } else if p == &Rock::White {
-                            format!("{}", row * BOARD_SIZE + i).black().on_white()
+                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE)
+                                .black()
+                                .on_white()
                         } else {
-                            format!("{}", row * BOARD_SIZE + i).dimmed()
+                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE).dimmed()
                         }
                     ))
                     .collect::<Vec<String>>()
                     .join(" ")
             )?;
-            if row != BOARD_SIZE - 1 {
-                writeln!(f)?;
-            }
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -129,46 +127,36 @@ impl fmt::Display for Board {
 
 impl Board {
     // Helper function to get a Board case with (x, y) coordinates
-    pub fn get(&self, x: usize, y: usize) -> Rock {
-        self.pieces[Board::coordinates_to_index(x, y)]
+    #[inline(always)]
+    pub fn get(&self, x: i16, y: i16) -> Rock {
+        self.pieces[y as usize][x as usize]
     }
 
-    pub fn index_to_coordinates(index: usize) -> (usize, usize) {
-        (
-            index % BOARD_SIZE,
-            (index as f64 / BOARD_SIZE as f64) as usize,
-        )
-    }
-
-    pub fn coordinates_to_index(x: usize, y: usize) -> usize {
-        x + (y * BOARD_SIZE)
+    #[inline(always)]
+    pub fn get_mut(&mut self, x: i16, y: i16) -> &mut Rock {
+        &mut self.pieces[y as usize][x as usize]
     }
 
     // All open intersections for the current Board
     // -- Empty cases within other pieces
-    pub fn open_intersections(&self) -> Vec<usize> {
+    pub fn open_intersections(&self) -> Vec<Coordinates> {
         // Only the center intersection is available if there is no previous moves
         if self.moves == 0 {
-            return vec![((BOARD_SIZE as f64 / 2.) * BOARD_SIZE as f64) as usize];
+            return vec![coord!(BOARD_SIZE / 2, BOARD_SIZE / 2)];
         }
-        let mut intersections: Vec<usize> = vec![];
+        let mut intersections: Vec<Coordinates> = vec![];
         for existing_rock in self.all_rocks.iter() {
-            let (x, y) = Board::index_to_coordinates(*existing_rock);
-            let (x, y): (i16, i16) = (x.try_into().unwrap(), y.try_into().unwrap());
             for (mov_x, mov_y) in DIRECTIONS {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
+                let new_coords = coord!(existing_rock.x + mov_x, existing_rock.y + mov_y);
                 // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
+                if new_coords.x >= 0
+                    && new_coords.y >= 0
+                    && new_coords.x < BOARD_SIZE
+                    && new_coords.y < BOARD_SIZE
                 {
-                    let rock = self.get(new_x as usize, new_y as usize);
-                    if rock == Rock::None {
-                        let index = Board::coordinates_to_index(new_x as usize, new_y as usize);
-                        if !intersections.contains(&index) {
-                            intersections.push(index);
-                        }
+                    let rock = self.get(new_coords.x, new_coords.y);
+                    if rock == Rock::None && !intersections.contains(&new_coords) {
+                        intersections.push(new_coords);
                     }
                 }
             }
@@ -183,7 +171,7 @@ impl Board {
         let player = movement.player;
         let self_rock = player.rock();
         let no_rock = Rock::None;
-        let (x, y) = Board::index_to_coordinates(movement.index);
+        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
 
         // Horizontal
         let mut total = 0;
@@ -297,8 +285,7 @@ impl Board {
     pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
         let player = movement.player;
         let player_rock = player.rock();
-        let pos = Board::index_to_coordinates(movement.index);
-        let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
         let mut buf = FixedVecDeque::<[u8; 6]>::new();
         let mut total = 0;
         // Check all 8 directions from the rock to see if there is a free three pattern
@@ -309,20 +296,20 @@ impl Board {
             let mut mov_x = dir_x * -6;
             let mut mov_y = dir_y * -6;
             for _ in 0..12 {
-                let (new_x, new_y) = (x + mov_x, y + mov_y);
+                let new_coords = coord!(x + mov_x, y + mov_y);
                 // Check Board boundaries
-                if new_x >= 0
-                    && new_y >= 0
-                    && (new_x as usize) < BOARD_SIZE
-                    && (new_y as usize) < BOARD_SIZE
+                if new_coords.x >= 0
+                    && new_coords.y >= 0
+                    && new_coords.x < BOARD_SIZE
+                    && new_coords.y < BOARD_SIZE
                 {
                     // 1 for player rock and 0 for anything else
-                    *buf.push_back() = if new_x == x && new_y == y
-                        || self.get(new_x as usize, new_y as usize) == player_rock
+                    *buf.push_back() = if new_coords.x == x && new_coords.y == y
+                        || self.get(new_coords.x, new_coords.y) == player_rock
                     {
                         1
                     } else {
-                        Finder::rock_to_pattern_rock(self, new_x as usize, new_y as usize, player)
+                        Finder::rock_to_pattern_rock(self, &new_coords, player)
                     };
                     length += 1;
                     if length >= 6 && (buf == [0, 1, 0, 1, 1, 0] || buf == [0, 1, 1, 0, 1, 0]) {
@@ -353,7 +340,7 @@ impl Board {
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
     fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
         let player = movement.player;
-        let (x, y) = Board::index_to_coordinates(movement.index);
+        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
         let self_rock = player.rock();
         let other_rock = self_rock.opponent();
 
@@ -441,10 +428,10 @@ impl Board {
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
-        for index in intersections.iter() {
+        for coordinates in intersections.iter() {
             let movement = Move {
                 player,
-                index: *index,
+                coordinates: *coordinates,
             };
             if self.is_move_legal(rules, &movement) {
                 moves.push(movement);
@@ -459,14 +446,14 @@ impl Board {
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<PossibleMove> = vec![];
-        for index in intersections.iter() {
+        for coordinates in intersections.iter() {
             let movement = Move {
                 player,
-                index: *index,
+                coordinates: *coordinates,
             };
             moves.push(PossibleMove {
-                index: *index,
                 legal: self.is_move_legal(rules, &movement),
+                coordinates: *coordinates,
             });
         }
         moves
@@ -475,8 +462,8 @@ impl Board {
     fn check_capture(&mut self, movement: &Move) {
         let player_rock: Rock;
         let opponent_rock: Rock;
-        let (x, y) = Board::index_to_coordinates(movement.index);
-        let mut captures: Vec<usize> = vec![];
+        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
+        let mut captures: Vec<Coordinates> = vec![];
 
         if movement.player == Player::Black {
             player_rock = Rock::Black;
@@ -487,83 +474,83 @@ impl Board {
         }
 
         if x >= 3
-            && self.pieces[movement.index - 1] == opponent_rock
-            && self.pieces[movement.index - 2] == opponent_rock
-            && self.pieces[movement.index - 3] == player_rock
+            && self.get(x - 1, y) == opponent_rock
+            && self.get(x - 2, y) == opponent_rock
+            && self.get(x - 3, y) == player_rock
         {
-            captures.push(movement.index - 1);
-            captures.push(movement.index - 2);
+            captures.push(coord!(x - 1, y));
+            captures.push(coord!(x - 2, y));
         }
         if x + 3 < BOARD_SIZE
-            && self.pieces[movement.index + 1] == opponent_rock
-            && self.pieces[movement.index + 2] == opponent_rock
-            && self.pieces[movement.index + 3] == player_rock
+            && self.get(x + 1, y) == opponent_rock
+            && self.get(x + 2, y) == opponent_rock
+            && self.get(x + 3, y) == player_rock
         {
-            captures.push(movement.index + 1);
-            captures.push(movement.index + 2);
+            captures.push(coord!(x + 1, y));
+            captures.push(coord!(x + 2, y));
         }
         if y >= 3
-            && self.pieces[movement.index - BOARD_SIZE] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 2)] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 3)] == player_rock
+            && self.get(x, y - 1) == opponent_rock
+            && self.get(x, y - 2) == opponent_rock
+            && self.get(x, y - 3) == player_rock
         {
-            captures.push(movement.index - BOARD_SIZE);
-            captures.push(movement.index - (BOARD_SIZE * 2));
+            captures.push(coord!(x, y - 1));
+            captures.push(coord!(x, y - 2));
         }
         if y + 3 < BOARD_SIZE
-            && self.pieces[movement.index + BOARD_SIZE] == opponent_rock
-            && self.pieces[movement.index + BOARD_SIZE * 2] == opponent_rock
-            && self.pieces[movement.index + BOARD_SIZE * 3] == player_rock
+            && self.get(x, y + 1) == opponent_rock
+            && self.get(x, y + 2) == opponent_rock
+            && self.get(x, y + 3) == player_rock
         {
-            captures.push(movement.index + BOARD_SIZE);
-            captures.push(movement.index + BOARD_SIZE * 2);
+            captures.push(coord!(x, y + 1));
+            captures.push(coord!(x, y + 2));
         }
         if y >= 3
             && x >= 3
-            && self.pieces[movement.index - BOARD_SIZE - 1] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 2) - 2] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 3) - 3] == player_rock
+            && self.get(x - 1, y - 1) == opponent_rock
+            && self.get(x - 2, y - 2) == opponent_rock
+            && self.get(x - 3, y - 3) == player_rock
         {
-            captures.push(movement.index - BOARD_SIZE - 1);
-            captures.push(movement.index - (BOARD_SIZE * 2) - 2);
+            captures.push(coord!(x - 1, y - 1));
+            captures.push(coord!(x - 2, y - 2));
         }
         if y + 3 < BOARD_SIZE
             && x >= 3
-            && self.pieces[movement.index + BOARD_SIZE - 1] == opponent_rock
-            && self.pieces[movement.index + (BOARD_SIZE * 2) - 2] == opponent_rock
-            && self.pieces[movement.index + (BOARD_SIZE * 3) - 3] == player_rock
+            && self.get(x - 1, y + 1) == opponent_rock
+            && self.get(x - 2, y + 2) == opponent_rock
+            && self.get(x - 3, y + 3) == player_rock
         {
-            captures.push(movement.index + BOARD_SIZE - 1);
-            captures.push(movement.index + (BOARD_SIZE * 2) - 2);
+            captures.push(coord!(x - 1, y + 1));
+            captures.push(coord!(x - 2, y + 2));
         }
         if y + 3 < BOARD_SIZE
-            && x + 3 <= BOARD_SIZE
-            && self.pieces[movement.index + BOARD_SIZE + 1] == opponent_rock
-            && self.pieces[movement.index + (BOARD_SIZE * 2) + 2] == opponent_rock
-            && self.pieces[movement.index + (BOARD_SIZE * 3) + 3] == player_rock
+            && x + 3 < BOARD_SIZE
+            && self.get(x + 1, y + 1) == opponent_rock
+            && self.get(x + 2, y + 2) == opponent_rock
+            && self.get(x + 3, y + 3) == player_rock
         {
-            captures.push(movement.index + BOARD_SIZE + 1);
-            captures.push(movement.index + (BOARD_SIZE * 2) + 2);
+            captures.push(coord!(x + 1, y + 1));
+            captures.push(coord!(x + 2, y + 2));
         }
         if y >= 3
-            && x + 3 <= BOARD_SIZE
-            && self.pieces[movement.index - BOARD_SIZE + 1] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 2) + 2] == opponent_rock
-            && self.pieces[movement.index - (BOARD_SIZE * 3) + 3] == player_rock
+            && x + 3 < BOARD_SIZE
+            && self.get(x + 1, y - 1) == opponent_rock
+            && self.get(x + 2, y - 2) == opponent_rock
+            && self.get(x + 3, y - 3) == player_rock
         {
-            captures.push(movement.index - BOARD_SIZE + 1);
-            captures.push(movement.index - (BOARD_SIZE * 2) + 2);
+            captures.push(coord!(x + 1, y - 1));
+            captures.push(coord!(x + 2, y - 2));
         }
 
-        for &idx in &captures {
-            self.pieces[idx] = Rock::None;
+        for &coordinates in &captures {
+            *self.get_mut(coordinates.x, coordinates.y) = Rock::None;
             if movement.player == Player::Black {
                 self.black.captures += 1;
                 self.white.rocks.swap_remove(
                     self.white
                         .rocks
                         .iter()
-                        .position(|&rock| rock == idx)
+                        .position(|&rock| rock == coordinates)
                         .unwrap(),
                 );
             } else {
@@ -572,28 +559,32 @@ impl Board {
                     self.black
                         .rocks
                         .iter()
-                        .position(|&rock| rock == idx)
+                        .position(|&rock| rock == coordinates)
                         .unwrap(),
                 );
             }
-            self.all_rocks
-                .swap_remove(self.all_rocks.iter().position(|&rock| rock == idx).unwrap());
+            self.all_rocks.swap_remove(
+                self.all_rocks
+                    .iter()
+                    .position(|&rock| rock == coordinates)
+                    .unwrap(),
+            );
         }
         self.moves_restore.push(captures);
     }
 
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
-        self.pieces[movement.index] = movement.player.rock();
+        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = movement.player.rock();
         if rules.capture {
             self.check_capture(movement);
         }
         if movement.player == Player::Black {
-            self.black.rocks.push(movement.index);
+            self.black.rocks.push(movement.coordinates);
         } else {
-            self.white.rocks.push(movement.index);
+            self.white.rocks.push(movement.coordinates);
         }
-        self.all_rocks.push(movement.index);
+        self.all_rocks.push(movement.coordinates);
         self.moves += 1;
     }
 
@@ -616,17 +607,17 @@ impl Board {
                     self.black.rocks.push(rock);
                 }
                 self.all_rocks.push(rock);
-                self.pieces[rock] = opponent_rock;
+                *self.get_mut(rock.x, rock.y) = opponent_rock;
             }
         }
         // Restore rock
-        self.pieces[movement.index] = Rock::None;
+        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = Rock::None;
         if movement.player == Player::Black {
             self.black.rocks.swap_remove(
                 self.black
                     .rocks
                     .iter()
-                    .position(|&rock| rock == movement.index)
+                    .position(|&rock| rock == movement.coordinates)
                     .unwrap(),
             );
         } else {
@@ -634,14 +625,14 @@ impl Board {
                 self.white
                     .rocks
                     .iter()
-                    .position(|&rock| rock == movement.index)
+                    .position(|&rock| rock == movement.coordinates)
                     .unwrap(),
             );
         }
         self.all_rocks.swap_remove(
             self.all_rocks
                 .iter()
-                .position(|&rock| rock == movement.index)
+                .position(|&rock| rock == movement.coordinates)
                 .unwrap(),
         );
         self.moves -= 1;
@@ -649,8 +640,8 @@ impl Board {
 
     // Pattern: [0 1 1 2] where
     // With the rock possibly in either [1] positions
-    fn rock_can_be_captured(&self, index: usize) -> bool {
-        let (x, y) = Board::index_to_coordinates(index);
+    fn rock_can_be_captured(&self, coordinates: &Coordinates) -> bool {
+        let (x, y) = (coordinates.x, coordinates.y);
         let self_rock = self.get(x, y);
         let no_rock = Rock::None;
         let other_rock = self_rock.opponent();
@@ -758,10 +749,9 @@ impl Board {
             &self.white.rocks
         };
         let mut buf = FixedVecDeque::<[u8; 5]>::new();
-        let mut index_buf = FixedVecDeque::<[usize; 5]>::new();
+        let mut index_buf = FixedVecDeque::<[Coordinates; 5]>::new();
         for rock in rocks.iter() {
-            let pos = Board::index_to_coordinates(*rock);
-            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+            let (x, y) = (rock.x, rock.y);
             // Check all 8 directions from the rock to see if there is five in a row
             for (dir_x, dir_y) in DIRECTIONS {
                 // Create a window of length 5 and update it on each move
@@ -772,28 +762,22 @@ impl Board {
                 let mut mov_x = dir_x * -5;
                 let mut mov_y = dir_y * -5;
                 for _ in 0..10 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    let new_coords = coord!(x + mov_x, y + mov_y);
                     // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
+                    if new_coords.x >= 0
+                        && new_coords.y >= 0
+                        && new_coords.x < BOARD_SIZE
+                        && new_coords.y < BOARD_SIZE
                     {
                         // 1 for player rock and 0 for anything else
-                        *buf.push_back() = Finder::rock_to_pattern_rock(
-                            self,
-                            new_x as usize,
-                            new_y as usize,
-                            player,
-                        );
-                        *index_buf.push_back() =
-                            Board::coordinates_to_index(new_x as usize, new_y as usize);
+                        *buf.push_back() = Finder::rock_to_pattern_rock(self, &new_coords, player);
+                        *index_buf.push_back() = new_coords;
                         length += 1;
                         if length >= 5
                             && buf == [1, 1, 1, 1, 1]
                             && index_buf
                                 .iter()
-                                .all(|&index| !self.rock_can_be_captured(index))
+                                .all(|&coords| !self.rock_can_be_captured(&coords))
                         {
                             return true;
                         }
@@ -814,8 +798,7 @@ impl Board {
             &self.white.rocks
         };
         for rock in rocks.iter() {
-            let pos = Board::index_to_coordinates(*rock);
-            let (x, y): (i16, i16) = (pos.0.try_into().unwrap(), pos.1.try_into().unwrap());
+            let (x, y) = (rock.x, rock.y);
             // Check all 8 directions from the rock to see if there is five in a row
             for (dir_x, dir_y) in DIRECTIONS {
                 // Create a window of length 5 and update it on each move
@@ -827,20 +810,15 @@ impl Board {
                 let mut mov_x = dir_x * -5;
                 let mut mov_y = dir_y * -5;
                 for _ in 0..10 {
-                    let (new_x, new_y) = (x + mov_x, y + mov_y);
+                    let new_coords = coord!(x + mov_x, y + mov_y);
                     // Check Board boundaries
-                    if new_x >= 0
-                        && new_y >= 0
-                        && (new_x as usize) < BOARD_SIZE
-                        && (new_y as usize) < BOARD_SIZE
+                    if new_coords.x >= 0
+                        && new_coords.y >= 0
+                        && (new_coords.x) < BOARD_SIZE
+                        && (new_coords.y) < BOARD_SIZE
                     {
                         // 1 for player rock and 0 for anything else
-                        *buf.push_back() = Finder::rock_to_pattern_rock(
-                            self,
-                            new_x as usize,
-                            new_y as usize,
-                            player,
-                        );
+                        *buf.push_back() = Finder::rock_to_pattern_rock(self, &new_coords, player);
                         length += 1;
                         if length >= 5 && buf == [1, 1, 1, 1, 1] {
                             return true;
