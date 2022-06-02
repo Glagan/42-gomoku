@@ -91,7 +91,6 @@ impl Game {
         self.current_player = Player::Black;
         self.winner = Winner::None;
         self.rock_move = vec![];
-        self.computer.clean();
     }
 
     pub fn start_pva(&mut self, color: Rock) {
@@ -136,7 +135,6 @@ impl Game {
             Player::Black => Winner::Black,
             Player::White => Winner::White,
         };
-        self.computer.clean();
     }
 
     pub fn next_player(&mut self) {
