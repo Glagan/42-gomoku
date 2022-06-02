@@ -155,7 +155,12 @@ impl Computer {
         }*/
 
         // Check if it's a leaf and compute it's value
-        if iteration.depth == 0 || action.board.is_winning(rules, player) {
+        let win_move = if let Some(movement) = &action.movement {
+            action.board.move_make_win(rules, movement)
+        } else {
+            false
+        };
+        if iteration.depth == 0 || win_move {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }

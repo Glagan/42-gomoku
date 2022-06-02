@@ -159,18 +159,11 @@ impl Game {
                 self.board.set_move(&self.rules, &movement);
                 self.recommended_move = None;
                 self.add_rock_move(coordinates);
-                // TODO >
-                if self.board.is_winning(&self.rules, self.current_player) {
+                if self.board.move_make_win(&self.rules, &movement) {
                     self.player_won();
                 } else {
                     self.next_player();
                 }
-                /*if self.board.move_make_win(&self.rules, &movement) {
-                    self.player_won();
-                } else {
-                    self.next_player();
-                }*/
-                // TODO <
                 println!("{}", self.board);
             }
         }
@@ -211,18 +204,11 @@ impl Game {
             if let Some(movement) = play.movement {
                 self.board.set_move(&self.rules, &movement);
                 self.add_rock_move(movement.coordinates);
-                // TODO >
-                if self.board.is_winning(&self.rules, self.current_player) {
+                if self.board.move_make_win(&self.rules, &movement) {
                     self.player_won();
                 } else {
                     self.next_player();
                 }
-                /*if self.board.move_make_win(&self.rules, &movement) {
-                    self.player_won();
-                } else {
-                    self.next_player();
-                }*/
-                // TODO <
                 println!("{}", self.board);
             }
         } else {

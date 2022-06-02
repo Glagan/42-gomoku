@@ -467,50 +467,22 @@ impl Board {
     // [0 1 0 0 0 0] with 1 in any position, but mirrored v
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
-    pub fn has_uncaptured_five_in_a_row(&self, player: Player) -> bool {
-        let self_rock = player.rock();
+    pub fn move_create_uncaptured_five_in_a_row(&self, movement: &Move) -> bool {
+        let coordinates = &movement.coordinates;
+        let self_rock = movement.player.rock();
         let opponent_rock = self_rock.opponent();
-        let rocks = if player == Player::Black {
-            &self.black.rocks
-        } else {
-            &self.white.rocks
-        };
+
         let pattern = &[(-1, Rock::None), (1, self_rock), (2, opponent_rock)];
-
-        for rock in rocks.iter() {
-            for (left, right) in &OPPOSITE_DIRECTIONS {
-                if self.count_repeating(rock, left, self_rock)
-                    + self.count_repeating(rock, right, self_rock)
-                    >= 4
-                {
-                    // Pattern: [0 1 1 2] where
-                    // With the rock possibly in either [1] positions
-                    if DIRECTIONS
-                        .iter()
-                        .all(|direction| !self.check_pattern(rock, direction, pattern))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
-
-    pub fn has_five_in_a_row(&self, player: Player) -> bool {
-        let self_rock = player.rock();
-        let rocks = if player == Player::Black {
-            &self.black.rocks
-        } else {
-            &self.white.rocks
-        };
-
-        for rock in rocks.iter() {
-            for (left, right) in &OPPOSITE_DIRECTIONS {
-                if self.count_repeating(rock, left, self_rock)
-                    + self.count_repeating(rock, right, self_rock)
-                    >= 4
+        for (left, right) in &OPPOSITE_DIRECTIONS {
+            if self.count_repeating(coordinates, left, self_rock)
+                + self.count_repeating(coordinates, right, self_rock)
+                >= 4
+            {
+                // Pattern: [0 1 1 2] where
+                // With the rock possibly in either [1] positions
+                if DIRECTIONS
+                    .iter()
+                    .all(|direction| !self.check_pattern(coordinates, direction, pattern))
                 {
                     return true;
                 }
@@ -520,19 +492,34 @@ impl Board {
         false
     }
 
-    // Check if the given player is winning on the current board
+    pub fn move_create_five_in_a_row(&self, movement: &Move) -> bool {
+        let coordinates = &movement.coordinates;
+        let self_rock = movement.player.rock();
+        for (left, right) in &OPPOSITE_DIRECTIONS {
+            if self.count_repeating(coordinates, left, self_rock)
+                + self.count_repeating(coordinates, right, self_rock)
+                >= 4
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    // Check if the given player is winning with the rock from the given movement
     // (Has an unbreakable winning position according to the rules)
-    pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
+    // This function is called *after* a move is made, so the [0] is already on the board
+    pub fn move_make_win(&self, rules: &RuleSet, movement: &Move) -> bool {
         if rules.capture
-            && ((player == Player::Black && self.black.captures >= 10)
-                || (player == Player::White && self.white.captures >= 10))
+            && ((movement.player == Player::Black && self.black.captures >= 10)
+                || (movement.player == Player::White && self.white.captures >= 10))
         {
             return true;
         }
         if rules.game_ending_capture {
-            self.has_uncaptured_five_in_a_row(player)
+            self.move_create_uncaptured_five_in_a_row(movement)
         } else {
-            self.has_five_in_a_row(player)
+            self.move_create_five_in_a_row(movement)
         }
     }
 }
