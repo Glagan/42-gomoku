@@ -1,11 +1,17 @@
 use crate::{
     board::{Board, Coordinates, Move},
     constants::{BOARD_SIZE, DIRECTIONS},
-    macros::coord,
     player::Player,
     rock::Rock,
 };
-use fixed_vec_deque::FixedVecDeque;
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub enum PatternRock {
+    None,
+    Player,
+    Opponent,
+}
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
@@ -31,67 +37,527 @@ pub struct PatternCount {
 }
 
 pub struct Finder {
-    patterns: Vec<(Vec<u8>, u8, Pattern)>,
+    patterns: Vec<(Vec<(i16, PatternRock)>, Pattern)>,
 }
 
 impl Default for Finder {
     fn default() -> Self {
-        let patterns: Vec<(Vec<u8>, u8, Pattern)> = vec![
-            (vec![1, 1, 1, 1, 1], 5, Pattern::FiveInRow),
-            // 2x1
-            (vec![0, 1, 1, 1, 1], 5, Pattern::LiveFour),
-            (vec![1, 1, 1, 1, 0], 5, Pattern::LiveFour),
-            // 3x1
-            (vec![2, 1, 1, 1, 1, 0], 6, Pattern::LiveFour),
-            (vec![0, 1, 1, 1, 1, 2], 6, Pattern::LiveFour),
-            // 4x1
-            (vec![1, 0, 1, 1, 1], 5, Pattern::LiveFour),
-            (vec![1, 1, 0, 1, 1], 5, Pattern::LiveFour),
-            (vec![1, 1, 1, 0, 1], 5, Pattern::LiveFour),
-            // 5x1
-            // (vec![0, 1, 1, 0, 1, 1], 6, PatternCategory::LiveFour),
-            // (vec![1, 1, 0, 1, 1, 0], 6, PatternCategory::LiveFour),
-            // 6x2
-            (vec![2, 0, 1, 1, 1, 0, 2], 7, Pattern::LiveThree),
-            // 6x1
-            (vec![0, 1, 1, 1, 0], 5, Pattern::LiveThree),
-            // (vec![1, 1, 1], 3, PatternCategory::LiveThree),
-            // 1x2
-            (vec![0, 1, 1, 1, 2], 5, Pattern::LiveThree),
-            (vec![2, 1, 1, 1, 0], 5, Pattern::LiveThree),
-            // 5x2
-            (vec![1, 0, 1, 0, 1], 5, Pattern::LiveThree),
-            // 7x1
-            (vec![1, 0, 1, 1], 4, Pattern::LiveThree),
-            (vec![1, 1, 0, 1], 4, Pattern::LiveThree),
-            // 2x2
-            (vec![1, 0, 1, 1, 2], 5, Pattern::DeadThree),
-            (vec![2, 1, 1, 0, 1], 5, Pattern::DeadThree),
-            // 3x2
-            (vec![2, 1, 0, 1, 1], 5, Pattern::DeadThree),
-            (vec![1, 1, 0, 1, 2, 0], 6, Pattern::DeadThree),
-            // 4x2
-            (vec![1, 0, 0, 1, 1], 5, Pattern::DeadThree),
-            (vec![1, 1, 0, 0, 1], 5, Pattern::DeadThree),
-            // (vec![0, 1, 1, 1, 2], 5, PatternCategory::DeadThree),
-            // (vec![2, 1, 1, 1, 0], 5, PatternCategory::DeadThree),
-            // 5x3
-            (vec![1, 0, 0, 1, 2], 5, Pattern::LiveTwo),
-            (vec![2, 1, 0, 0, 1], 5, Pattern::LiveTwo),
-            // 4x3
-            (vec![1, 0, 1, 2], 4, Pattern::LiveTwo),
-            (vec![2, 1, 0, 1], 4, Pattern::LiveTwo),
-            // 2x3
-            (vec![1, 0, 0, 1], 4, Pattern::LiveTwo),
-            // 1x3
-            (vec![1, 0, 1], 3, Pattern::LiveTwo),
-            // 7x2
-            (vec![1, 0, 0, 0, 1], 5, Pattern::DeadTwo),
-            // 3x3
-            (vec![1, 1, 2], 3, Pattern::DeadTwo),
-            (vec![2, 1, 1], 3, Pattern::DeadTwo),
-            // 6x3
-            // (vec![1, 1], 2, PatternCategory::DeadTwo),
+        let patterns: Vec<(Vec<(i16, PatternRock)>, Pattern)> = vec![
+            // Five in a row
+            // Only half of the patterns are required since it will check all directions
+            // -- [1, 1, 1, 1, 1]
+            (
+                vec![
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::FiveInRow,
+            ),
+            (
+                vec![
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::FiveInRow,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::FiveInRow,
+            ),
+            // -- [0, 1, 1, 1, 1]
+            // -- [1, 1, 1, 1, 0]
+            (
+                vec![
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [2, 1, 1, 1, 1, 0]
+            // -- [0, 1, 1, 1, 1, 2]
+            (
+                vec![
+                    (-1, PatternRock::Opponent),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Opponent),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Opponent),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [1, 0, 1, 1, 1]
+            // -- [1, 1, 1, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [1, 1, 0, 1, 1]
+            (
+                vec![
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [0, 1, 1, 0, 1, 1]
+            (
+                vec![
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-4, PatternRock::None),
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [1, 1, 0, 1, 1, 0]
+            (
+                vec![
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                    (5, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            (
+                vec![
+                    (-4, PatternRock::Player),
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::None),
+                ],
+                Pattern::LiveFour,
+            ),
+            // -- [2, 0, 1, 1, 1, 0, 2]
+            (
+                vec![
+                    (-2, PatternRock::Opponent),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::None),
+                    (4, PatternRock::Opponent),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Opponent),
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Opponent),
+                ],
+                Pattern::LiveThree,
+            ),
+            // -- [0, 1, 1, 1, 0]
+            (
+                vec![
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::None),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                ],
+                Pattern::LiveThree,
+            ),
+            // -- [1, 1, 1]
+            (
+                vec![(1, PatternRock::Player), (2, PatternRock::Player)],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![(-1, PatternRock::Player), (1, PatternRock::Player)],
+                Pattern::LiveThree,
+            ),
+            // -- [0, 1, 1, 1, 2]
+            // -- [2, 1, 1, 1, 0]
+            (
+                vec![
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Opponent),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Opponent),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::None),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Opponent),
+                ],
+                Pattern::LiveThree,
+            ),
+            // -- [1, 0, 1, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::None),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::LiveThree,
+            ),
+            // -- [1, 0, 1, 1]
+            // -- [1, 1, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::LiveThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                ],
+                Pattern::LiveThree,
+            ),
+            // -- [1, 0, 1, 1, 2]
+            // -- [2, 1, 1, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            // -- [2, 1, 0, 1, 1]
+            (
+                vec![
+                    (-1, PatternRock::Opponent),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Opponent),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-4, PatternRock::Opponent),
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                ],
+                Pattern::DeadThree,
+            ),
+            // -- [1, 1, 0, 1, 2, 0]
+            (
+                vec![
+                    (1, PatternRock::Player),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Opponent),
+                    (5, PatternRock::None),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Opponent),
+                    (4, PatternRock::None),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Opponent),
+                    (2, PatternRock::None),
+                ],
+                Pattern::DeadThree,
+            ),
+            // -- [1, 0, 0, 1, 1]
+            // -- [1, 1, 0, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::Player),
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                ],
+                Pattern::DeadThree,
+            ),
+            // -- [0, 1, 1, 1, 2]
+            // -- [2, 1, 1, 1, 0]
+            (
+                vec![
+                    (-1, PatternRock::None),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Player),
+                    (3, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-2, PatternRock::None),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Player),
+                    (2, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            (
+                vec![
+                    (-3, PatternRock::None),
+                    (-2, PatternRock::Player),
+                    (-1, PatternRock::Player),
+                    (1, PatternRock::Opponent),
+                ],
+                Pattern::DeadThree,
+            ),
+            // -- [1, 0, 0, 1, 2]
+            // -- [2, 1, 0, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                    (4, PatternRock::Opponent),
+                ],
+                Pattern::LiveTwo,
+            ),
+            // -- [2, 1, 0, 1]
+            // -- [1, 0, 1, 2]
+            (
+                vec![
+                    (-1, PatternRock::Opponent),
+                    (1, PatternRock::None),
+                    (2, PatternRock::Player),
+                ],
+                Pattern::LiveTwo,
+            ),
+            // -- [1, 0, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::None),
+                    (3, PatternRock::Player),
+                ],
+                Pattern::LiveTwo,
+            ),
+            // -- [1, 0, 0, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::None),
+                    (3, PatternRock::None),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::DeadTwo,
+            ),
+            // -- [1, 0, 1]
+            (
+                vec![(1, PatternRock::None), (2, PatternRock::Player)],
+                Pattern::LiveTwo,
+            ),
+            // -- [1, 0, 0, 0, 1]
+            (
+                vec![
+                    (1, PatternRock::None),
+                    (2, PatternRock::None),
+                    (3, PatternRock::None),
+                    (4, PatternRock::Player),
+                ],
+                Pattern::DeadTwo,
+            ),
+            // -- [2, 1, 1]
+            // -- [1, 1, 2]
+            (
+                vec![(-1, PatternRock::Opponent), (1, PatternRock::Player)],
+                Pattern::DeadTwo,
+            ),
+            (
+                vec![(-2, PatternRock::Opponent), (-1, PatternRock::Player)],
+                Pattern::DeadTwo,
+            ),
+            // -- [1, 1]
+            (vec![(1, PatternRock::Player)], Pattern::DeadTwo),
         ];
 
         Finder { patterns }
@@ -99,174 +565,90 @@ impl Default for Finder {
 }
 
 impl Finder {
-    pub fn rock_to_pattern_rock(board: &Board, coordinates: &Coordinates, player: Player) -> u8 {
-        let rock = board.get(coordinates.x, coordinates.y);
-        if rock == Rock::None {
-            0
-        } else if (rock == Rock::Black && player == Player::Black)
-            || (rock == Rock::White && player == Player::White)
-        {
-            1
-        } else {
-            2
-        }
-    }
-
-    pub fn best_pattern_for_rock(
+    // TODO "PatternRock" board
+    #[allow(clippy::manual_range_contains)]
+    pub fn check_pattern(
         &self,
         board: &Board,
+        player: Player,
         coordinates: &Coordinates,
-    ) -> Option<Pattern> {
-        let mut best_pattern: Option<Pattern> = None;
-        let (x, y) = (coordinates.x, coordinates.y);
-        let rock = board.get(x, y);
-        if rock == Rock::None {
-            let player = if rock == Rock::Black {
-                Player::Black
+        direction: &(i16, i16),
+        pattern: &[(i16, PatternRock)],
+    ) -> bool {
+        for (key, value) in pattern {
+            let (check_x, check_y) = (
+                coordinates.x + direction.0 * key,
+                coordinates.y + direction.1 * key,
+            );
+            if check_x < 0 || check_x >= BOARD_SIZE || check_y < 0 || check_y >= BOARD_SIZE {
+                return false;
+            }
+            let rock = board.get(check_x, check_y);
+            let rock = if rock == Rock::None {
+                &PatternRock::None
+            } else if (rock == Rock::Black && player == Player::Black)
+                || (rock == Rock::White && player == Player::White)
+            {
+                &PatternRock::Player
             } else {
-                Player::White
+                &PatternRock::Opponent
             };
-            let mut best_pattern_index: Option<usize> = None;
-            // Sliding window of 7 (patterns length)
-            let mut buf = FixedVecDeque::<[u8; 7]>::new();
-            for (dir_x, dir_y) in DIRECTIONS {
-                // Initialize to -7 so the first 7 elements
-                // -- can be set and the last one is the initial rock
-                let mut length = 0;
-                // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
-                // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
-                let mut mov_x = dir_x * -7;
-                let mut mov_y = dir_y * -7;
-                for _ in 0..13 {
-                    let new_coords = coord!(x + mov_x, y + mov_y);
-                    // Check Board boundaries
-                    if new_coords.x >= 0
-                        && new_coords.y >= 0
-                        && new_coords.x < BOARD_SIZE
-                        && new_coords.y < BOARD_SIZE
-                    {
-                        *buf.push_back() = if new_coords.x == x && new_coords.y == y {
-                            1
-                        } else {
-                            Finder::rock_to_pattern_rock(board, &new_coords, player)
-                        };
-                        length += 1;
-                        if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
-                            let has_best_pattern = best_pattern_index.is_some();
-                            let has_no_best_pattern = best_pattern_index.is_none();
-                            if let Some((index, (_, _, category))) =
-                                self.patterns.iter().enumerate().find(
-                                    |&(index, (pattern, length, _))| {
-                                        if has_best_pattern && best_pattern_index.unwrap() < index {
-                                            return false;
-                                        }
-                                        let mut i: u8 = 0;
-                                        for value in &buf {
-                                            if *value == pattern[i as usize] {
-                                                i += 1;
-                                                if i == *length {
-                                                    return true;
-                                                }
-                                            } else {
-                                                i = 0;
-                                            }
-                                        }
-                                        i == *length
-                                    },
-                                )
-                            {
-                                // println!("Found pattern {:#?} in {:#?}", category, buf);
-                                if has_no_best_pattern || best_pattern_index.unwrap() > index {
-                                    best_pattern_index = Some(index);
-                                    best_pattern = Some(*category);
-                                    if category == &Pattern::FiveInRow {
-                                        return best_pattern;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    mov_x += dir_x;
-                    mov_y += dir_y;
+            if rock != value {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn best_pattern_for_movement(&self, board: &Board, movement: &Move) -> Option<Pattern> {
+        for (pattern, category) in &self.patterns {
+            for direction in &DIRECTIONS {
+                if self.check_pattern(
+                    board,
+                    movement.player,
+                    &movement.coordinates,
+                    direction,
+                    pattern.as_slice(),
+                ) {
+                    return Some(*category);
                 }
             }
         }
-        best_pattern
+        None
     }
 
     // For each rocks on the board check all 8 directions to count all patterns
     // -- in a sliding window of 6 around the rock
     pub fn get_patterns_for_movement(&self, board: &Board, movement: &Move) -> Vec<Pattern> {
         let mut patterns: Vec<Pattern> = vec![];
-        let player = movement.player;
-        // Sliding window of 6 (patterns length)
-        let mut buf = FixedVecDeque::<[u8; 7]>::new();
-        // Iterate trough each rocks on the board
-        let (x, y) = (movement.coordinates.x, movement.coordinates.y);
-        for (dir_x, dir_y) in DIRECTIONS {
-            // Initialize to -7 so the first 7 elements
-            // -- can be set and the last one is the initial rock
-            let mut length = 0;
+        for direction in &DIRECTIONS {
             let mut best_pattern_index: Option<usize> = None;
             let mut best_pattern_value: Option<Pattern> = None;
-            // from [x x x x x x x] ? ? ? ? ? ?  I ? ? ? ? ? ?
-            // to    x x x x x x x  ? ? ? ? ? ? [I ? ? ? ? ? ?]
-            let mut mov_x = dir_x * -7;
-            let mut mov_y = dir_y * -7;
-            for _ in 0..13 {
-                let new_coords = coord!(x + mov_x, y + mov_y);
-                // Check Board boundaries
-                if new_coords.x >= 0
-                    && new_coords.y >= 0
-                    && new_coords.x < BOARD_SIZE
-                    && new_coords.y < BOARD_SIZE
-                {
-                    *buf.push_back() = Finder::rock_to_pattern_rock(board, &new_coords, player);
-                    length += 1;
-                    if length >= 7 && buf.iter().filter(|rock| *rock == &1).count() >= 2 {
-                        let has_best_pattern = best_pattern_index.is_some();
-                        let has_no_best_pattern = best_pattern_index.is_none();
-                        if let Some((index, (_, _, category))) =
-                            self.patterns.iter().enumerate().find(
-                                |&(index, (pattern, length, _))| {
-                                    if has_best_pattern && best_pattern_index.unwrap() < index {
-                                        return false;
-                                    }
-                                    let mut i: u8 = 0;
-                                    for value in &buf {
-                                        if *value == pattern[i as usize] {
-                                            i += 1;
-                                            if i == *length {
-                                                return true;
-                                            }
-                                        } else {
-                                            i = 0;
-                                        }
-                                    }
-                                    i == *length
-                                },
-                            )
-                        {
-                            if has_no_best_pattern || best_pattern_index.unwrap() > index {
-                                best_pattern_index = Some(index);
-                                best_pattern_value = Some(*category);
-                            }
-                        }
+            for (index, (pattern, category)) in self.patterns.iter().enumerate() {
+                if self.check_pattern(
+                    board,
+                    movement.player,
+                    &movement.coordinates,
+                    direction,
+                    pattern,
+                ) {
+                    let has_no_best_pattern = best_pattern_index.is_none();
+
+                    if has_no_best_pattern || best_pattern_index.unwrap() > index {
+                        best_pattern_index = Some(index);
+                        best_pattern_value = Some(*category);
                     }
                 }
-                mov_x += dir_x;
-                mov_y += dir_y;
             }
             // Save the pattern if there was one
             if let Some(best_pattern) = best_pattern_value {
                 patterns.push(best_pattern);
             }
         }
-
         patterns
     }
 
-    pub fn count_movement_patterns(&self, board: &Board, movement: &Move) -> PatternCount {
+    pub fn count_patterns_for_movement(&self, board: &Board, movement: &Move) -> PatternCount {
         let mut pattern_count = PatternCount::default();
         let patterns = self.get_patterns_for_movement(board, movement);
         for pattern in patterns {
@@ -289,7 +671,6 @@ impl Finder {
         pattern_count
     }
 
-    // TODO
     pub fn movement_patterns_score(&self, patterns: &PatternCount) -> i32 {
         let mut score: i32 = 0;
         if patterns.five_in_row > 0 {
@@ -323,7 +704,7 @@ impl Finder {
     }
 
     pub fn movement_score(&self, board: &Board, movement: &Move) -> i32 {
-        let patterns = self.count_movement_patterns(board, movement);
+        let patterns = self.count_patterns_for_movement(board, movement);
         self.movement_patterns_score(&patterns)
     }
 }

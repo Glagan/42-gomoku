@@ -123,7 +123,7 @@ impl Computer {
             .iter()
             .map(|&movement| SortedMove {
                 movement,
-                pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, &movement.coordinates),
+                pattern: PATTERN_FINDER.best_pattern_for_movement(action.board, &movement),
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
