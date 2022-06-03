@@ -102,8 +102,8 @@ impl Computer {
     }
 
     // Calculate the patterns created by a movement and return it's score
-    pub fn evaluate_action(&self, action: &MinimaxAction) -> i32 {
-        PATTERN_FINDER.movement_score(action.board, &action.movement.unwrap())
+    pub fn evaluate_action(&self, action: &MinimaxAction, winning: bool) -> i32 {
+        PATTERN_FINDER.movement_score(action.board, &action.movement.unwrap(), winning)
     }
 
     /*pub fn cache(
@@ -161,7 +161,15 @@ impl Computer {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
-            let score = self.evaluate_action(&action);
+            let winning: bool = action.board.is_winning(rules, player);
+            let score = self.evaluate_action(&action, winning);
+            // if winning {
+            //     println!(
+            //         "winning at depth {} | score {} | color {}",
+            //         iteration.depth, score, color
+            //     );
+            //     println!("{}", action.board);
+            // }
             return Ok(Evaluation {
                 score: color * score,
                 movement: None,
@@ -256,7 +264,7 @@ impl Computer {
         };
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
-            let mut eval = self.negamax_alpha_beta(
+            let eval = self.negamax_alpha_beta(
                 rules,
                 MinimaxAction {
                     board: action.board,
@@ -267,11 +275,7 @@ impl Computer {
                     alpha: -beta,
                     beta: -alpha,
                 },
-                if player == Player::Black {
-                    Player::White
-                } else {
-                    Player::Black
-                },
+                player.opponent(),
                 1,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
@@ -394,7 +398,7 @@ impl Computer {
                         alpha: i32::min_value() + 1,
                         beta: i32::max_value(),
                     },
-                    player,
+                    player.opponent(),
                     player,
                     moves,
                 );

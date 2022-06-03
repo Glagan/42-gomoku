@@ -322,7 +322,10 @@ impl Finder {
         score
     }
 
-    pub fn movement_score(&self, board: &Board, movement: &Move) -> i32 {
+    pub fn movement_score(&self, board: &Board, movement: &Move, winning: bool) -> i32 {
+        // if winning {
+        //     println!("count pattern for player {:?}", movement.player);
+        // }
         let patterns = self.count_movement_patterns(board, movement);
         self.movement_patterns_score(&patterns)
     }
