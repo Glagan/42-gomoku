@@ -1,9 +1,9 @@
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Rock {
-    None = 0,
-    Black = 1,
-    White = 2,
+    None,
+    Black,
+    White,
 }
 
 impl ToString for Rock {
@@ -22,6 +22,34 @@ impl Rock {
             Rock::White
         } else {
             Rock::Black
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub enum PlayerRock {
+    None,
+    Player,
+    Opponent,
+}
+
+impl ToString for PlayerRock {
+    fn to_string(&self) -> String {
+        match self {
+            PlayerRock::None => "0".to_string(),
+            PlayerRock::Player => "P".to_string(),
+            PlayerRock::Opponent => "E".to_string(),
+        }
+    }
+}
+
+impl PlayerRock {
+    pub fn opponent(&self) -> PlayerRock {
+        if self == &PlayerRock::Player {
+            PlayerRock::Opponent
+        } else {
+            PlayerRock::Player
         }
     }
 }

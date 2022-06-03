@@ -2,7 +2,7 @@ use crate::{
     constants::{BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
     macros::coord,
     player::Player,
-    rock::Rock,
+    rock::{PlayerRock, Rock},
     rules::RuleSet,
 };
 use colored::Colorize;
@@ -72,6 +72,7 @@ impl Default for PlayerState {
 #[derive(Clone)]
 pub struct Board {
     pub pieces: [[Rock; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
+    pub player_pieces: [[[PlayerRock; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
     // Number of moves executed to reach the current Board state
     pub moves: u16,
     pub black: PlayerState,
@@ -89,6 +90,7 @@ impl Default for Board {
         all_rocks.reserve(BOARD_PIECES_USIZE);
         Board {
             pieces: [[Rock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
+            player_pieces: [[[PlayerRock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
             moves: 0,
             black: PlayerState::default(),
             white: PlayerState::default(),
@@ -139,6 +141,17 @@ impl Board {
     #[inline(always)]
     pub fn get_mut(&mut self, x: i16, y: i16) -> &mut Rock {
         &mut self.pieces[y as usize][x as usize]
+    }
+
+    // Helper function to get a Board case for a player with (x, y) coordinates
+    #[inline(always)]
+    pub fn get_for_player(&self, x: i16, y: i16, index: usize) -> PlayerRock {
+        self.player_pieces[index][y as usize][x as usize]
+    }
+
+    #[inline(always)]
+    pub fn get_for_player_mut(&mut self, x: i16, y: i16, index: usize) -> &mut PlayerRock {
+        &mut self.player_pieces[index][y as usize][x as usize]
     }
 
     // All open intersections for the current Board
@@ -352,9 +365,23 @@ impl Board {
         self.moves_restore.push(captures);
     }
 
+    // Update all boards to update for the given movement
+    #[inline(always)]
+    pub fn set_on_boards(&mut self, coordinates: &Coordinates, player: Player) {
+        if player == Player::Black {
+            *self.get_mut(coordinates.x, coordinates.y) = Rock::Black;
+            *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::Player;
+            *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::Opponent;
+        } else {
+            *self.get_mut(coordinates.x, coordinates.y) = Rock::White;
+            *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::Opponent;
+            *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::Player;
+        }
+    }
+
     // Apply a movement to the current Board
     pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
-        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = movement.player.rock();
+        self.set_on_boards(&movement.coordinates, movement.player);
         if rules.capture {
             self.check_capture(movement);
         }
@@ -367,10 +394,19 @@ impl Board {
         self.moves += 1;
     }
 
+    #[inline(always)]
+    pub fn remove_from_boards(&mut self, movement: &Move) {
+        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = Rock::None;
+        *self.get_for_player_mut(movement.coordinates.x, movement.coordinates.y, 0) =
+            PlayerRock::None;
+        *self.get_for_player_mut(movement.coordinates.x, movement.coordinates.y, 1) =
+            PlayerRock::None;
+    }
+
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
         // Restored the captured rocks
         if rules.capture {
-            let opponent_rock = movement.player.rock().opponent();
+            let opponent = movement.player.opponent();
             let rocks = self.moves_restore.pop().unwrap();
             // Decrease capture counter
             if movement.player == Player::Black {
@@ -380,17 +416,17 @@ impl Board {
             }
             // Restore the rock index in the opponent list of rocks
             for rock in rocks {
+                self.set_on_boards(&rock, opponent);
                 if movement.player == Player::Black {
                     self.white.rocks.insert(rock);
                 } else {
                     self.black.rocks.insert(rock);
                 }
                 self.all_rocks.insert(rock);
-                *self.get_mut(rock.x, rock.y) = opponent_rock;
             }
         }
         // Restore rock
-        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = Rock::None;
+        self.remove_from_boards(movement);
         if movement.player == Player::Black {
             self.black.rocks.remove(&movement.coordinates);
         } else {
