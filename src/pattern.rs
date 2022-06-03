@@ -16,24 +16,64 @@ pub enum PatternRock {
 #[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Pattern {
-    FiveInRow = 0,
-    LiveFour = 1,
-    DeadFour = 2,
-    LiveThree = 3,
-    DeadThree = 4,
-    LiveTwo = 5,
-    DeadTwo = 6,
+    FiveInRow,
+    KilledFive,
+    LiveFour,
+    KilledFour,
+    DeadFour,
+    KilledThree,
+    LiveThree,
+    CutThree,
+    DeadThree,
+    LiveTwo,
+    DeadTwo,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default, Debug, Clone)]
 pub struct PatternCount {
     pub five_in_row: u8,
+    pub killed_five: u8,
     pub live_four: u8,
+    pub killed_four: u8,
     pub dead_four: u8,
+    pub killed_three: u8,
     pub live_three: u8,
+    pub cut_three: u8,
     pub dead_three: u8,
     pub live_two: u8,
     pub dead_two: u8,
+}
+
+impl PatternCount {
+    // Order by which to sort the generated moves
+    // Gives priority to moves that save the game or end the game
+    pub fn best_pattern(&self) -> u8 {
+        if self.five_in_row > 0 {
+            11
+        } else if self.killed_five > 0 {
+            10
+        } else if self.live_four > 0 {
+            9
+        } else if self.killed_four > 0 {
+            8
+        } else if self.killed_three > 0 {
+            7
+        } else if self.dead_four > 0 {
+            6
+        } else if self.live_three > 0 {
+            5
+        } else if self.cut_three > 0 {
+            4
+        } else if self.dead_three > 0 {
+            3
+        } else if self.live_two > 0 {
+            2
+        } else if self.dead_two > 0 {
+            1
+        } else {
+            0
+        }
+    }
 }
 
 pub struct Finder {
@@ -600,23 +640,6 @@ impl Finder {
         true
     }
 
-    pub fn best_pattern_for_movement(&self, board: &Board, movement: &Move) -> Option<Pattern> {
-        for (pattern, category) in &self.patterns {
-            for direction in &DIRECTIONS {
-                if self.check_pattern(
-                    board,
-                    movement.player,
-                    &movement.coordinates,
-                    direction,
-                    pattern.as_slice(),
-                ) {
-                    return Some(*category);
-                }
-            }
-        }
-        None
-    }
-
     // For each rocks on the board check all 8 directions to count all patterns
     // -- in a sliding window of 6 around the rock
     pub fn get_patterns_for_movement(&self, board: &Board, movement: &Move) -> Vec<Pattern> {
@@ -648,16 +671,24 @@ impl Finder {
         patterns
     }
 
-    pub fn count_patterns_for_movement(&self, board: &Board, movement: &Move) -> PatternCount {
+    pub fn count_movement_patterns(&self, board: &Board, movement: &Move) -> PatternCount {
         let mut pattern_count = PatternCount::default();
         let patterns = self.get_patterns_for_movement(board, movement);
         for pattern in patterns {
             if pattern == Pattern::FiveInRow {
                 pattern_count.five_in_row += 1;
+            } else if pattern == Pattern::KilledFive {
+                pattern_count.killed_five += 1;
             } else if pattern == Pattern::LiveFour {
                 pattern_count.live_four += 1;
+            } else if pattern == Pattern::KilledFour {
+                pattern_count.killed_four += 1;
             } else if pattern == Pattern::DeadFour {
                 pattern_count.dead_four += 1;
+            } else if pattern == Pattern::KilledThree {
+                pattern_count.killed_three += 1;
+            } else if pattern == Pattern::CutThree {
+                pattern_count.cut_three += 1;
             } else if pattern == Pattern::LiveThree {
                 pattern_count.live_three += 1;
             } else if pattern == Pattern::DeadThree {
@@ -671,26 +702,29 @@ impl Finder {
         pattern_count
     }
 
-    pub fn movement_patterns_score(&self, patterns: &PatternCount) -> i32 {
+    pub fn patterns_score(&self, patterns: &PatternCount) -> i32 {
         let mut score: i32 = 0;
         if patterns.five_in_row > 0 {
             score += 100000;
         }
-        // if other_patterns.dead_four > 0 {
-        //     score += 50000;
-        // }
+        if patterns.killed_five > 0 {
+            score += 99999;
+        }
+        if patterns.killed_four > 0 {
+            score += 75000;
+        }
+        if patterns.killed_three > 0 {
+            score += 60000;
+        }
         if patterns.live_four > 0 {
+            score += 50000;
+        }
+        if patterns.cut_three > 0 {
             score += 25000;
         }
-        if patterns.live_three >= 1 {
+        if patterns.live_three > 0 {
             score += 15000;
         }
-        // if other_patterns.dead_three >= 1 {
-        //     score += 8000;
-        // }
-        /* if patterns.live_three + other_patterns.dead_three >= 2 {
-            score += 5000;
-        } else */
         if patterns.live_three > 0 {
             score += 2000;
         }
@@ -701,11 +735,6 @@ impl Finder {
             score += 200;
         }
         score
-    }
-
-    pub fn movement_score(&self, board: &Board, movement: &Move) -> i32 {
-        let patterns = self.count_patterns_for_movement(board, movement);
-        self.movement_patterns_score(&patterns)
     }
 }
 

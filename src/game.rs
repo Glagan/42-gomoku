@@ -157,7 +157,7 @@ impl Game {
                 self.board.set_move(&self.rules, &movement);
                 self.recommended_move = None;
                 self.add_rock_move(coordinates);
-                if self.board.move_make_win(&self.rules, &movement) {
+                if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {
                     self.next_player();
@@ -202,7 +202,7 @@ impl Game {
             if let Some(movement) = play.movement {
                 self.board.set_move(&self.rules, &movement);
                 self.add_rock_move(movement.coordinates);
-                if self.board.move_make_win(&self.rules, &movement) {
+                if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {
                     self.next_player();

@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, Move},
-    pattern::{Pattern, PATTERN_FINDER},
+    pattern::{PatternCount, PATTERN_FINDER},
     player::Player,
     rules::RuleSet,
 };
@@ -10,33 +10,21 @@ use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 #[derive(Debug, Clone)]
 pub struct SortedMove {
     pub movement: Move,
-    pub pattern: Option<Pattern>,
+    pub pattern_count: PatternCount,
+    pub best_pattern: u8,
 }
 
 impl Eq for SortedMove {}
 
 impl PartialEq for SortedMove {
     fn eq(&self, other: &Self) -> bool {
-        self.pattern == other.pattern
+        self.best_pattern == other.best_pattern
     }
 }
 
 impl Ord for SortedMove {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_is_none = self.pattern.is_none();
-        let other_is_none = other.pattern.is_none();
-        if self_is_none && other_is_none {
-            return std::cmp::Ordering::Equal;
-        } else if self_is_none {
-            return std::cmp::Ordering::Less;
-        } else if other_is_none {
-            return std::cmp::Ordering::Greater;
-        }
-        other
-            .pattern
-            .unwrap()
-            .partial_cmp(&self.pattern.unwrap())
-            .unwrap()
+        self.best_pattern.cmp(&other.best_pattern)
     }
 }
 
@@ -46,7 +34,7 @@ impl PartialOrd for SortedMove {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Evaluation {
     pub score: i32,
     pub movement: Option<Move>,
@@ -71,6 +59,7 @@ pub struct AlphaBetaIteration {
 pub struct MinimaxAction<'a> {
     board: &'a mut Board,
     movement: Option<Move>,
+    patterns: Option<PatternCount>,
 }
 
 #[derive(Default)]
@@ -79,7 +68,7 @@ pub struct Computer;
 impl Computer {
     // Calculate the patterns created by a movement and return it's score
     pub fn evaluate_action(&self, action: &MinimaxAction) -> i32 {
-        PATTERN_FINDER.movement_score(action.board, &action.movement.unwrap())
+        PATTERN_FINDER.patterns_score(action.patterns.as_ref().unwrap())
     }
 
     fn negamax_alpha_beta(
@@ -94,12 +83,7 @@ impl Computer {
         let beta = iteration.beta;
 
         // Check if it's a leaf and compute it's value
-        let win_move = if let Some(movement) = &action.movement {
-            action.board.move_make_win(rules, movement)
-        } else {
-            false
-        };
-        if iteration.depth == 0 || win_move {
+        if iteration.depth == 0 || action.board.is_winning(rules, player) {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
@@ -121,9 +105,15 @@ impl Computer {
             .board
             .intersections_legal_moves(rules, player)
             .iter()
-            .map(|&movement| SortedMove {
-                movement,
-                pattern: PATTERN_FINDER.best_pattern_for_movement(action.board, &movement),
+            .map(|&movement| {
+                action.board.set_move(rules, &movement);
+                let pattern_count = PATTERN_FINDER.count_movement_patterns(action.board, &movement);
+                action.board.undo_move(rules, &movement);
+                SortedMove {
+                    movement,
+                    best_pattern: pattern_count.best_pattern(),
+                    pattern_count,
+                }
             })
             .collect();
         while let Some(sorted_movement) = moves.pop() {
@@ -133,6 +123,7 @@ impl Computer {
                 MinimaxAction {
                     board: action.board,
                     movement: Some(sorted_movement.movement),
+                    patterns: Some(sorted_movement.pattern_count),
                 },
                 AlphaBetaIteration {
                     depth: iteration.depth - 1,
@@ -172,6 +163,7 @@ impl Computer {
             MinimaxAction {
                 board,
                 movement: None,
+                patterns: None,
             },
             AlphaBetaIteration {
                 depth,

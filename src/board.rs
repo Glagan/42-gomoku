@@ -412,9 +412,9 @@ impl Board {
     // [0 1 0 0 0 0] with 1 in any position, but mirrored v
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
-    pub fn move_created_uncaptured_five_in_a_row(&self, rules: &RuleSet, movement: &Move) -> bool {
-        let self_rock = movement.player.rock();
-        let opponent = movement.player.opponent();
+    pub fn has_uncaptured_five_in_a_row(&self, rules: &RuleSet, player: Player) -> bool {
+        let self_rock = player.rock();
+        let opponent = player.opponent();
 
         let five_patterns = [
             &[
@@ -530,8 +530,8 @@ impl Board {
         false
     }
 
-    pub fn move_created_five_in_a_row(&self, movement: &Move) -> bool {
-        let self_rock = movement.player.rock();
+    pub fn has_five_in_a_row(&self, player: Player) -> bool {
+        let self_rock = player.rock();
 
         let five_patterns = [
             &[
@@ -571,20 +571,20 @@ impl Board {
         false
     }
 
-    // Check if the given player is winning with the rock from the given movement
+    // Check if the given player is winning with the current board state
     // (Has an unbreakable winning position according to the rules)
     // This function is called *after* a move is made, so the [0] is already on the board
-    pub fn move_make_win(&self, rules: &RuleSet, movement: &Move) -> bool {
+    pub fn is_winning(&self, rules: &RuleSet, player: Player) -> bool {
         if rules.capture
-            && ((movement.player == Player::Black && self.black.captures >= 10)
-                || (movement.player == Player::White && self.white.captures >= 10))
+            && ((player == Player::Black && self.black.captures >= 10)
+                || (player == Player::White && self.white.captures >= 10))
         {
             return true;
         }
         if rules.game_ending_capture {
-            self.move_created_uncaptured_five_in_a_row(rules, movement)
+            self.has_uncaptured_five_in_a_row(rules, player)
         } else {
-            self.move_created_five_in_a_row(movement)
+            self.has_five_in_a_row(player)
         }
     }
 }
