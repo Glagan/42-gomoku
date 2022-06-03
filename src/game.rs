@@ -1,13 +1,13 @@
 use crate::{
     board::{Board, Coordinates, Move},
     computer::Computer,
+    constants::DEPTH,
     options::Options,
     player::Player,
     rock::Rock,
     rules::RuleSet,
 };
 use colored::Colorize;
-use gomoku::constants::DEPTH;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -18,7 +18,7 @@ pub enum GameMode {
     AvA,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq)]
 pub enum Winner {
     None,
     Black,

@@ -89,9 +89,8 @@ impl Computer {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
-            let winning: bool = action.board.is_winning(rules, player);
             let score = self.evaluate_action(&action);
-            // if winning {
+            // if action.board.is_winning(rules, player) {
             //     println!(
             //         "winning at depth {} | score {} | color {}",
             //         iteration.depth, score, color
@@ -165,7 +164,7 @@ impl Computer {
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
         player: Player,
-        maximize: Player,
+        color: i32,
         mut moves: BinaryHeap<SortedMove>,
     ) -> Result<Evaluation, String> {
         // let alpha_orig = iteration.alpha;
@@ -192,7 +191,7 @@ impl Computer {
                     beta: -alpha,
                 },
                 player.opponent(),
-                1,
+                color,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
             //eval.score = -eval.score;
@@ -300,7 +299,7 @@ impl Computer {
         let (tx, rx) = mpsc::channel();
 
         for moves in sorted_list_of_moves {
-            let rules_clone = rules.clone();
+            let rules_clone = *rules;
             let mut board_clone = board.clone();
             let mut self_clone = self.clone();
             let tx_clone = tx.clone();
@@ -319,7 +318,7 @@ impl Computer {
                         beta: i32::max_value(),
                     },
                     player.opponent(),
-                    player,
+                    1,
                     moves,
                 );
                 let _ = tx_clone.send(thread_result);
@@ -331,7 +330,7 @@ impl Computer {
             movement: None,
         };
 
-        for i in 0..NB_THREAD {
+        for _ in 0..NB_THREAD {
             let thread_result = rx.recv().unwrap().unwrap();
             //println!("Return of thread nb {} | score {}", i, thread_result.score);
             if thread_result.score >= best_move.score {
