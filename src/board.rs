@@ -48,12 +48,6 @@ impl fmt::Display for Move {
     }
 }
 
-pub struct Index;
-impl Index {
-    pub const BLACK: usize = 0;
-    pub const WHITE: usize = 1;
-}
-
 #[derive(Clone)]
 pub struct PlayerState {
     pub captures: usize,
@@ -186,7 +180,8 @@ impl Board {
         &self,
         coordinates: &Coordinates,
         direction: &(i16, i16),
-        pattern: &[(i16, Rock)],
+        pattern: &[(i16, PlayerRock)],
+        player: Player,
     ) -> bool {
         for (key, value) in pattern {
             let (check_x, check_y) = (
@@ -196,7 +191,12 @@ impl Board {
             if check_x < 0 || check_x >= BOARD_SIZE || check_y < 0 || check_y >= BOARD_SIZE {
                 return false;
             }
-            if &self.get(check_x, check_y) != value {
+            if &self.get_for_player(
+                check_x,
+                check_y,
+                if player == Player::Black { 0 } else { 1 },
+            ) != value
+            {
                 return false;
             }
         }
@@ -207,17 +207,27 @@ impl Board {
     // Since the move rock can be in any 1 position, we need to check all possible patterns:
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
     pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
-        let self_rock = movement.player.rock();
-        let pattern = &[
-            (-1, Rock::None),
-            (1, self_rock),
-            (2, self_rock),
-            (3, Rock::None),
+        const FREE_THREE_PATTERN: [(i16, PlayerRock); 4] = [
+            (-1, PlayerRock::None),
+            (1, PlayerRock::Player),
+            (2, PlayerRock::Player),
+            (3, PlayerRock::None),
         ];
+        // [
+        //     (-2, PlayerRock::None),
+        //     (-1, PlayerRock::Player),
+        //     (1, PlayerRock::Player),
+        //     (2, PlayerRock::None),
+        // ]
 
         let mut total = 0;
         for direction in &DIRECTIONS {
-            if self.check_pattern(&movement.coordinates, direction, pattern) {
+            if self.check_pattern(
+                &movement.coordinates,
+                direction,
+                &FREE_THREE_PATTERN,
+                movement.player,
+            ) {
                 total += 1;
             }
         }
@@ -227,18 +237,29 @@ impl Board {
 
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
     pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
-        let self_rock = movement.player.rock();
-        let pattern = &[
-            (-1, Rock::None),
-            (1, Rock::None),
-            (2, self_rock),
-            (3, self_rock),
-            (4, Rock::None),
+        const FREE_THREE_PATTERN: [(i16, PlayerRock); 5] = [
+            (-1, PlayerRock::None),
+            (1, PlayerRock::None),
+            (2, PlayerRock::Player),
+            (3, PlayerRock::Player),
+            (4, PlayerRock::None),
         ];
+        // [
+        //     (-2, PlayerRock::None),
+        //     (-1, PlayerRock::Player),
+        //     (1, PlayerRock::None),
+        //     (2, PlayerRock::Player),
+        //     (3, PlayerRock::None),
+        // ]
 
         let mut total = 0;
         for direction in &DIRECTIONS {
-            if self.check_pattern(&movement.coordinates, direction, pattern) {
+            if self.check_pattern(
+                &movement.coordinates,
+                direction,
+                &FREE_THREE_PATTERN,
+                movement.player,
+            ) {
                 total += 1;
             }
         }
@@ -257,13 +278,19 @@ impl Board {
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
     fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
-        let player = movement.player;
-        let self_rock = player.rock();
-        let opponent_rock = self_rock.opponent();
+        const RECURSIVE_CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
+            (-1, PlayerRock::Opponent),
+            (1, PlayerRock::Player),
+            (2, PlayerRock::Opponent),
+        ];
 
-        let pattern = &[(-1, opponent_rock), (1, self_rock), (2, opponent_rock)];
         for direction in &DIRECTIONS {
-            if self.check_pattern(&movement.coordinates, direction, pattern) {
+            if self.check_pattern(
+                &movement.coordinates,
+                direction,
+                RECURSIVE_CAPTURE_PATTERN,
+                movement.player,
+            ) {
                 return true;
             }
         }
@@ -323,21 +350,21 @@ impl Board {
     }
 
     fn check_capture(&mut self, movement: &Move) {
-        let mut captures: Vec<Coordinates> = vec![];
-        let self_rock: Rock;
-        let opponent_rock: Rock;
-        if movement.player == Player::Black {
-            self_rock = Rock::Black;
-            opponent_rock = Rock::White;
-        } else {
-            self_rock = Rock::White;
-            opponent_rock = Rock::Black;
-        }
-        let pattern = &[(1, opponent_rock), (2, opponent_rock), (3, self_rock)];
+        const CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
+            (1, PlayerRock::Opponent),
+            (2, PlayerRock::Opponent),
+            (3, PlayerRock::Player),
+        ];
 
         // Check captures in all directions and add them to the list
+        let mut captures: Vec<Coordinates> = vec![];
         for direction in &DIRECTIONS {
-            if self.check_pattern(&movement.coordinates, direction, pattern) {
+            if self.check_pattern(
+                &movement.coordinates,
+                direction,
+                CAPTURE_PATTERN,
+                movement.player,
+            ) {
                 captures.push(coord!(
                     movement.coordinates.x + direction.0,
                     movement.coordinates.y + direction.1
@@ -352,7 +379,7 @@ impl Board {
         // Process all captues all at once
         // -- Remove rocks from the board and lists
         for &coordinates in &captures {
-            *self.get_mut(coordinates.x, coordinates.y) = Rock::None;
+            self.remove_from_boards(&coordinates);
             if movement.player == Player::Black {
                 self.black.captures += 1;
                 self.white.rocks.remove(&coordinates);
@@ -395,12 +422,10 @@ impl Board {
     }
 
     #[inline(always)]
-    pub fn remove_from_boards(&mut self, movement: &Move) {
-        *self.get_mut(movement.coordinates.x, movement.coordinates.y) = Rock::None;
-        *self.get_for_player_mut(movement.coordinates.x, movement.coordinates.y, 0) =
-            PlayerRock::None;
-        *self.get_for_player_mut(movement.coordinates.x, movement.coordinates.y, 1) =
-            PlayerRock::None;
+    pub fn remove_from_boards(&mut self, coordinates: &Coordinates) {
+        *self.get_mut(coordinates.x, coordinates.y) = Rock::None;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::None;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::None;
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
@@ -426,7 +451,7 @@ impl Board {
             }
         }
         // Restore rock
-        self.remove_from_boards(movement);
+        self.remove_from_boards(&movement.coordinates);
         if movement.player == Player::Black {
             self.black.rocks.remove(&movement.coordinates);
         } else {
@@ -449,61 +474,57 @@ impl Board {
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
     pub fn has_uncaptured_five_in_a_row(&self, rules: &RuleSet, player: Player) -> bool {
-        let self_rock = player.rock();
+        const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
+            &[
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
+                (3, PlayerRock::Player),
+                (4, PlayerRock::Player),
+            ],
+            &[
+                (-1, PlayerRock::Player),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
+                (3, PlayerRock::Player),
+            ],
+            &[
+                (-2, PlayerRock::Player),
+                (-1, PlayerRock::Player),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
+            ],
+        ];
+        const RECURSIVE_CAPTURE_PATTERNS: [[(i16, PlayerRock); 3]; 2] = [
+            [
+                (-1, PlayerRock::None),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Opponent),
+            ],
+            [
+                (-1, PlayerRock::Opponent),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::None),
+            ],
+        ];
         let opponent = player.opponent();
-
-        let five_patterns = [
-            &[
-                (1, self_rock),
-                (2, self_rock),
-                (3, self_rock),
-                (4, self_rock),
-            ],
-            &[
-                (-1, self_rock),
-                (1, self_rock),
-                (2, self_rock),
-                (3, self_rock),
-            ],
-            &[
-                (-2, self_rock),
-                (-1, self_rock),
-                (1, self_rock),
-                (2, self_rock),
-            ],
-        ];
-        const RECURSIVE_CAPTURE_PATTERNS: [[[(i16, Rock); 3]; 2]; 2] = [
-            [
-                [(-1, Rock::None), (1, Rock::Black), (2, Rock::White)],
-                [(-1, Rock::White), (1, Rock::Black), (2, Rock::None)],
-            ],
-            [
-                [(-1, Rock::None), (1, Rock::White), (2, Rock::Black)],
-                [(-1, Rock::Black), (1, Rock::White), (2, Rock::None)],
-            ],
-        ];
 
         // We need to check all rocks since a capture movement can unlock a totally unrelated
         // -- captured five in a row thas is now legal and trigger a win
-        let index: usize;
-        let rocks: &HashSet<Coordinates>;
-        if self_rock == Rock::Black {
-            index = Index::BLACK;
-            rocks = &self.black.rocks;
+        let rocks = if player == Player::Black {
+            &self.black.rocks
         } else {
-            index = Index::WHITE;
-            rocks = &self.white.rocks;
+            &self.white.rocks
         };
         for rock in rocks {
             for five_in_a_row_direction in &DIRECTIONS {
-                for pattern in five_patterns {
-                    if self.check_pattern(rock, five_in_a_row_direction, pattern)
+                for pattern in FIVE_PATTERNS {
+                    if self.check_pattern(rock, five_in_a_row_direction, pattern, player)
                         // Check if the rock that found the five in a row is not under capture
                         && DIRECTIONS.iter().all(|direction| {
                             // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                            RECURSIVE_CAPTURE_PATTERNS[index].iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                            RECURSIVE_CAPTURE_PATTERNS .iter().enumerate().all(|(index, recursive_capture_pattern)| {
                                 // Check that the pattern *doesn't* match ...
-                                !self.check_pattern(rock, direction, recursive_capture_pattern)
+                                !self.check_pattern(rock, direction, recursive_capture_pattern, player)
                                 // ... or that the move in [0] is illegal for the other player
                                 || (index == 0 && !self.is_move_legal(
                                     rules,
@@ -530,9 +551,9 @@ impl Board {
                                 // The checked rock is the another rock in the current five in a row pattern
                                 let other_rock_coords = coord!(rock.x + five_in_a_row_direction.0 * mov, rock.y + five_in_a_row_direction.1 * mov);
                                 // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                                RECURSIVE_CAPTURE_PATTERNS[index].iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                                RECURSIVE_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
                                     // Check that the pattern *doesn't* match ...
-                                    !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern)
+                                    !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern, player)
                                     // ... or that the move in [0] is illegal for the other player
                                     || (index == 0 && !self.is_move_legal(
                                         rules,
@@ -567,38 +588,36 @@ impl Board {
     }
 
     pub fn has_five_in_a_row(&self, player: Player) -> bool {
-        let self_rock = player.rock();
-
-        let five_patterns = [
+        const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
             &[
-                (1, self_rock),
-                (2, self_rock),
-                (3, self_rock),
-                (4, self_rock),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
+                (3, PlayerRock::Player),
+                (4, PlayerRock::Player),
             ],
             &[
-                (-1, self_rock),
-                (1, self_rock),
-                (2, self_rock),
-                (3, self_rock),
+                (-1, PlayerRock::Player),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
+                (3, PlayerRock::Player),
             ],
             &[
-                (-2, self_rock),
-                (-1, self_rock),
-                (1, self_rock),
-                (2, self_rock),
+                (-2, PlayerRock::Player),
+                (-1, PlayerRock::Player),
+                (1, PlayerRock::Player),
+                (2, PlayerRock::Player),
             ],
         ];
 
-        let rocks = if self_rock == Rock::Black {
+        let rocks = if player == Player::Black {
             &self.black.rocks
         } else {
             &self.white.rocks
         };
         for rock in rocks {
             for direction in &DIRECTIONS {
-                for pattern in five_patterns {
-                    if self.check_pattern(rock, direction, pattern) {
+                for pattern in FIVE_PATTERNS {
+                    if self.check_pattern(rock, direction, pattern, player) {
                         return true;
                     }
                 }
