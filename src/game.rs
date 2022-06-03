@@ -7,6 +7,7 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
+use gomoku::constants::DEPTH;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -171,9 +172,9 @@ impl Game {
         if self.recommended_move.is_some() {
             return self.recommended_move;
         }
-        let play_result = self
-            .computer
-            .play(&self.rules, &mut self.board, 4, self.current_player);
+        let play_result =
+            self.computer
+                .play(&self.rules, &mut self.board, DEPTH, self.current_player);
         if let Ok(play) = play_result {
             self.recommended_move = play.movement;
         }
@@ -181,9 +182,9 @@ impl Game {
     }
 
     pub fn play_computer(&mut self) {
-        let play_result = self
-            .computer
-            .play(&self.rules, &mut self.board, 4, self.current_player);
+        let play_result =
+            self.computer
+                .play(&self.rules, &mut self.board, DEPTH, self.current_player);
         if let Ok(play) = play_result {
             let play_time = self.play_time.elapsed();
             if self.computer_average_play_time == 0. {

@@ -14,7 +14,7 @@ pub struct Coordinates {
     pub y: i16,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
     pub player: Player,
     pub coordinates: Coordinates, // Index of the piece to place

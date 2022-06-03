@@ -1,6 +1,6 @@
 use crate::rock::Rock;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
 pub enum Player {
     Black,
     White,
