@@ -1,13 +1,12 @@
 use crate::{
     board::{Board, Move},
+    constants::NB_THREAD,
     pattern::{PatternCount, PATTERN_FINDER},
     player::Player,
     rules::RuleSet,
 };
 use colored::Colorize;
 use std::{cmp::Ordering, collections::BinaryHeap, fmt, sync::mpsc, thread};
-
-pub const NB_THREAD: usize = 4;
 
 #[derive(Debug, Clone)]
 pub struct SortedMove {
@@ -74,7 +73,7 @@ impl Computer {
     }
 
     fn negamax_alpha_beta(
-        &mut self,
+        &self,
         rules: &RuleSet,
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
@@ -90,13 +89,6 @@ impl Computer {
                 return Err("Empty movement in negamax leaf".to_string());
             }
             let score = self.evaluate_action(&action);
-            // if action.board.is_winning(rules, player) {
-            //     println!(
-            //         "winning at depth {} | score {} | color {}",
-            //         iteration.depth, score, color
-            //     );
-            //     println!("{}", action.board);
-            // }
             return Ok(Evaluation {
                 score: color * score,
                 movement: None,
@@ -143,23 +135,22 @@ impl Computer {
                 -color,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            // let score = -eval.score;
             let score = eval.score;
             if score > best_eval.score {
                 alpha = score;
                 best_eval.score = score;
                 best_eval.movement = Some(sorted_movement.movement);
-                if alpha >= beta {
-                    break;
-                }
+            }
+            if alpha >= beta {
+                break;
             }
         }
 
         Ok(best_eval)
     }
 
-    fn launch_one_thread(
-        &mut self,
+    fn initial_negamax_alpha_beta(
+        &self,
         rules: &RuleSet,
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
@@ -167,15 +158,28 @@ impl Computer {
         color: i32,
         mut moves: BinaryHeap<SortedMove>,
     ) -> Result<Evaluation, String> {
-        // let alpha_orig = iteration.alpha;
         let mut alpha = iteration.alpha;
         let beta = iteration.beta;
+
+        // Check if it's a leaf and compute it's value
+        if iteration.depth == 0 || action.board.is_winning(rules, player) {
+            if action.movement.is_none() {
+                return Err("Empty movement in negamax leaf".to_string());
+            }
+            let score = self.evaluate_action(&action);
+            return Ok(Evaluation {
+                score: color * score,
+                movement: None,
+            });
+        }
 
         // Only the best evaluation is returned
         let mut best_eval = Evaluation {
             score: i32::min_value() + 1,
             movement: None,
         };
+
+        // Iterate each neighbor moves
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
             let eval = self.negamax_alpha_beta(
@@ -191,37 +195,36 @@ impl Computer {
                     beta: -alpha,
                 },
                 player.opponent(),
-                color,
+                -color,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            //eval.score = -eval.score;
             let score = eval.score;
             if score > best_eval.score {
                 alpha = score;
                 best_eval.score = score;
                 best_eval.movement = Some(sorted_movement.movement);
-                if alpha >= iteration.beta {
+                if alpha >= beta {
                     break;
                 }
             }
         }
+
         Ok(best_eval)
     }
 
     pub fn get_all_first_movements_sorted(
-        &mut self,
+        &self,
         rules: &RuleSet,
-        action: MinimaxAction,
+        board: &mut Board,
         player: Player,
     ) -> Vec<BinaryHeap<SortedMove>> {
-        let mut moves: BinaryHeap<SortedMove> = action
-            .board
+        let mut moves: BinaryHeap<SortedMove> = board
             .intersections_legal_moves(rules, player)
             .iter()
             .map(|&movement| {
-                action.board.set_move(rules, &movement);
-                let pattern_count = PATTERN_FINDER.count_movement_patterns(action.board, &movement);
-                action.board.undo_move(rules, &movement);
+                board.set_move(rules, &movement);
+                let pattern_count = PATTERN_FINDER.count_movement_patterns(board, &movement);
+                board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
                     best_pattern: pattern_count.best_pattern(),
@@ -230,10 +233,10 @@ impl Computer {
             })
             .collect();
 
-        let mut sorted_list_of_moves: Vec<BinaryHeap<SortedMove>> = vec![];
-        for _ in 0..NB_THREAD {
-            sorted_list_of_moves.push(BinaryHeap::new());
-        }
+        // Split the moves between NB_THREAD lists
+        // -- and send the NB_THREAD first (best) moves to different lists, one for each thread
+        let mut sorted_list_of_moves: Vec<BinaryHeap<SortedMove>> =
+            vec![BinaryHeap::new(); NB_THREAD];
         let mut index: usize = 0;
         while let Some(sorted_movement) = moves.pop() {
             sorted_list_of_moves[index % NB_THREAD].push(sorted_movement);
@@ -244,68 +247,25 @@ impl Computer {
 
     // Use the negamax algorithm (minimax variant) to get the next best move
     pub fn play(
-        &mut self,
+        &self,
         rules: &RuleSet,
         board: &mut Board,
         depth: usize,
         player: Player,
     ) -> Result<Evaluation, String> {
-        /*WITHOUT THREAD */
-        // let action = MinimaxAction {
-        //     board,
-        //     movement: None,
-        // };
+        // Get all possible moves to launch them in multiple threads
+        let sorted_list_of_moves = self.get_all_first_movements_sorted(rules, board, player);
 
-        // let moves: BinaryHeap<SortedMove> = action
-        //     .board
-        //     .intersections_legal_moves(rules, player)
-        //     .iter()
-        //     .map(|&movement| SortedMove {
-        //         movement,
-        //         pattern: PATTERN_FINDER.best_pattern_for_rock(action.board, movement.index),
-        //     })
-        //     .collect();
-
-        // let best_move = self.launch_one_thread(
-        //     rules,
-        //     MinimaxAction {
-        //         board,
-        //         movement: None,
-        //     },
-        //     AlphaBetaIteration {
-        //         depth,
-        //         alpha: i32::min_value() + 1,
-        //         beta: i32::max_value(),
-        //     },
-        //     player,
-        //     player,
-        //     moves,
-        // );
-        // best_move
-        /* WITHOUT THREAD */
-
-        //Get all possible moves to launch them in multiple threads
-        let sorted_list_of_moves = self.get_all_first_movements_sorted(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-                patterns: None,
-            },
-            player,
-        );
-
-        //Open channel
+        // Open channel
         let (tx, rx) = mpsc::channel();
-
         for moves in sorted_list_of_moves {
             let rules_clone = *rules;
             let mut board_clone = board.clone();
-            let mut self_clone = self.clone();
+            let self_clone = self.clone();
             let tx_clone = tx.clone();
 
             thread::spawn(move || {
-                let thread_result = self_clone.launch_one_thread(
+                let thread_result = self_clone.initial_negamax_alpha_beta(
                     &rules_clone,
                     MinimaxAction {
                         board: &mut board_clone,
@@ -317,7 +277,7 @@ impl Computer {
                         alpha: i32::min_value() + 1,
                         beta: i32::max_value(),
                     },
-                    player.opponent(),
+                    player,
                     1,
                     moves,
                 );
@@ -326,13 +286,13 @@ impl Computer {
         }
 
         let mut best_move = Evaluation {
-            score: 0,
+            score: i32::min_value() + 1,
             movement: None,
         };
 
         for _ in 0..NB_THREAD {
             let thread_result = rx.recv().unwrap().unwrap();
-            //println!("Return of thread nb {} | score {}", i, thread_result.score);
+            // println!("Return of thread nb {} | score {}", i, thread_result.score);
             if thread_result.score >= best_move.score {
                 // println!(
                 //     "Better score found, prev {} | new {}",
