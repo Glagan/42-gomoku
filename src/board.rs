@@ -425,6 +425,75 @@ impl Board {
         self.moves -= 1;
     }
 
+    // Check if a five in a row (as a pattern) is not under capture
+    pub fn five_in_a_row_is_under_capture(
+        &self,
+        rules: &RuleSet,
+        coordinates: &Coordinates,
+        five_in_a_row_direction: &(i16, i16),
+        pattern: &[(i16, PlayerRock)],
+        player: Player,
+    ) -> bool {
+        let opponent = player.opponent();
+        DIRECTIONS.iter().all(|direction| {
+            // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
+            UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                // Check that the pattern *doesn't* match ...
+                !self.check_pattern(coordinates, direction, recursive_capture_pattern, player)
+                // ... or that the move in [0] is illegal for the other player
+                || (index == 0 && !self.is_move_legal(
+                    rules,
+                    &Move {
+                        player: opponent,
+                        coordinates: coord!(
+                            coordinates.x + -direction.0,
+                            coordinates.y + -direction.1
+                        ),
+                    },
+                )) || (index == 1 && !self.is_move_legal(
+                    rules,
+                    &Move {
+                        player: opponent,
+                        coordinates: coord!(
+                            coordinates.x + direction.0 * 2,
+                            coordinates.y + direction.1 * 2
+                        ),
+                    },
+                ))
+            })
+            // ... and check if each other rock in the five in a row to check that it's not under capture
+            && pattern.iter().all(|(mov, _)| {
+                // The checked rock is the another rock in the current five in a row pattern
+                let other_rock_coords = coord!(coordinates.x + five_in_a_row_direction.0 * mov, coordinates.y + five_in_a_row_direction.1 * mov);
+                // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
+                UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                    // Check that the pattern *doesn't* match ...
+                    !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern, player)
+                    // ... or that the move in [0] is illegal for the other player
+                    || (index == 0 && !self.is_move_legal(
+                        rules,
+                        &Move {
+                            player: opponent,
+                            coordinates: coord!(
+                                other_rock_coords.x + -direction.0,
+                                other_rock_coords.y + -direction.1
+                            ),
+                        },
+                    )) || (index == 1 && !self.is_move_legal(
+                        rules,
+                        &Move {
+                            player: opponent,
+                            coordinates: coord!(
+                                other_rock_coords.x + direction.0 * 2,
+                                other_rock_coords.y + direction.1 * 2
+                            ),
+                        },
+                    ))
+                })
+            })
+        })
+    }
+
     // Check to see if the player has a five in a row
     // -- and *then* check if this five in a row can be captured and destroyed
     // A five in a row can be captured with the following pattern in any direction
@@ -438,8 +507,6 @@ impl Board {
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
     pub fn has_uncaptured_five_in_a_row(&self, rules: &RuleSet, player: Player) -> bool {
-        let opponent = player.opponent();
-
         // We need to check all rocks since a capture movement can unlock a totally unrelated
         // -- captured five in a row thas is now legal and trigger a win
         let rocks = if player == Player::Black {
@@ -451,64 +518,13 @@ impl Board {
             for five_in_a_row_direction in &DIRECTIONS {
                 for pattern in FIVE_PATTERNS {
                     if self.check_pattern(rock, five_in_a_row_direction, pattern, player)
-                        // Check if the rock that found the five in a row is not under capture
-                        && DIRECTIONS.iter().all(|direction| {
-                            // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                            UNDER_CAPTURE_PATTERNS .iter().enumerate().all(|(index, recursive_capture_pattern)| {
-                                // Check that the pattern *doesn't* match ...
-                                !self.check_pattern(rock, direction, recursive_capture_pattern, player)
-                                // ... or that the move in [0] is illegal for the other player
-                                || (index == 0 && !self.is_move_legal(
-                                    rules,
-                                    &Move {
-                                        player: opponent,
-                                        coordinates: coord!(
-                                            rock.x + -direction.0,
-                                            rock.y + -direction.1
-                                        ),
-                                    },
-                                )) || (index == 1 && !self.is_move_legal(
-                                    rules,
-                                    &Move {
-                                        player: opponent,
-                                        coordinates: coord!(
-                                            rock.x + direction.0 * 2,
-                                            rock.y + direction.1 * 2
-                                        ),
-                                    },
-                                ))
-                            })
-                            // ... and check if each other rock in the five in a row to check that it's not under capture
-                            && pattern.iter().all(|(mov, _)| {
-                                // The checked rock is the another rock in the current five in a row pattern
-                                let other_rock_coords = coord!(rock.x + five_in_a_row_direction.0 * mov, rock.y + five_in_a_row_direction.1 * mov);
-                                // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                                UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
-                                    // Check that the pattern *doesn't* match ...
-                                    !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern, player)
-                                    // ... or that the move in [0] is illegal for the other player
-                                    || (index == 0 && !self.is_move_legal(
-                                        rules,
-                                        &Move {
-                                            player: opponent,
-                                            coordinates: coord!(
-                                                other_rock_coords.x + -direction.0,
-                                                other_rock_coords.y + -direction.1
-                                            ),
-                                        },
-                                    )) || (index == 1 && !self.is_move_legal(
-                                        rules,
-                                        &Move {
-                                            player: opponent,
-                                            coordinates: coord!(
-                                                other_rock_coords.x + direction.0 * 2,
-                                                other_rock_coords.y + direction.1 * 2
-                                            ),
-                                        },
-                                    ))
-                                })
-                            })
-                        })
+                        && self.five_in_a_row_is_under_capture(
+                            rules,
+                            rock,
+                            five_in_a_row_direction,
+                            pattern,
+                            player,
+                        )
                     {
                         return true;
                     }
