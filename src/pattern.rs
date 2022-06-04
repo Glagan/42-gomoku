@@ -74,525 +74,173 @@ pub struct Finder {
 
 impl Default for Finder {
     fn default() -> Self {
-        let patterns: Vec<(Vec<(i16, PlayerRock)>, Pattern)> = vec![
+        let patterns: Vec<(Vec<(i16, u8)>, Pattern)> = vec![
             // Five in a row
             // Only half of the patterns are required since it will check all directions
             // -- [1, 1, 1, 1, 1]
-            (
-                vec![
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::FiveInRow,
-            ),
-            (
-                vec![
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::FiveInRow,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                ],
-                Pattern::FiveInRow,
-            ),
+            (vec![(1, 1), (2, 1), (3, 1), (4, 1)], Pattern::FiveInRow),
+            (vec![(-1, 1), (1, 1), (2, 1), (3, 1)], Pattern::FiveInRow),
+            (vec![(-2, 1), (-1, 1), (1, 1), (2, 1)], Pattern::FiveInRow),
             // -- [0, 1, 1, 1, 1]
             // -- [1, 1, 1, 1, 0]
-            (
-                vec![
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
+            (vec![(-1, 0), (1, 1), (2, 1), (3, 1)], Pattern::LiveFour),
+            (vec![(-2, 0), (-1, 1), (1, 1), (2, 1)], Pattern::LiveFour),
             // -- [2, 1, 1, 1, 1, 0]
             // -- [0, 1, 1, 1, 1, 2]
             (
-                vec![
-                    (-1, PlayerRock::Opponent),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::None),
-                ],
+                vec![(-1, 2), (1, 1), (2, 1), (3, 1), (4, 0)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-2, PlayerRock::Opponent),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::None),
-                ],
+                vec![(-2, 2), (-1, 1), (1, 1), (2, 1), (3, 0)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-3, PlayerRock::Opponent),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                ],
+                vec![(-3, 2), (-2, 1), (-1, 1), (1, 1), (2, 0)],
                 Pattern::LiveFour,
             ),
             // -- [1, 0, 1, 1, 1]
             // -- [1, 1, 1, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
+            (vec![(1, 0), (2, 1), (3, 1), (4, 1)], Pattern::LiveFour),
+            (vec![(-2, 1), (-1, 0), (1, 1), (2, 1)], Pattern::LiveFour),
             // -- [1, 1, 0, 1, 1]
-            (
-                vec![
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
-            (
-                vec![
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::LiveFour,
-            ),
+            (vec![(1, 1), (2, 0), (3, 1), (4, 1)], Pattern::LiveFour),
+            (vec![(-1, 1), (1, 0), (2, 1), (3, 1)], Pattern::LiveFour),
             // -- [0, 1, 1, 0, 1, 1]
             (
-                vec![
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                ],
+                vec![(-1, 0), (1, 1), (2, 0), (3, 1), (4, 1)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
+                vec![(-2, 0), (-1, 1), (1, 0), (2, 1), (3, 1)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-4, PlayerRock::None),
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                ],
+                vec![(-4, 0), (-3, 1), (-2, 1), (-1, 0), (1, 1), (2, 1)],
                 Pattern::LiveFour,
             ),
             // -- [1, 1, 0, 1, 1, 0]
             (
-                vec![
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                    (5, PlayerRock::None),
-                ],
+                vec![(1, 1), (2, 0), (3, 1), (4, 1), (5, 0)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::None),
-                ],
+                vec![(-1, 1), (1, 0), (2, 1), (3, 1), (4, 0)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                ],
+                vec![(-3, 1), (-2, 1), (-1, 0), (1, 1), (2, 0)],
                 Pattern::LiveFour,
             ),
             (
-                vec![
-                    (-4, PlayerRock::Player),
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::None),
-                ],
+                vec![(-4, 1), (-3, 1), (-2, 0), (-1, 1), (1, 0)],
                 Pattern::LiveFour,
             ),
             // -- [2, 0, 1, 1, 1, 0, 2]
             (
-                vec![
-                    (-2, PlayerRock::Opponent),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::None),
-                    (4, PlayerRock::Opponent),
-                ],
+                vec![(-2, 2), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 2)],
                 Pattern::LiveThree,
             ),
             (
-                vec![
-                    (-3, PlayerRock::Opponent),
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Opponent),
-                ],
+                vec![(-3, 2), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 2)],
                 Pattern::LiveThree,
             ),
             // -- [0, 1, 1, 1, 0]
-            (
-                vec![
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::None),
-                ],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                ],
-                Pattern::LiveThree,
-            ),
+            (vec![(-1, 0), (1, 1), (2, 1), (3, 0)], Pattern::LiveThree),
+            (vec![(-2, 0), (-1, 1), (1, 1), (2, 0)], Pattern::LiveThree),
             // -- [1, 1, 1]
-            (
-                vec![(1, PlayerRock::Player), (2, PlayerRock::Player)],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![(-1, PlayerRock::Player), (1, PlayerRock::Player)],
-                Pattern::LiveThree,
-            ),
+            (vec![(1, 1), (2, 1)], Pattern::LiveThree),
+            (vec![(-1, 1), (1, 1)], Pattern::LiveThree),
             // -- [0, 1, 1, 1, 2]
             // -- [2, 1, 1, 1, 0]
-            (
-                vec![
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Opponent),
-                ],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Opponent),
-                ],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![
-                    (-3, PlayerRock::None),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Opponent),
-                ],
-                Pattern::LiveThree,
-            ),
+            (vec![(-1, 0), (1, 1), (2, 1), (3, 2)], Pattern::LiveThree),
+            (vec![(-2, 0), (-1, 1), (1, 1), (2, 2)], Pattern::LiveThree),
+            (vec![(-3, 0), (-2, 1), (-1, 1), (1, 2)], Pattern::LiveThree),
             // -- [1, 0, 1, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::None),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                ],
-                Pattern::LiveThree,
-            ),
+            (vec![(1, 0), (2, 1), (3, 0), (4, 1)], Pattern::LiveThree),
+            (vec![(-2, 1), (-1, 0), (1, 0), (2, 1)], Pattern::LiveThree),
             // -- [1, 0, 1, 1]
             // -- [1, 1, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                ],
-                Pattern::LiveThree,
-            ),
+            (vec![(1, 0), (2, 1), (3, 1)], Pattern::LiveThree),
+            (vec![(-2, 1), (-1, 0), (1, 1)], Pattern::LiveThree),
             // -- [1, 0, 1, 1, 2]
             // -- [2, 1, 1, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
+            (vec![(1, 0), (2, 1), (3, 1), (4, 2)], Pattern::DeadThree),
+            (vec![(-2, 1), (-1, 0), (1, 1), (2, 2)], Pattern::DeadThree),
+            (vec![(-3, 1), (-2, 0), (-1, 1), (1, 2)], Pattern::DeadThree),
             // -- [2, 1, 0, 1, 1]
-            (
-                vec![
-                    (-1, PlayerRock::Opponent),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-3, PlayerRock::Opponent),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-4, PlayerRock::Opponent),
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                ],
-                Pattern::DeadThree,
-            ),
+            (vec![(-1, 2), (1, 0), (2, 1), (3, 1)], Pattern::DeadThree),
+            (vec![(-3, 2), (-2, 1), (-1, 0), (1, 1)], Pattern::DeadThree),
+            (vec![(-4, 2), (-3, 1), (-2, 0), (-1, 1)], Pattern::DeadThree),
             // -- [1, 1, 0, 1, 2, 0]
             (
-                vec![
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Opponent),
-                    (5, PlayerRock::None),
-                ],
+                vec![(1, 1), (2, 0), (3, 1), (4, 2), (5, 0)],
                 Pattern::DeadThree,
             ),
             (
-                vec![
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Opponent),
-                    (4, PlayerRock::None),
-                ],
+                vec![(-1, 1), (1, 0), (2, 1), (3, 2), (4, 0)],
                 Pattern::DeadThree,
             ),
             (
-                vec![
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Opponent),
-                    (2, PlayerRock::None),
-                ],
+                vec![(-3, 1), (-2, 1), (-1, 0), (1, 2), (2, 0)],
                 Pattern::DeadThree,
             ),
             // -- [1, 0, 0, 1, 1]
             // -- [1, 1, 0, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-3, PlayerRock::Player),
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                ],
-                Pattern::DeadThree,
-            ),
+            (vec![(1, 0), (2, 0), (3, 1), (4, 1)], Pattern::DeadThree),
+            (vec![(-3, 1), (-2, 0), (-1, 0), (1, 1)], Pattern::DeadThree),
             // -- [0, 1, 1, 1, 2]
             // -- [2, 1, 1, 1, 0]
-            (
-                vec![
-                    (-1, PlayerRock::None),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Player),
-                    (3, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-2, PlayerRock::None),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Player),
-                    (2, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
-            (
-                vec![
-                    (-3, PlayerRock::None),
-                    (-2, PlayerRock::Player),
-                    (-1, PlayerRock::Player),
-                    (1, PlayerRock::Opponent),
-                ],
-                Pattern::DeadThree,
-            ),
+            (vec![(-1, 0), (1, 1), (2, 1), (3, 2)], Pattern::DeadThree),
+            (vec![(-2, 0), (-1, 1), (1, 1), (2, 2)], Pattern::DeadThree),
+            (vec![(-3, 0), (-2, 1), (-1, 1), (1, 2)], Pattern::DeadThree),
             // -- [1, 0, 0, 1, 2]
             // -- [2, 1, 0, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                    (4, PlayerRock::Opponent),
-                ],
-                Pattern::LiveTwo,
-            ),
+            (vec![(1, 0), (2, 0), (3, 1), (4, 2)], Pattern::LiveTwo),
             // -- [2, 1, 0, 1]
             // -- [1, 0, 1, 2]
-            (
-                vec![
-                    (-1, PlayerRock::Opponent),
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::Player),
-                ],
-                Pattern::LiveTwo,
-            ),
+            (vec![(-1, 2), (1, 0), (2, 1)], Pattern::LiveTwo),
             // -- [1, 0, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::Player),
-                ],
-                Pattern::LiveTwo,
-            ),
+            (vec![(1, 0), (2, 0), (3, 1)], Pattern::LiveTwo),
             // -- [1, 0, 0, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::None),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::DeadTwo,
-            ),
+            (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Pattern::DeadTwo),
             // -- [1, 0, 1]
-            (
-                vec![(1, PlayerRock::None), (2, PlayerRock::Player)],
-                Pattern::LiveTwo,
-            ),
+            (vec![(1, 0), (2, 1)], Pattern::LiveTwo),
             // -- [1, 0, 0, 0, 1]
-            (
-                vec![
-                    (1, PlayerRock::None),
-                    (2, PlayerRock::None),
-                    (3, PlayerRock::None),
-                    (4, PlayerRock::Player),
-                ],
-                Pattern::DeadTwo,
-            ),
+            (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Pattern::DeadTwo),
             // -- [2, 1, 1]
             // -- [1, 1, 2]
-            (
-                vec![(-1, PlayerRock::Opponent), (1, PlayerRock::Player)],
-                Pattern::DeadTwo,
-            ),
-            (
-                vec![(-2, PlayerRock::Opponent), (-1, PlayerRock::Player)],
-                Pattern::DeadTwo,
-            ),
+            (vec![(-1, 2), (1, 1)], Pattern::DeadTwo),
+            (vec![(-2, 2), (-1, 1)], Pattern::DeadTwo),
             // -- [1, 1]
-            (vec![(1, PlayerRock::Player)], Pattern::DeadTwo),
+            (vec![(1, 1)], Pattern::DeadTwo),
         ];
 
-        Finder { patterns }
+        Finder {
+            patterns: patterns
+                .iter()
+                .map(|(pattern, category)| {
+                    (
+                        pattern
+                            .iter()
+                            .map(|(mov, expected)| {
+                                (
+                                    *mov,
+                                    if expected == &0 {
+                                        PlayerRock::None
+                                    } else if expected == &1 {
+                                        PlayerRock::Player
+                                    } else {
+                                        PlayerRock::Opponent
+                                    },
+                                )
+                            })
+                            .collect::<Vec<(i16, PlayerRock)>>(),
+                        *category,
+                    )
+                })
+                .collect::<Vec<(Vec<(i16, PlayerRock)>, Pattern)>>(),
+        }
     }
 }
 
