@@ -1,12 +1,15 @@
+#[cfg(feature = "threaded")]
+use crate::constants::NB_THREAD;
 use crate::{
     board::{Board, Move},
-    constants::NB_THREAD,
     pattern::{PatternCount, PATTERN_FINDER},
     player::Player,
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{cmp::Ordering, collections::BinaryHeap, fmt, sync::mpsc, thread};
+use std::{cmp::Ordering, collections::BinaryHeap, fmt};
+#[cfg(feature = "threaded")]
+use std::{sync::mpsc, thread};
 
 #[derive(Debug, Clone)]
 pub struct SortedMove {
@@ -198,6 +201,7 @@ impl Computer {
         }
     }
 
+    #[cfg(feature = "threaded")]
     fn initial_minimax_alpha_beta(
         &self,
         rules: &RuleSet,
@@ -242,6 +246,7 @@ impl Computer {
         Ok(best_eval)
     }
 
+    #[cfg(feature = "threaded")]
     pub fn get_all_first_movements_sorted(
         &self,
         rules: &RuleSet,
@@ -276,6 +281,7 @@ impl Computer {
     }
 
     // Use the negamax algorithm (minimax variant) to get the next best move
+    #[cfg(not(feature = "threaded"))]
     pub fn play(
         &self,
         rules: &RuleSet,
@@ -283,28 +289,35 @@ impl Computer {
         depth: usize,
         player: Player,
     ) -> Result<Evaluation, String> {
-        /* WITHOUT THREADS */
-        // // Apply minimax recursively
-        // let best_move = self.minimax_alpha_beta(
-        //     rules,
-        //     MinimaxAction {
-        //         board,
-        //         movement: None,
-        //         patterns: None,
-        //     },
-        //     AlphaBetaIteration {
-        //         depth,
-        //         alpha: i32::min_value(),
-        //         beta: i32::max_value(),
-        //     },
-        //     player,
-        //     player,
-        // )?;
+        // Apply minimax recursively
+        let best_move = self.minimax_alpha_beta(
+            rules,
+            MinimaxAction {
+                board,
+                movement: None,
+                patterns: None,
+            },
+            AlphaBetaIteration {
+                depth,
+                alpha: i32::min_value(),
+                beta: i32::max_value(),
+            },
+            player,
+            player,
+        )?;
 
-        // Ok(best_move)
-        /* WITHOUT THREADS */
+        Ok(best_move)
+    }
 
-        /* WITH THREADS */
+    // Use the negamax algorithm (minimax variant) to get the next best move
+    #[cfg(feature = "threaded")]
+    pub fn play(
+        &self,
+        rules: &RuleSet,
+        board: &mut Board,
+        depth: usize,
+        player: Player,
+    ) -> Result<Evaluation, String> {
         // Get all possible moves to launch them in multiple threads
         let sorted_list_of_moves = self.get_all_first_movements_sorted(rules, board, player);
 
@@ -350,6 +363,5 @@ impl Computer {
         }
 
         Ok(best_move)
-        /* WITH THREADS */
     }
 }

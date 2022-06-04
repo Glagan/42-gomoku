@@ -33,6 +33,7 @@ pub const FONT_SIZE: u16 = 20;
 pub const WIN_FONT_SIZE: u16 = 30;
 pub const POLICE_SIZE: f32 = 20.;
 pub const DEPTH: usize = 4;
+#[cfg(feature = "threaded")]
 pub const NB_THREAD: usize = 4;
 
 // Colors
