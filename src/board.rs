@@ -1,9 +1,12 @@
 use crate::{
-    constants::{BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
+    constants::{
+        BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS, OPPOSITE_DIRECTIONS,
+    },
     macros::coord,
     pattern::{
-        CAPTURE_PATTERN, FIVE_PATTERNS, FREE_THREE_DIRECT_PATTERN, FREE_THREE_SECONDARY_PATTERN,
-        RECURSIVE_CAPTURE_PATTERN, UNDER_CAPTURE_PATTERNS,
+        CAPTURE_PATTERN, FIVE_PATTERNS, FREE_THREE_DIRECT_CENTER_PATTERN,
+        FREE_THREE_DIRECT_PATTERN, FREE_THREE_SECONDARY_CENTER_PATTERN,
+        FREE_THREE_SECONDARY_PATTERN, RECURSIVE_CAPTURE_PATTERN, UNDER_CAPTURE_PATTERNS,
     },
     player::Player,
     rock::{PlayerRock, Rock},
@@ -212,11 +215,30 @@ impl Board {
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
     pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
         let mut total = 0;
+
+        // Handle the [0 {1} 1 {1} 0] patterns
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
                 direction,
                 &FREE_THREE_DIRECT_PATTERN,
+                movement.player,
+            ) {
+                total += 1;
+            }
+        }
+
+        // Handle the [0 1 {1} 1 0] pattern to only count it once for a global direction
+        for (left, right) in &OPPOSITE_DIRECTIONS {
+            if self.check_pattern(
+                &movement.coordinates,
+                left,
+                &FREE_THREE_DIRECT_CENTER_PATTERN,
+                movement.player,
+            ) || self.check_pattern(
+                &movement.coordinates,
+                right,
+                &FREE_THREE_DIRECT_CENTER_PATTERN,
                 movement.player,
             ) {
                 total += 1;
@@ -229,11 +251,30 @@ impl Board {
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
     pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
         let mut total = 0;
+
+        // Handle [0 {1} 1 0 {1} 0]
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
                 direction,
                 &FREE_THREE_SECONDARY_PATTERN,
+                movement.player,
+            ) {
+                total += 1;
+            }
+        }
+
+        // Handle the [0 1 {1} 0 1 0] pattern to only count it once for a global direction
+        for (left, right) in &OPPOSITE_DIRECTIONS {
+            if self.check_pattern(
+                &movement.coordinates,
+                left,
+                &FREE_THREE_SECONDARY_CENTER_PATTERN,
+                movement.player,
+            ) || self.check_pattern(
+                &movement.coordinates,
+                right,
+                &FREE_THREE_SECONDARY_CENTER_PATTERN,
                 movement.player,
             ) {
                 total += 1;

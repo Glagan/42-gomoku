@@ -13,12 +13,13 @@ pub const FREE_THREE_DIRECT_PATTERN: [(i16, PlayerRock); 4] = [
     (2, PlayerRock::Player),
     (3, PlayerRock::None),
 ];
-// [
-//     (-2, PlayerRock::None),
-//     (-1, PlayerRock::Player),
-//     (1, PlayerRock::Player),
-//     (2, PlayerRock::None),
-// ]
+
+pub const FREE_THREE_DIRECT_CENTER_PATTERN: [(i16, PlayerRock); 4] = [
+    (-2, PlayerRock::None),
+    (-1, PlayerRock::Player),
+    (1, PlayerRock::Player),
+    (2, PlayerRock::None),
+];
 
 pub const FREE_THREE_SECONDARY_PATTERN: [(i16, PlayerRock); 5] = [
     (-1, PlayerRock::None),
@@ -27,13 +28,14 @@ pub const FREE_THREE_SECONDARY_PATTERN: [(i16, PlayerRock); 5] = [
     (3, PlayerRock::Player),
     (4, PlayerRock::None),
 ];
-// [
-//     (-2, PlayerRock::None),
-//     (-1, PlayerRock::Player),
-//     (1, PlayerRock::None),
-//     (2, PlayerRock::Player),
-//     (3, PlayerRock::None),
-// ]
+
+pub const FREE_THREE_SECONDARY_CENTER_PATTERN: [(i16, PlayerRock); 5] = [
+    (-2, PlayerRock::None),
+    (-1, PlayerRock::Player),
+    (1, PlayerRock::None),
+    (2, PlayerRock::Player),
+    (3, PlayerRock::None),
+];
 
 pub const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
     &[
@@ -243,6 +245,10 @@ impl Default for Finder {
             // -- [1, 1, 0, 1, 1]
             (vec![(1, 1), (2, 0), (3, 1), (4, 1)], Category::LiveFour),
             (vec![(-1, 1), (1, 0), (2, 1), (3, 1)], Category::LiveFour),
+            // -- [2, 1, 2, 2]
+            // -- [2, 2, 1, 2]
+            (vec![(-1, 2), (1, 2), (2, 2)], Category::KilledFour),
+            (vec![(-2, 2), (-1, 2), (1, 2)], Category::KilledFour),
             // -- [2, 0, 1, 1, 1, 0, 2]
             (
                 vec![(-2, 2), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 2)],

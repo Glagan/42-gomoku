@@ -401,7 +401,7 @@ impl Computer {
         /* WITHOUT THREADS */
 
         /* WITHOUT THREADS */
-        // Apply negamax recursively
+        // // Apply negamax recursively
         // let best_move = self.negamax_alpha_beta(
         //     rules,
         //     MinimaxAction {
