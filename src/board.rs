@@ -1,6 +1,10 @@
 use crate::{
     constants::{BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
     macros::coord,
+    pattern::{
+        CAPTURE_PATTERN, FIVE_PATTERNS, FREE_THREE_DIRECT_PATTERN, FREE_THREE_SECONDARY_PATTERN,
+        RECURSIVE_CAPTURE_PATTERN, UNDER_CAPTURE_PATTERNS,
+    },
     player::Player,
     rock::{PlayerRock, Rock},
     rules::RuleSet,
@@ -207,25 +211,12 @@ impl Board {
     // Since the move rock can be in any 1 position, we need to check all possible patterns:
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
     pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
-        const FREE_THREE_PATTERN: [(i16, PlayerRock); 4] = [
-            (-1, PlayerRock::None),
-            (1, PlayerRock::Player),
-            (2, PlayerRock::Player),
-            (3, PlayerRock::None),
-        ];
-        // [
-        //     (-2, PlayerRock::None),
-        //     (-1, PlayerRock::Player),
-        //     (1, PlayerRock::Player),
-        //     (2, PlayerRock::None),
-        // ]
-
         let mut total = 0;
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
                 direction,
-                &FREE_THREE_PATTERN,
+                &FREE_THREE_DIRECT_PATTERN,
                 movement.player,
             ) {
                 total += 1;
@@ -237,27 +228,12 @@ impl Board {
 
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
     pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
-        const FREE_THREE_PATTERN: [(i16, PlayerRock); 5] = [
-            (-1, PlayerRock::None),
-            (1, PlayerRock::None),
-            (2, PlayerRock::Player),
-            (3, PlayerRock::Player),
-            (4, PlayerRock::None),
-        ];
-        // [
-        //     (-2, PlayerRock::None),
-        //     (-1, PlayerRock::Player),
-        //     (1, PlayerRock::None),
-        //     (2, PlayerRock::Player),
-        //     (3, PlayerRock::None),
-        // ]
-
         let mut total = 0;
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
                 direction,
-                &FREE_THREE_PATTERN,
+                &FREE_THREE_SECONDARY_PATTERN,
                 movement.player,
             ) {
                 total += 1;
@@ -278,12 +254,6 @@ impl Board {
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
     fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
-        const RECURSIVE_CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
-            (-1, PlayerRock::Opponent),
-            (1, PlayerRock::Player),
-            (2, PlayerRock::Opponent),
-        ];
-
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
@@ -350,12 +320,6 @@ impl Board {
     }
 
     fn check_capture(&mut self, movement: &Move) {
-        const CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
-            (1, PlayerRock::Opponent),
-            (2, PlayerRock::Opponent),
-            (3, PlayerRock::Player),
-        ];
-
         // Check captures in all directions and add them to the list
         let mut captures: Vec<Coordinates> = vec![];
         for direction in &DIRECTIONS {
@@ -474,38 +438,6 @@ impl Board {
     // [0 1 1 1 1 1]                                      |
     // [0 0 0 2 0 0]                        in this "row" ^
     pub fn has_uncaptured_five_in_a_row(&self, rules: &RuleSet, player: Player) -> bool {
-        const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
-            &[
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-                (3, PlayerRock::Player),
-                (4, PlayerRock::Player),
-            ],
-            &[
-                (-1, PlayerRock::Player),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-                (3, PlayerRock::Player),
-            ],
-            &[
-                (-2, PlayerRock::Player),
-                (-1, PlayerRock::Player),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-            ],
-        ];
-        const RECURSIVE_CAPTURE_PATTERNS: [[(i16, PlayerRock); 3]; 2] = [
-            [
-                (-1, PlayerRock::None),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Opponent),
-            ],
-            [
-                (-1, PlayerRock::Opponent),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::None),
-            ],
-        ];
         let opponent = player.opponent();
 
         // We need to check all rocks since a capture movement can unlock a totally unrelated
@@ -522,7 +454,7 @@ impl Board {
                         // Check if the rock that found the five in a row is not under capture
                         && DIRECTIONS.iter().all(|direction| {
                             // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                            RECURSIVE_CAPTURE_PATTERNS .iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                            UNDER_CAPTURE_PATTERNS .iter().enumerate().all(|(index, recursive_capture_pattern)| {
                                 // Check that the pattern *doesn't* match ...
                                 !self.check_pattern(rock, direction, recursive_capture_pattern, player)
                                 // ... or that the move in [0] is illegal for the other player
@@ -551,7 +483,7 @@ impl Board {
                                 // The checked rock is the another rock in the current five in a row pattern
                                 let other_rock_coords = coord!(rock.x + five_in_a_row_direction.0 * mov, rock.y + five_in_a_row_direction.1 * mov);
                                 // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                                RECURSIVE_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
+                                UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
                                     // Check that the pattern *doesn't* match ...
                                     !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern, player)
                                     // ... or that the move in [0] is illegal for the other player
@@ -588,27 +520,6 @@ impl Board {
     }
 
     pub fn has_five_in_a_row(&self, player: Player) -> bool {
-        const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
-            &[
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-                (3, PlayerRock::Player),
-                (4, PlayerRock::Player),
-            ],
-            &[
-                (-1, PlayerRock::Player),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-                (3, PlayerRock::Player),
-            ],
-            &[
-                (-2, PlayerRock::Player),
-                (-1, PlayerRock::Player),
-                (1, PlayerRock::Player),
-                (2, PlayerRock::Player),
-            ],
-        ];
-
         let rocks = if player == Player::Black {
             &self.black.rocks
         } else {
