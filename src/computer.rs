@@ -198,94 +198,7 @@ impl Computer {
         }
     }
 
-    fn negamax_alpha_beta(
-        &self,
-        rules: &RuleSet,
-        action: MinimaxAction,
-        iteration: AlphaBetaIteration,
-        player: Player,
-    ) -> Result<Evaluation, String> {
-        let mut alpha = iteration.alpha;
-        let beta = iteration.beta;
-
-        // Check if it's a leaf and compute it's value
-        // The current action is a movement for the *other* player
-        // -- so we need to check if the *other* player is winning
-        let is_leaf = iteration.depth == 0
-            || if let Some(movement) = action.movement {
-                action.board.is_winning(rules, movement.player)
-            } else {
-                false
-            };
-        if is_leaf {
-            if action.movement.is_none() {
-                return Err("Empty movement in negamax leaf".to_string());
-            }
-            let score = self.evaluate_action(&action);
-            return Ok(Evaluation {
-                score,
-                movement: None,
-            });
-        }
-
-        // Only the best evaluation is returned
-        let mut best_eval = Evaluation {
-            score: i32::min_value() + 1,
-            movement: None,
-        };
-
-        // Generate moves
-        let mut moves: BinaryHeap<SortedMove> = action
-            .board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| {
-                action.board.set_move(rules, &movement);
-                let pattern_count =
-                    PATTERN_FINDER.count_movement_patterns(rules, action.board, &movement);
-                action.board.undo_move(rules, &movement);
-                SortedMove {
-                    movement,
-                    best_pattern: pattern_count.best_pattern(),
-                    pattern_count,
-                }
-            })
-            .collect();
-        // Iterate each neighbor moves
-        while let Some(sorted_movement) = moves.pop() {
-            action.board.set_move(rules, &sorted_movement.movement);
-            let eval = self.negamax_alpha_beta(
-                rules,
-                MinimaxAction {
-                    board: action.board,
-                    movement: Some(&sorted_movement.movement),
-                    patterns: Some(&sorted_movement.pattern_count),
-                },
-                AlphaBetaIteration {
-                    depth: iteration.depth - 1,
-                    alpha: -beta,
-                    beta: -alpha,
-                },
-                player.opponent(),
-            )?;
-            action.board.undo_move(rules, &sorted_movement.movement);
-            let score = -eval.score;
-            if score > best_eval.score {
-                best_eval.score = score;
-                best_eval.movement = Some(sorted_movement.movement);
-                if best_eval.score > alpha {
-                    alpha = score;
-                    if alpha >= beta {
-                        break;
-                    }
-                }
-            }
-        }
-
-        Ok(best_eval)
-    }
-
-    fn initial_negamax_alpha_beta(
+    fn initial_minimax_alpha_beta(
         &self,
         rules: &RuleSet,
         action: MinimaxAction,
@@ -294,20 +207,15 @@ impl Computer {
         mut moves: BinaryHeap<SortedMove>,
     ) -> Result<Evaluation, String> {
         let mut alpha = iteration.alpha;
-        let beta = iteration.beta;
 
-        // Only the best evaluation is returned
+        // Only the player can be optimized in the initial call
         let mut best_eval = Evaluation {
-            score: i32::min_value() + 1,
+            score: i32::min_value(),
             movement: None,
         };
-
-        // Iterate each already generated moves
-        // These moves are for the *current* player and should not decrease depth
-        // -- since this is the *initial* call but the moves are already generated
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
-            let eval = self.negamax_alpha_beta(
+            let eval = self.minimax_alpha_beta(
                 rules,
                 MinimaxAction {
                     board: action.board,
@@ -315,26 +223,22 @@ impl Computer {
                     patterns: Some(&sorted_movement.pattern_count),
                 },
                 AlphaBetaIteration {
-                    depth: iteration.depth,
+                    depth: iteration.depth - 1,
                     alpha,
-                    beta,
+                    beta: iteration.beta,
                 },
+                player.opponent(),
                 player,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            let score = eval.score;
-            if score > best_eval.score {
-                best_eval.score = score;
+            if eval.score > best_eval.score {
+                best_eval.score = eval.score;
                 best_eval.movement = Some(sorted_movement.movement);
             }
-            if score > alpha {
-                alpha = score;
-            }
-            if alpha >= beta {
-                break;
+            if best_eval.score > alpha {
+                alpha = best_eval.score;
             }
         }
-
         Ok(best_eval)
     }
 
@@ -380,29 +284,8 @@ impl Computer {
         player: Player,
     ) -> Result<Evaluation, String> {
         /* WITHOUT THREADS */
-        // Apply minimax recursively
-        let best_move = self.minimax_alpha_beta(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-                patterns: None,
-            },
-            AlphaBetaIteration {
-                depth,
-                alpha: i32::min_value(),
-                beta: i32::max_value(),
-            },
-            player,
-            player,
-        )?;
-
-        Ok(best_move)
-        /* WITHOUT THREADS */
-
-        /* WITHOUT THREADS */
-        // // Apply negamax recursively
-        // let best_move = self.negamax_alpha_beta(
+        // // Apply minimax recursively
+        // let best_move = self.minimax_alpha_beta(
         //     rules,
         //     MinimaxAction {
         //         board,
@@ -411,9 +294,10 @@ impl Computer {
         //     },
         //     AlphaBetaIteration {
         //         depth,
-        //         alpha: i32::min_value() + 1,
+        //         alpha: i32::min_value(),
         //         beta: i32::max_value(),
         //     },
+        //     player,
         //     player,
         // )?;
 
@@ -421,56 +305,51 @@ impl Computer {
         /* WITHOUT THREADS */
 
         /* WITH THREADS */
-        // // Get all possible moves to launch them in multiple threads
-        // let sorted_list_of_moves = self.get_all_first_movements_sorted(rules, board, player);
+        // Get all possible moves to launch them in multiple threads
+        let sorted_list_of_moves = self.get_all_first_movements_sorted(rules, board, player);
 
-        // // Open channel
-        // let (tx, rx) = mpsc::channel();
-        // for moves in sorted_list_of_moves {
-        //     let rules_clone = *rules;
-        //     let mut board_clone = board.clone();
-        //     let self_clone = self.clone();
-        //     let tx_clone = tx.clone();
+        // Open channel
+        let (tx, rx) = mpsc::channel();
+        for moves in sorted_list_of_moves {
+            let rules_clone = *rules;
+            let mut board_clone = board.clone();
+            let self_clone = self.clone();
+            let tx_clone = tx.clone();
 
-        //     thread::spawn(move || {
-        //         let thread_result = self_clone.initial_negamax_alpha_beta(
-        //             &rules_clone,
-        //             MinimaxAction {
-        //                 board: &mut board_clone,
-        //                 movement: None,
-        //                 patterns: None,
-        //             },
-        //             AlphaBetaIteration {
-        //                 depth,
-        //                 alpha: i32::min_value() + 1,
-        //                 beta: i32::max_value(),
-        //             },
-        //             player,
-        //             moves,
-        //         );
-        //         let _ = tx_clone.send(thread_result);
-        //     });
-        // }
+            thread::spawn(move || {
+                let thread_result = self_clone.initial_minimax_alpha_beta(
+                    &rules_clone,
+                    MinimaxAction {
+                        board: &mut board_clone,
+                        movement: None,
+                        patterns: None,
+                    },
+                    AlphaBetaIteration {
+                        depth,
+                        alpha: i32::min_value(),
+                        beta: i32::max_value(),
+                    },
+                    player,
+                    moves,
+                );
+                let _ = tx_clone.send(thread_result);
+            });
+        }
 
-        // let mut best_move = Evaluation {
-        //     score: i32::min_value() + 1,
-        //     movement: None,
-        // };
+        let mut best_move = Evaluation {
+            score: i32::min_value(),
+            movement: None,
+        };
 
-        // for _ in 0..NB_THREAD {
-        //     let thread_result = rx.recv().unwrap().unwrap();
-        //     // println!("Return of thread nb {} | score {}", i, thread_result.score);
-        //     if thread_result.score >= best_move.score {
-        //         // println!(
-        //         //     "Better score found, prev {} | new {}",
-        //         //     best_move.score, thread_result.score
-        //         // );
-        //         best_move.score = thread_result.score;
-        //         best_move.movement = thread_result.movement;
-        //     }
-        // }
+        for _ in 0..NB_THREAD {
+            let thread_result = rx.recv().unwrap().unwrap();
+            if thread_result.score >= best_move.score {
+                best_move.score = thread_result.score;
+                best_move.movement = thread_result.movement;
+            }
+        }
 
-        // Ok(best_move)
+        Ok(best_move)
         /* WITH THREADS */
     }
 }
