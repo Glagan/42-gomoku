@@ -87,18 +87,18 @@ impl Default for Finder {
             (vec![(-2, 0), (-1, 1), (1, 1), (2, 1)], Pattern::LiveFour),
             // -- [2, 1, 1, 1, 1, 0]
             // -- [0, 1, 1, 1, 1, 2]
-            (
-                vec![(-1, 2), (1, 1), (2, 1), (3, 1), (4, 0)],
-                Pattern::LiveFour,
-            ),
-            (
-                vec![(-2, 2), (-1, 1), (1, 1), (2, 1), (3, 0)],
-                Pattern::LiveFour,
-            ),
-            (
-                vec![(-3, 2), (-2, 1), (-1, 1), (1, 1), (2, 0)],
-                Pattern::LiveFour,
-            ),
+            // (
+            //     vec![(-1, 2), (1, 1), (2, 1), (3, 1), (4, 0)],
+            //     Pattern::LiveFour,
+            // ),
+            // (
+            //     vec![(-2, 2), (-1, 1), (1, 1), (2, 1), (3, 0)],
+            //     Pattern::LiveFour,
+            // ),
+            // (
+            //     vec![(-3, 2), (-2, 1), (-1, 1), (1, 1), (2, 0)],
+            //     Pattern::LiveFour,
+            // ),
             // -- [1, 0, 1, 1, 1]
             // -- [1, 1, 1, 0, 1]
             (vec![(1, 0), (2, 1), (3, 1), (4, 1)], Pattern::LiveFour),
@@ -137,25 +137,20 @@ impl Default for Finder {
                 Pattern::LiveFour,
             ),
             // -- [2, 0, 1, 1, 1, 0, 2]
-            (
-                vec![(-2, 2), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 2)],
-                Pattern::LiveThree,
-            ),
-            (
-                vec![(-3, 2), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 2)],
-                Pattern::LiveThree,
-            ),
+            // (
+            //     vec![(-2, 2), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 2)],
+            //     Pattern::LiveThree,
+            // ),
+            // (
+            //     vec![(-3, 2), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 2)],
+            //     Pattern::LiveThree,
+            // ),
             // -- [0, 1, 1, 1, 0]
             (vec![(-1, 0), (1, 1), (2, 1), (3, 0)], Pattern::LiveThree),
             (vec![(-2, 0), (-1, 1), (1, 1), (2, 0)], Pattern::LiveThree),
             // -- [1, 1, 1]
             (vec![(1, 1), (2, 1)], Pattern::LiveThree),
             (vec![(-1, 1), (1, 1)], Pattern::LiveThree),
-            // -- [0, 1, 1, 1, 2]
-            // -- [2, 1, 1, 1, 0]
-            (vec![(-1, 0), (1, 1), (2, 1), (3, 2)], Pattern::LiveThree),
-            (vec![(-2, 0), (-1, 1), (1, 1), (2, 2)], Pattern::LiveThree),
-            (vec![(-3, 0), (-2, 1), (-1, 1), (1, 2)], Pattern::LiveThree),
             // -- [1, 0, 1, 0, 1]
             (vec![(1, 0), (2, 1), (3, 0), (4, 1)], Pattern::LiveThree),
             (vec![(-2, 1), (-1, 0), (1, 0), (2, 1)], Pattern::LiveThree),
@@ -187,8 +182,8 @@ impl Default for Finder {
             ),
             // -- [1, 0, 0, 1, 1]
             // -- [1, 1, 0, 0, 1]
-            (vec![(1, 0), (2, 0), (3, 1), (4, 1)], Pattern::DeadThree),
-            (vec![(-3, 1), (-2, 0), (-1, 0), (1, 1)], Pattern::DeadThree),
+            (vec![(1, 0), (2, 0), (3, 1), (4, 1)], Pattern::LiveThree),
+            (vec![(-3, 1), (-2, 0), (-1, 0), (1, 1)], Pattern::LiveThree),
             // -- [0, 1, 1, 1, 2]
             // -- [2, 1, 1, 1, 0]
             (vec![(-1, 0), (1, 1), (2, 1), (3, 2)], Pattern::DeadThree),
@@ -196,22 +191,30 @@ impl Default for Finder {
             (vec![(-3, 0), (-2, 1), (-1, 1), (1, 2)], Pattern::DeadThree),
             // -- [1, 0, 0, 1, 2]
             // -- [2, 1, 0, 0, 1]
-            (vec![(1, 0), (2, 0), (3, 1), (4, 2)], Pattern::LiveTwo),
+            // (vec![(1, 0), (2, 0), (3, 1), (4, 2)], Pattern::LiveTwo),
+            // (vec![(-1, 2), (1, 0), (2, 0), (3, 1)], Pattern::LiveTwo),
             // -- [2, 1, 0, 1]
             // -- [1, 0, 1, 2]
-            (vec![(-1, 2), (1, 0), (2, 1)], Pattern::LiveTwo),
+            // (vec![(-1, 2), (1, 0), (2, 1)], Pattern::LiveTwo),
+            // (vec![(1, 0), (2, 1), (3, 2)], Pattern::LiveTwo),
             // -- [1, 0, 0, 1]
-            (vec![(1, 0), (2, 0), (3, 1)], Pattern::LiveTwo),
+            // (vec![(1, 0), (2, 0), (3, 1)], Pattern::LiveTwo),
+            // -- [0, 1, 1, 0]
+            (vec![(-1, 0), (1, 1), (2, 0)], Pattern::LiveTwo),
             // -- [1, 0, 0, 0, 1]
             (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Pattern::DeadTwo),
             // -- [1, 0, 1]
-            (vec![(1, 0), (2, 1)], Pattern::LiveTwo),
+            // (vec![(1, 0), (2, 1)], Pattern::LiveTwo),
             // -- [1, 0, 0, 0, 1]
-            (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Pattern::DeadTwo),
+            // (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Pattern::DeadTwo),
+            // -- [0, 1, 1, 2]
+            // -- [2, 1, 1, 0]
+            (vec![(-1, 0), (1, 1), (2, 1)], Pattern::DeadTwo),
+            (vec![(-1, 2), (1, 1), (2, 0)], Pattern::DeadTwo),
             // -- [2, 1, 1]
             // -- [1, 1, 2]
-            (vec![(-1, 2), (1, 1)], Pattern::DeadTwo),
-            (vec![(-2, 2), (-1, 1)], Pattern::DeadTwo),
+            // (vec![(-1, 2), (1, 1)], Pattern::DeadTwo),
+            // (vec![(-2, 2), (-1, 1)], Pattern::DeadTwo),
             // -- [1, 1]
             (vec![(1, 1)], Pattern::DeadTwo),
         ];
