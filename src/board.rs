@@ -3,7 +3,7 @@ use crate::{
         BOARD_PIECES_USIZE, BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS, OPPOSITE_DIRECTIONS,
     },
     macros::coord,
-    pattern::{
+    patterns::{
         CAPTURE_PATTERN, FIVE_PATTERNS, FREE_THREE_DIRECT_CENTER_PATTERN,
         FREE_THREE_DIRECT_PATTERN, FREE_THREE_SECONDARY_CENTER_PATTERN,
         FREE_THREE_SECONDARY_PATTERN, RECURSIVE_CAPTURE_PATTERN, UNDER_CAPTURE_PATTERNS,
@@ -360,7 +360,7 @@ impl Board {
         moves
     }
 
-    fn check_capture(&mut self, movement: &Move) {
+    fn check_capture(&mut self, movement: &Move) -> u8 {
         // Check captures in all directions and add them to the list
         let mut captures: Vec<Coordinates> = vec![];
         for direction in &DIRECTIONS {
@@ -394,7 +394,9 @@ impl Board {
             }
             self.all_rocks.remove(&coordinates);
         }
+        let captures_len = captures.len() as u8;
         self.moves_restore.push(captures);
+        captures_len
     }
 
     // Update all boards to update for the given movement
@@ -412,10 +414,11 @@ impl Board {
     }
 
     // Apply a movement to the current Board
-    pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) {
+    pub fn set_move(&mut self, rules: &RuleSet, movement: &Move) -> u8 {
+        let mut captures: u8 = 0;
         self.set_on_boards(&movement.coordinates, movement.player);
         if rules.capture {
-            self.check_capture(movement);
+            captures = self.check_capture(movement);
         }
         if movement.player == Player::Black {
             self.black.rocks.insert(movement.coordinates);
@@ -424,6 +427,7 @@ impl Board {
         }
         self.all_rocks.insert(movement.coordinates);
         self.moves += 1;
+        captures
     }
 
     #[inline(always)]

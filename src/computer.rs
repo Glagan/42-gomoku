@@ -2,7 +2,8 @@
 use crate::constants::NB_THREAD;
 use crate::{
     board::{Board, Move},
-    pattern::{PatternCount, PATTERN_FINDER},
+    heuristic::HEURISTIC,
+    patterns::PatternCount,
     player::Player,
     rules::RuleSet,
 };
@@ -72,7 +73,7 @@ pub struct Computer;
 impl Computer {
     // Calculate the patterns created by a movement and return it's score
     pub fn evaluate_action(&self, action: &MinimaxAction) -> i32 {
-        PATTERN_FINDER.patterns_score(action.patterns.as_ref().unwrap())
+        HEURISTIC.patterns_score(action.patterns.as_ref().unwrap())
     }
 
     fn minimax_alpha_beta(
@@ -112,9 +113,9 @@ impl Computer {
             .intersections_legal_moves(rules, player)
             .iter()
             .map(|&movement| {
-                action.board.set_move(rules, &movement);
+                let captures = action.board.set_move(rules, &movement);
                 let pattern_count =
-                    PATTERN_FINDER.count_movement_patterns(rules, action.board, &movement);
+                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
                 action.board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
@@ -259,7 +260,7 @@ impl Computer {
             .iter()
             .map(|&movement| {
                 board.set_move(rules, &movement);
-                let pattern_count = PATTERN_FINDER.count_movement_patterns(rules, board, &movement);
+                let pattern_count = HEURISTIC.count_movement_patterns(rules, board, &movement);
                 board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
