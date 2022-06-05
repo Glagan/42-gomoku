@@ -47,6 +47,7 @@ pub struct Game {
     pub current_player: Player,
     pub winner: Winner,
     pub rock_move: Vec<Coordinates>,
+    pub undone_moves: Vec<Move>,
 }
 
 impl Default for Game {
@@ -72,6 +73,7 @@ impl Default for Game {
             current_player: Player::Black,
             winner: Winner::None,
             rock_move: vec![],
+            undone_moves: vec![],
         }
     }
 }
@@ -95,6 +97,7 @@ impl Game {
         self.current_player = Player::Black;
         self.winner = Winner::None;
         self.rock_move = vec![];
+        self.undone_moves = vec![];
     }
 
     pub fn start_pva(&mut self, color: Rock) {
@@ -217,6 +220,31 @@ impl Game {
             }
         } else {
             println!("{}", "computer returned an empty play result".red());
+        }
+    }
+
+    pub fn undo_move(&mut self) {
+        if let Some(last_coordinates) = self.rock_move.pop() {
+            let undone_move = Move {
+                coordinates: last_coordinates,
+                player: if self.board.get(last_coordinates.x, last_coordinates.y) == Rock::Black {
+                    Player::Black
+                } else {
+                    Player::White
+                },
+            };
+            self.board.undo_move(&self.rules, &undone_move);
+            self.undone_moves.push(undone_move);
+            self.current_player = self.current_player.opponent();
+        }
+    }
+
+    pub fn redo_move(&mut self) {
+        let last_move = self.undone_moves.pop();
+        if let Some(last_move) = last_move {
+            self.board.set_move(&self.rules, &last_move);
+            self.rock_move.push(last_move.coordinates);
+            self.current_player = self.current_player.opponent();
         }
     }
 }

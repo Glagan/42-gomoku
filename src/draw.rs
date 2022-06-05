@@ -491,10 +491,32 @@ pub fn display_panel_text(game: &mut Game) {
     }
 }
 
-pub fn display_winner(game: &Game) {
+pub fn display_winner(game: &mut Game) {
     if game.winner != Winner::None {
+        // Display undo and redo buttons
         let x = (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - ((BUTTTON_LENGTH - 30.) / 2.);
-        let y = GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH;
+        let y = GRID_WINDOW_SIZE as f32 - 70. - (BUTTTON_HEIGTH * 1.5);
+        if !game.rock_move.is_empty() {
+            let undo = widgets::Button::new("Undo")
+                .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
+                .position(Vec2::new(x, y))
+                .ui(&mut root_ui());
+            if undo {
+                game.undo_move();
+            }
+        }
+        if !game.undone_moves.is_empty() {
+            let redo = widgets::Button::new("Redo")
+                .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
+                .position(Vec2::new(x + (BUTTTON_LENGTH - 40.) / 2. + 10., y))
+                .ui(&mut root_ui());
+            if redo {
+                game.redo_move();
+            }
+        }
+
+        // Display winner text
+        let y = y + BUTTTON_HEIGTH / 1.5;
         // Background
         draw_rectangle_lines(x, y, BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 20., 4., BLACK);
         // Winner text

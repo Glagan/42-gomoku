@@ -85,7 +85,7 @@ async fn main() {
 
             // Winner
             if game.winner != Winner::None {
-                display_winner(&game);
+                display_winner(&mut game);
             } else {
                 // Handle Input based on current game mode
                 if game.mode != GameMode::AvA {
