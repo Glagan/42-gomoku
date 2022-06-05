@@ -41,12 +41,12 @@ impl PartialOrd for SortedMove {
 #[derive(Debug, Clone)]
 pub struct Evaluation {
     pub score: i32,
-    pub movement: Option<Move>,
+    pub movements: Vec<Move>,
 }
 
 impl fmt::Display for Evaluation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(movement) = self.movement {
+        if let Some(movement) = self.movements.first() {
             write!(f, "score {} movement {}", self.score, movement)
         } else {
             write!(f, "score {} {}", self.score, "without movement !".red())
@@ -102,7 +102,7 @@ impl Computer {
             let score = self.evaluate_action(&action);
             return Ok(Evaluation {
                 score,
-                movement: None,
+                movements: vec![],
             });
         }
 
@@ -127,7 +127,7 @@ impl Computer {
         if player == maximize {
             let mut best_eval = Evaluation {
                 score: i32::min_value(),
-                movement: None,
+                movements: vec![],
             };
             while let Some(sorted_movement) = moves.pop() {
                 action.board.set_move(rules, &sorted_movement.movement);
@@ -149,8 +149,8 @@ impl Computer {
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score > best_eval.score {
                     best_eval.score = eval.score;
-                    // println!("best eval patterns {:#?}", sorted_movement.pattern_count);
-                    best_eval.movement = Some(sorted_movement.movement);
+                    best_eval.movements = eval.movements;
+                    best_eval.movements.insert(0, sorted_movement.movement);
                 }
                 if best_eval.score >= beta {
                     break;
@@ -165,7 +165,7 @@ impl Computer {
         else {
             let mut best_eval = Evaluation {
                 score: i32::max_value(),
-                movement: None,
+                movements: vec![],
             };
             while let Some(sorted_movement) = moves.pop() {
                 action.board.set_move(rules, &sorted_movement.movement);
@@ -187,8 +187,8 @@ impl Computer {
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score < best_eval.score {
                     best_eval.score = eval.score;
-                    // println!("best eval patterns {:#?}", sorted_movement.pattern_count);
-                    best_eval.movement = Some(sorted_movement.movement);
+                    best_eval.movements = eval.movements;
+                    best_eval.movements.insert(0, sorted_movement.movement);
                 }
                 if best_eval.score <= alpha {
                     break;
@@ -215,7 +215,7 @@ impl Computer {
         // Only the player can be optimized in the initial call
         let mut best_eval = Evaluation {
             score: i32::min_value(),
-            movement: None,
+            movements: vec![],
         };
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
@@ -237,7 +237,8 @@ impl Computer {
             action.board.undo_move(rules, &sorted_movement.movement);
             if eval.score > best_eval.score {
                 best_eval.score = eval.score;
-                best_eval.movement = Some(sorted_movement.movement);
+                best_eval.movements = eval.movements;
+                best_eval.movements.insert(0, sorted_movement.movement);
             }
             if best_eval.score > alpha {
                 alpha = best_eval.score;
@@ -351,14 +352,14 @@ impl Computer {
 
         let mut best_move = Evaluation {
             score: i32::min_value(),
-            movement: None,
+            movements: vec![],
         };
 
         for _ in 0..NB_THREAD {
             let thread_result = rx.recv().unwrap().unwrap();
             if thread_result.score >= best_move.score {
                 best_move.score = thread_result.score;
-                best_move.movement = thread_result.movement;
+                best_move.movements = thread_result.movements;
             }
         }
 

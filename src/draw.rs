@@ -13,7 +13,7 @@ use macroquad::{
     hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
-        measure_text, mouse_position, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
+        measure_text, mouse_position, Color, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -118,6 +118,45 @@ pub fn draw_goban(game: &Game) {
                     }
                 }
             }
+        }
+    }
+
+    // Draw computer expected movements
+    let mut black = Color::new(0.0, 0.0, 0.0, 0.7);
+    let mut white = Color::new(1.0, 1.0, 1.0, 0.7);
+    // let mut highlight = Color::new(0.78, 0.48, 1.00, 0.7); // PURPLE
+    for (next, movement) in game.computer_expected_moves.iter().skip(1).enumerate() {
+        if board.get(movement.coordinates.x, movement.coordinates.y) == Rock::None {
+            let (x, y) = (movement.coordinates.x, movement.coordinates.y);
+            let draw_x = (x * SQUARE_SIZE + BORDER_OFFSET) as f32;
+            let draw_y = (y * SQUARE_SIZE + BORDER_OFFSET) as f32;
+            draw_circle(
+                draw_x,
+                draw_y,
+                20.,
+                if movement.player == Player::Black {
+                    black
+                } else {
+                    white
+                },
+            );
+            let next_text = format!("{}", game.rock_move.len() + next + 1).to_string();
+            let text_size = measure_text(&next_text, None, FONT_SIZE, 1.);
+            draw_text(
+                &next_text,
+                draw_x - (text_size.width / 2.),
+                draw_y + text_size.height + 6.,
+                POLICE_SIZE,
+                if movement.player == Player::Black {
+                    white
+                } else {
+                    black
+                },
+            );
+            // draw_circle_lines(draw_x, draw_y, 20., 1., highlight);
+            black.a -= 0.2;
+            white.a -= 0.2;
+            // highlight.a -= 0.1;
         }
     }
 }

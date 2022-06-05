@@ -38,6 +38,7 @@ pub struct Game {
     pub computer: Computer,
     pub generate_recommended_move: bool,
     pub recommended_move: Option<Move>,
+    pub computer_expected_moves: Vec<Move>,
     pub play_time: Instant,
     pub previous_play_time: Duration,
     pub computer_average_play_time: f64,
@@ -62,6 +63,7 @@ impl Default for Game {
             computer: Computer::default(),
             generate_recommended_move: false,
             recommended_move: None,
+            computer_expected_moves: vec![],
             play_time: Instant::now(),
             previous_play_time: Duration::from_millis(0),
             computer_average_play_time: 0.,
@@ -84,6 +86,7 @@ impl Game {
         self.computer_play_as = Player::Black;
         self.computer = Computer::default();
         self.recommended_move = None;
+        self.computer_expected_moves = vec![];
         self.play_time = Instant::now();
         self.previous_play_time = Duration::from_millis(0);
         self.computer_average_play_time = 0.;
@@ -127,10 +130,6 @@ impl Game {
         self.playing = true;
     }
 
-    pub fn add_rock_move(&mut self, coordinates: Coordinates) {
-        self.rock_move.push(coordinates)
-    }
-
     pub fn player_won(&mut self) {
         self.winner = match self.current_player {
             Player::Black => Winner::Black,
@@ -157,7 +156,7 @@ impl Game {
             if self.board.is_move_legal(&self.rules, &movement) {
                 self.board.set_move(&self.rules, &movement);
                 self.recommended_move = None;
-                self.add_rock_move(coordinates);
+                self.rock_move.push(coordinates);
                 if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {
@@ -176,7 +175,9 @@ impl Game {
             self.computer
                 .play(&self.rules, &mut self.board, DEPTH, self.current_player);
         if let Ok(play) = play_result {
-            self.recommended_move = play.movement;
+            if !play.movements.is_empty() {
+                self.recommended_move = Some(*play.movements.first().unwrap());
+            }
         }
         self.recommended_move
     }
@@ -186,6 +187,7 @@ impl Game {
             self.computer
                 .play(&self.rules, &mut self.board, DEPTH, self.current_player);
         if let Ok(play) = play_result {
+            // Collect times
             let play_time = self.play_time.elapsed();
             if self.computer_average_play_time == 0. {
                 self.computer_average_play_time = play_time.as_millis() as f64;
@@ -200,9 +202,12 @@ impl Game {
                 self.computer_lowest_play_time = play_time;
             }
             println!("computer played: {} in {}ms", play, play_time.as_millis());
-            if let Some(movement) = play.movement {
-                self.board.set_move(&self.rules, &movement);
-                self.add_rock_move(movement.coordinates);
+            // Handle the movement
+            self.computer_expected_moves = play.movements;
+            let next_move = self.computer_expected_moves.first();
+            if let Some(movement) = next_move {
+                self.board.set_move(&self.rules, movement);
+                self.rock_move.push(movement.coordinates);
                 if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {

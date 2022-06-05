@@ -450,7 +450,7 @@ impl Finder {
     pub fn patterns_score(&self, patterns: &PatternCount) -> i32 {
         let mut score: i32 = 0;
         if patterns.five_in_row > 0 {
-            score += 1000000;
+            score += 10000000;
         }
         if patterns.killed_five > 0 {
             score += 99999;
