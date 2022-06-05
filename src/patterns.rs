@@ -125,14 +125,15 @@ pub struct PatternCount {
     pub open_two: u8,
     pub reduce_two: u8,
     pub close_two: u8,
-    pub captures: u8,
+    pub total_captures: u8,
+    pub inc_captures: u8,
 }
 
 impl PatternCount {
     // Order by which to sort the generated moves
     // Gives priority to moves that save the game or end the game
     pub fn best_pattern(&self) -> u8 {
-        (if self.five_in_row > 0 {
+        if self.total_captures >= 10 || self.five_in_row > 0 {
             13
         } else if self.kill_four > 0 {
             12
@@ -160,7 +161,7 @@ impl PatternCount {
             1
         } else {
             0
-        }) + self.captures
+        }
     }
 
     pub fn from_patterns(patterns: &Vec<Category>) -> Self {

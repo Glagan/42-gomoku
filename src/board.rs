@@ -57,7 +57,7 @@ impl fmt::Display for Move {
 
 #[derive(Clone)]
 pub struct PlayerState {
-    pub captures: usize,
+    pub captures: u8,
     // Index of all of the player rocks
     pub rocks: HashSet<Coordinates>,
 }
@@ -444,9 +444,9 @@ impl Board {
             let rocks = self.moves_restore.pop().unwrap();
             // Decrease capture counter
             if movement.player == Player::Black {
-                self.black.captures -= rocks.len();
+                self.black.captures -= rocks.len() as u8;
             } else {
-                self.white.captures -= rocks.len();
+                self.white.captures -= rocks.len() as u8;
             }
             // Restore the rock index in the opponent list of rocks
             for rock in rocks {

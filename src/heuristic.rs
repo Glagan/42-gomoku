@@ -2,6 +2,7 @@ use crate::{
     board::{Board, Move},
     constants::DIRECTIONS,
     patterns::{Category, PatternCount, PATTERNS},
+    player::Player,
     rock::PlayerRock,
     rules::RuleSet,
 };
@@ -88,13 +89,18 @@ impl Heuristic {
     ) -> PatternCount {
         let patterns = self.get_patterns_for_movement(rules, board, movement);
         let mut pattern_count = PatternCount::from_patterns(&patterns);
-        pattern_count.captures = captures;
+        pattern_count.total_captures = if movement.player == Player::Black {
+            board.black.captures
+        } else {
+            board.white.captures
+        };
+        pattern_count.inc_captures = captures;
         pattern_count
     }
 
     pub fn patterns_score(&self, patterns: &PatternCount) -> i32 {
         // Return maximum value for the best and worst patterns
-        if patterns.five_in_row > 0 {
+        if patterns.total_captures >= 10 || patterns.five_in_row > 0 {
             return i32::max_value();
         } else if patterns.kill_four > 0 {
             return i32::max_value() - 1;
@@ -104,8 +110,14 @@ impl Heuristic {
         if patterns.open_four > 0 {
             score += 50000;
         }
+        if patterns.inc_captures > 2 {
+            score += 40000
+        }
         if patterns.reduce_three > 0 {
             score += 40000;
+        }
+        if patterns.inc_captures > 0 {
+            score += 30000;
         }
         if patterns.close_four > 0 {
             score += 30000;
@@ -119,9 +131,9 @@ impl Heuristic {
         if patterns.blocked_capture > 0 {
             score += 10000;
         }
-        if patterns.captured_five_in_row > 0 {
-            score += 5000;
-        }
+        // if patterns.captured_five_in_row > 0 {
+        //     score += 5000;
+        // }
         if patterns.close_three > 0 {
             score += 4000;
         }
