@@ -39,4 +39,3 @@ pub const NB_THREAD: usize = 4;
 // Colors
 pub const BLACK_SEMI: Color = color_u8!(0, 0, 0, 200);
 pub const WHITE_SEMI: Color = color_u8!(255, 255, 255, 200);
-pub const BEIGE_SEMI: Color = color_u8!(212, 176, 130, 255);

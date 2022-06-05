@@ -1,8 +1,8 @@
 use crate::{
     constants::{
-        BEIGE_SEMI, BLACK_SEMI, BOARD_SIZE, BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH,
-        FONT_SIZE, GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, POLICE_SIZE, SQUARE_SIZE, TEXT_OFFSET,
-        WHITE_SEMI, WIN_FONT_SIZE,
+        BLACK_SEMI, BOARD_SIZE, BORDER_OFFSET, BUTTTON_HEIGTH, BUTTTON_LENGTH, FONT_SIZE,
+        GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, POLICE_SIZE, SQUARE_SIZE, TEXT_OFFSET, WHITE_SEMI,
+        WIN_FONT_SIZE,
     },
     game::{Game, GameMode, Winner},
     macros::coord,
@@ -12,8 +12,8 @@ use crate::{
 use macroquad::{
     hash,
     prelude::{
-        draw_circle, draw_circle_lines, draw_line, draw_rectangle, draw_rectangle_lines, draw_text,
-        measure_text, mouse_position, Color, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
+        draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, measure_text,
+        mouse_position, Color, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -491,27 +491,12 @@ pub fn display_panel_text(game: &mut Game) {
     }
 }
 
-const WINNER_WINDOW_WIDTH: f32 = GRID_WINDOW_SIZE as f32 / 4.;
-const WINNER_WINDOW_HEIGHT: f32 = SQUARE_SIZE as f32 * 2. + 2.;
-
 pub fn display_winner(game: &Game) {
     if game.winner != Winner::None {
+        let x = (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - ((BUTTTON_LENGTH - 30.) / 2.);
+        let y = GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH;
         // Background
-        draw_rectangle(
-            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
-            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.),
-            WINNER_WINDOW_WIDTH,
-            WINNER_WINDOW_HEIGHT,
-            BEIGE_SEMI,
-        );
-        draw_rectangle_lines(
-            (GRID_WINDOW_SIZE as f32 - WINNER_WINDOW_WIDTH) / 2.,
-            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.),
-            WINNER_WINDOW_WIDTH,
-            WINNER_WINDOW_HEIGHT,
-            4.,
-            BLACK,
-        );
+        draw_rectangle_lines(x, y, BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 20., 4., BLACK);
         // Winner text
         let win_text = format!(
             "{} win !",
@@ -524,9 +509,8 @@ pub fn display_winner(game: &Game) {
         let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
         draw_text(
             &win_text,
-            (GRID_WINDOW_SIZE as f32 / 2.) - (text_size.width / 2.),
-            GRID_WINDOW_SIZE as f32 - (WINNER_WINDOW_HEIGHT * 2.)
-                + ((WINNER_WINDOW_HEIGHT - text_size.height) / 1.4), // Should be 2.0 ...
+            x + ((BUTTTON_LENGTH - 30. - text_size.width) / 2.),
+            y + (BUTTTON_HEIGTH - 20. - text_size.height), // Should be 2.0 ...
             WIN_FONT_SIZE as f32,
             if game.winner == Winner::Black {
                 BLACK
