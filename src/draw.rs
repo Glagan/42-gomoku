@@ -106,6 +106,16 @@ pub fn draw_goban(game: &Game) {
                             BLACK
                         },
                     );
+                    // Add highlight for last move
+                    if move_number == game.rock_move.len() - 1 {
+                        draw_circle_lines(
+                            (x * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                            (y * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                            20.,
+                            2.,
+                            BLUE,
+                        );
+                    }
                 }
             }
         }
