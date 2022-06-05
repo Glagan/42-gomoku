@@ -134,6 +134,7 @@ impl Game {
     }
 
     pub fn player_won(&mut self) {
+        self.computer_expected_moves = vec![];
         self.winner = match self.current_player {
             Player::Black => Winner::Black,
             Player::White => Winner::White,

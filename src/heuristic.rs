@@ -93,42 +93,46 @@ impl Heuristic {
     }
 
     pub fn patterns_score(&self, patterns: &PatternCount) -> i32 {
-        let mut score: i32 = 0;
+        // Return maximum value for the best and worst patterns
         if patterns.five_in_row > 0 {
-            score += 10000000;
+            return i32::max_value();
+        } else if patterns.kill_four > 0 {
+            return i32::max_value() - 1;
         }
-        if patterns.killed_five > 0 {
-            score += 99999;
-        }
-        if patterns.killed_four > 0 {
-            score += 75000;
-        }
-        if patterns.blocked_capture > 0 {
-            score += 70000;
-        }
-        if patterns.killed_three > 0 {
-            score += 60000;
-        }
-        if patterns.live_four > 0 {
+        // Count good patterns that were created
+        let mut score: i32 = 0;
+        if patterns.open_four > 0 {
             score += 50000;
         }
-        if patterns.cut_three > 0 {
-            score += 25000;
+        if patterns.reduce_three > 0 {
+            score += 40000;
         }
-        if patterns.captured_five_in_row > 0 {
+        if patterns.close_four > 0 {
+            score += 30000;
+        }
+        if patterns.open_three > 0 {
             score += 20000;
         }
-        if patterns.live_three > 0 {
-            score += 15000;
+        if patterns.kill_three > 0 {
+            score += 10000;
         }
-        if patterns.live_three > 0 {
-            score += 2000;
+        if patterns.blocked_capture > 0 {
+            score += 10000;
         }
-        if patterns.dead_four > 0 {
-            score += patterns.dead_four as i32 * 50;
+        if patterns.captured_five_in_row > 0 {
+            score += 5000;
         }
-        if patterns.live_two > 0 {
-            score += 200;
+        if patterns.close_three > 0 {
+            score += 4000;
+        }
+        if patterns.open_two > 0 {
+            score += 3000;
+        }
+        if patterns.reduce_two > 0 {
+            score += 3000;
+        }
+        if patterns.close_two > 0 {
+            score += 1000;
         }
         score
     }

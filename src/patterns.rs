@@ -81,36 +81,50 @@ pub const CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
 #[repr(u8)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum Category {
+    // Uncaptured five in a row
     FiveInRow,
-    CapturedFiveInRow,
-    KilledFive,
+    // Kills an opponent four in a row
+    KillFour,
+    // Four in a row that can be upgraded with one or more moves
     OpenFour,
-    KilledFour,
-    DeadFour,
-    KilledThree,
-    BlockedCapture,
+    // Kills an opponent open three in a row (reduce to closed three in a row)
+    ReduceThree,
+    // Four in a row that can be upgraded only by a single move
+    CloseFour,
+    // Three in a row that can be upgraded to open four with multiple moves
     OpenThree,
-    CutThree,
-    DeadThree,
+    // Kills an opponent closed three in a row
+    KillThree,
+    // Block a capture
+    BlockedCapture,
+    // Create a captured five in a row
+    // Interesting since it might be upgradable with BlockedCapture
+    CapturedFiveInRow,
+    // Blocked three in a row
+    CloseThree,
+    // Two in a row
     OpenTwo,
-    DeadTwo,
+    // Kills an opponent open two (reduce to closed two in a row)
+    ReduceTwo,
+    // Two in a row that can only be upgraded by a single move
+    CloseTwo,
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct PatternCount {
     pub five_in_row: u8,
-    pub captured_five_in_row: u8,
-    pub killed_five: u8,
-    pub live_four: u8,
-    pub killed_four: u8,
-    pub dead_four: u8,
-    pub killed_three: u8,
+    pub kill_four: u8,
+    pub open_four: u8,
+    pub reduce_three: u8,
+    pub close_four: u8,
+    pub open_three: u8,
+    pub kill_three: u8,
     pub blocked_capture: u8,
-    pub live_three: u8,
-    pub cut_three: u8,
-    pub dead_three: u8,
-    pub live_two: u8,
-    pub dead_two: u8,
+    pub captured_five_in_row: u8,
+    pub close_three: u8,
+    pub open_two: u8,
+    pub reduce_two: u8,
+    pub close_two: u8,
     pub captures: u8,
 }
 
@@ -118,35 +132,35 @@ impl PatternCount {
     // Order by which to sort the generated moves
     // Gives priority to moves that save the game or end the game
     pub fn best_pattern(&self) -> u8 {
-        if self.five_in_row > 0 {
+        (if self.five_in_row > 0 {
             13
-        } else if self.killed_five > 0 {
+        } else if self.kill_four > 0 {
             12
-        } else if self.live_four > 0 {
+        } else if self.open_four > 0 {
             11
-        } else if self.killed_four > 0 {
+        } else if self.reduce_three > 0 {
             10
-        } else if self.killed_three > 0 {
+        } else if self.close_four > 0 {
             9
-        } else if self.blocked_capture > 0 {
+        } else if self.open_three > 0 {
             8
-        } else if self.dead_four > 0 {
+        } else if self.kill_three > 0 {
             7
-        } else if self.live_three > 0 {
+        } else if self.blocked_capture > 0 {
             6
-        } else if self.cut_three > 0 {
-            5
         } else if self.captured_five_in_row > 0 {
+            5
+        } else if self.close_three > 0 {
             4
-        } else if self.dead_three > 0 {
+        } else if self.open_two > 0 {
             3
-        } else if self.live_two > 0 {
+        } else if self.reduce_two > 0 {
             2
-        } else if self.dead_two > 0 {
+        } else if self.close_two > 0 {
             1
         } else {
             0
-        }
+        }) + self.captures
     }
 
     pub fn from_patterns(patterns: &Vec<Category>) -> Self {
@@ -154,30 +168,30 @@ impl PatternCount {
         for &pattern in patterns {
             if pattern == Category::FiveInRow {
                 pattern_count.five_in_row += 1;
-            } else if pattern == Category::KilledFive {
-                pattern_count.killed_five += 1;
+            } else if pattern == Category::KillFour {
+                pattern_count.kill_four += 1;
             } else if pattern == Category::OpenFour {
-                pattern_count.live_four += 1;
-            } else if pattern == Category::KilledFour {
-                pattern_count.killed_four += 1;
-            } else if pattern == Category::DeadFour {
-                pattern_count.dead_four += 1;
+                pattern_count.open_four += 1;
+            } else if pattern == Category::ReduceThree {
+                pattern_count.reduce_three += 1;
+            } else if pattern == Category::CloseFour {
+                pattern_count.close_four += 1;
+            } else if pattern == Category::OpenThree {
+                pattern_count.open_three += 1;
+            } else if pattern == Category::KillThree {
+                pattern_count.kill_three += 1;
             } else if pattern == Category::BlockedCapture {
                 pattern_count.blocked_capture += 1;
-            } else if pattern == Category::KilledThree {
-                pattern_count.killed_three += 1;
-            } else if pattern == Category::CutThree {
-                pattern_count.cut_three += 1;
-            } else if pattern == Category::OpenThree {
-                pattern_count.live_three += 1;
             } else if pattern == Category::CapturedFiveInRow {
                 pattern_count.captured_five_in_row += 1;
-            } else if pattern == Category::DeadThree {
-                pattern_count.dead_three += 1;
+            } else if pattern == Category::CloseThree {
+                pattern_count.close_three += 1;
             } else if pattern == Category::OpenTwo {
-                pattern_count.live_two += 1;
-            } else {
-                pattern_count.dead_two += 1;
+                pattern_count.open_two += 1;
+            } else if pattern == Category::ReduceTwo {
+                pattern_count.reduce_two += 1;
+            } else if pattern == Category::CloseTwo {
+                pattern_count.close_two += 1;
             }
         }
         pattern_count
@@ -186,183 +200,256 @@ impl PatternCount {
 
 lazy_static! {
     pub static ref PATTERNS: Vec<(Vec<(i16, u8)>, Category)> = vec![
-        // Five in a row
-        // Only half of the patterns are required since it will check all directions
-        // -- [1, 1, 1, 1, 1]
+        // Only half of some patterns are required since all directions will be checked
+        // * FiveInRow
+        // -- [{1}, {1}, {1}, 1, 1]
         (vec![(1, 1), (2, 1), (3, 1), (4, 1)], Category::FiveInRow),
         (vec![(-1, 1), (1, 1), (2, 1), (3, 1)], Category::FiveInRow),
         (vec![(-2, 1), (-1, 1), (1, 1), (2, 1)], Category::FiveInRow),
-        // -- [1, 2, 2, 2, 2, 1]
+        // * KillFour
+        // -- [{1}, 2, 2, 2, 2, 1]
+        // -+ [1, 2, 2, 2, 2, {1}]
         (
             vec![(1, 2), (2, 2), (3, 2), (4, 2), (5, 1)],
-            Category::KilledFive,
+            Category::KillFour,
         ),
+        // -- [2, 2, {1}, 2, 2]
+        (vec![(-2, 2), (-1, 2), (1, 2), (2, 2)], Category::KillFour),
+        // -- [2, {1}, 2, 2, 2]
+        // -+ [2, 2, 2, {1}, 2]
+        (vec![(-1, 2), (1, 2), (2, 2), (3, 2)], Category::KillFour),
+        // -- [{1}, 2, 2, 2, 2]
+        // -+ [2, 2, 2, 2, {1}]
+        (vec![(1, 2), (2, 2), (3, 2), (4, 2)], Category::KillFour),
+        // * OpenFour
+        // -- [0, {1}, {1}, 1, 1, 0]
         (
-            vec![(-5, 1), (-4, 2), (-3, 2), (-2, 2), (-1, 2)],
-            Category::KilledFive,
-        ),
-        // -- [2, 1, 2, 2, 2, 1, 2]
-        (
-            vec![(-1, 2), (1, 2), (2, 2), (3, 2), (4, 1), (5, 2)],
-            Category::KilledFive,
-        ),
-        // -- [2, 1, 2, 2, 2]
-        // -- [2, 2, 2, 1, 2]
-        (vec![(-1, 2), (1, 2), (2, 2), (3, 2)], Category::KilledFive),
-        // -- [2, 2, 1, 2, 2]
-        (vec![(-2, 2), (-1, 2), (1, 2), (2, 2)], Category::KilledFive),
-        // -- [1, 2, 2, 2, 2]
-        (vec![(1, 2), (2, 2), (3, 2), (4, 2)], Category::KilledFive),
-        // -- [1, 2, 2, 2, 1]
-        (vec![(1, 2), (2, 2), (3, 2), (4, 1)], Category::KilledFour),
-        // -- [1, 2, 2, 2]
-        // -- [2, 2, 2, 1]
-        (vec![(1, 2), (2, 2), (3, 2)], Category::KilledFour),
-        // -- [2, 1, 2, 2]
-        // -- [2, 2, 1, 2]
-        (vec![(-1, 2), (1, 2), (2, 2)], Category::KilledFour),
-        (vec![(-2, 2), (-1, 2), (1, 2)], Category::KilledFour),
-        // -- [0, 1, 1, 0, 1, 1]
-        (
-            vec![(-1, 0), (1, 1), (2, 0), (3, 1), (4, 1)],
+            vec![(-1, 0), (1, 1), (2, 1), (3, 1), (4, 0)],
             Category::OpenFour,
         ),
         (
-            vec![(-2, 0), (-1, 1), (1, 0), (2, 1), (3, 1)],
+            vec![(-2, 0), (-1, 1), (1, 1), (2, 1), (3, 0)],
+            Category::OpenFour,
+        ),
+        // -- [{1}, 0, {1}, {1}, 1, 0, 1]
+        (
+            vec![(1, 0), (2, 1), (3, 1), (4, 1), (5, 0), (6, 1)],
             Category::OpenFour,
         ),
         (
-            vec![(-4, 0), (-3, 1), (-2, 1), (-1, 0), (1, 1), (2, 1)],
-            Category::OpenFour,
-        ),
-        // -- [1, 1, 0, 1, 1, 0]
-        (
-            vec![(1, 1), (2, 0), (3, 1), (4, 1), (5, 0)],
+            vec![(-2, 1), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 1)],
             Category::OpenFour,
         ),
         (
-            vec![(-1, 1), (1, 0), (2, 1), (3, 1), (4, 0)],
+            vec![(-3, 1), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 1)],
+            Category::OpenFour,
+        ),
+        // -- [0, {1}, {1}, 0, 1, 1, 0]
+        // -+ [0, 1, 1, 0, {1}, {1}, 0]
+        (
+            vec![(-1, 0), (1, 1), (2, 0), (3, 1), (4, 1), (5, 0)],
             Category::OpenFour,
         ),
         (
-            vec![(-3, 1), (-2, 1), (-1, 0), (1, 1), (2, 0)],
+            vec![(-2, 0), (-1, 1), (1, 0), (2, 1), (3, 1), (4,0)],
             Category::OpenFour,
         ),
+        // * ReduceThree
+        // -- [{1}, 2, 2, 2, 0]
+        // -+ [0, 2, 2, 2, {1}]
         (
-            vec![(-4, 1), (-3, 1), (-2, 0), (-1, 1), (1, 0)],
-            Category::OpenFour,
+            vec![(1, 2), (2, 2), (3, 2), (4, 0)],
+            Category::ReduceThree,
         ),
-        // -- [0, 1, 1, 1, 1]
-        // -- [1, 1, 1, 1, 0]
-        (vec![(-1, 0), (1, 1), (2, 1), (3, 1)], Category::OpenFour),
-        (vec![(-2, 0), (-1, 1), (1, 1), (2, 1)], Category::OpenFour),
-        // -- [2, 1, 1, 1, 1, 0]
-        // -- [0, 1, 1, 1, 1, 2]
+        // -- [2, 2, {1}, 2, 0]
+        // -+ [0, 2, {1}, 2, 2]
         (
-            vec![(-1, 2), (1, 1), (2, 1), (3, 1), (4, 0)],
-            Category::OpenFour,
+            vec![(-2, 2), (-1, 2), (1, 2), (2, 0)],
+            Category::ReduceThree,
+        ),
+        // -- [2, {1}, 2, 2, 0]
+        // -+ [0, 2, 2, {1}, 2]
+        (
+            vec![(-1, 2), (1, 2), (2, 2), (3, 0)],
+            Category::ReduceThree,
+        ),
+        // * CloseFour
+        // -- [2, {1}, {1}, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, {1}, {1}, 2]
+        (
+            vec![(-1, 2), (1, 1), (2,1), (3, 1), (4, 0)],
+            Category::CloseFour,
         ),
         (
-            vec![(-2, 2), (-1, 1), (1, 1), (2, 1), (3, 0)],
-            Category::OpenFour,
+            vec![(-2, 2), (-1, 1), (1,1), (2, 1), (3, 0)],
+            Category::CloseFour,
         ),
         (
-            vec![(-3, 2), (-2, 1), (-1, 1), (1, 1), (2, 0)],
-            Category::OpenFour,
+            vec![(-3, 2), (-2, 1), (-1,1), (1, 1), (2, 0)],
+            Category::CloseFour,
         ),
-        // -- [1, 0, 1, 1, 1]
-        // -- [1, 1, 1, 0, 1]
-        (vec![(1, 0), (2, 1), (3, 1), (4, 1)], Category::OpenFour),
-        (vec![(-2, 1), (-1, 0), (1, 1), (2, 1)], Category::OpenFour),
-        // -- [1, 1, 0, 1, 1]
-        (vec![(1, 1), (2, 0), (3, 1), (4, 1)], Category::OpenFour),
-        (vec![(-1, 1), (1, 0), (2, 1), (3, 1)], Category::OpenFour),
-        // -- [2, 0, 1, 1, 1, 0, 2]
         (
-            vec![(-2, 2), (-1, 0), (1, 1), (2, 1), (3, 0), (4, 2)],
+            vec![(-4, 2), (-3, 1), (-2,1), (-1, 1), (1, 0)],
+            Category::CloseFour,
+        ),
+        // -- [{1}, 0, {1}, {1}, {1}, 2]
+        // -+ [2, {1}, {1}, {1}, 0, {1}]
+        (
+            vec![(1, 0), (2,1), (3, 1), (4, 1), (5, 2)],
+            Category::CloseFour,
+        ),
+        (
+            vec![(-2, 1), (-1, 0), (1, 1), (2, 1), (3, 2)],
+            Category::CloseFour,
+        ),
+        (
+            vec![(-3, 1), (-2, 0), (-1, 1), (1, 1), (2, 2)],
+            Category::CloseFour,
+        ),
+        (
+            vec![(-4, 1), (-3, 0), (-2, 1), (-1, 1), (1, 2)],
+            Category::CloseFour,
+        ),
+        // -- [2, {1}, {1}, 0, 1, 1, 2]
+        // -+ [2, 1, 1, 0, {1}, {1}, 2]
+        (
+            vec![(-1, 2), (1, 1), (2,1), (3, 0), (4, 0), (5, 1), (6, 2)],
+            Category::CloseFour,
+        ),
+        (
+            vec![(-2, 2), (-1, 1), (1, 0), (2, 1), (3, 1), (4, 2)],
+            Category::CloseFour,
+        ),
+        // * OpenThree
+        // -- [0, {1}, {1}, 1, 0]
+        (
+            vec![(-1, 0), (1,1), (2, 1), (3, 0)],
             Category::OpenThree,
         ),
         (
-            vec![(-3, 2), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 2)],
+            vec![(-2, 0), (-1,1), (1, 1), (2, 0)],
             Category::OpenThree,
         ),
-        // -- [2, 1, 1, 1]
-        // -- [1, 1, 1, 2]
+        // -- [0, {1}, 0, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, 0, {1}, 0]
+        (
+            vec![(-1, 0), (1,0), (2, 1), (3, 1), (4, 0)],
+            Category::OpenThree,
+        ),
+        (
+            vec![(-3, 0), (-2,1), (-1, 0), (1, 1), (2, 0)],
+            Category::OpenThree,
+        ),
+        (
+            vec![(-4, 0), (-3,1), (-2, 0), (-1, 1), (1, 0)],
+            Category::OpenThree,
+        ),
+        // * KillThree
+        // -- [{1}, 2, 2, 2, 1]
+        // -+ [1, 2, 2, 2, {1}]
+        (
+            vec![(1, 2), (2, 2), (3, 2), (4, 1)],
+            Category::KillThree,
+        ),
+        // -- [{1}, 2, {1}, 2, 2]
+        // -+ [2, 2, {1}, 2, {1}]
+        (
+            vec![(1, 2), (2, 1), (3, 2), (4, 2)],
+            Category::KillThree,
+        ),
+        (
+            vec![(-2, 1), (-1, 2), (1, 2), (2, 2)],
+            Category::KillThree,
+        ),
+        // -- [{1}, 2, {1}, 2, 2, {1}]
+        // -+ [{1}, 2, 2, {1}, 2, {1}]
+        (
+            vec![(1, 2), (2, 1), (3, 2), (4, 2), (5, 1)],
+            Category::KillThree,
+        ),
+        (
+            vec![(-2, 1), (-1, 2), (1, 2), (2, 2), (3, 1)],
+            Category::KillThree,
+        ),
+        (
+            vec![(-5, 1), (-4, 2), (-3, 1), (-2, 2), (-1, 2)],
+            Category::KillThree,
+        ),
+        // * BlockedCapture
+        // -- [{1}, 1, 1, 2]
+        // -+ [2, 1, 1, {1}]
         (vec![(1, 1), (2, 1), (3, 2)], Category::BlockedCapture),
-        // -- [0, 1, 1, 1, 0]
-        (vec![(-1, 0), (1, 1), (2, 1), (3, 0)], Category::OpenThree),
-        (vec![(-2, 0), (-1, 1), (1, 1), (2, 0)], Category::OpenThree),
-        // -- [1, 1, 1]
-        (vec![(1, 1), (2, 1)], Category::OpenThree),
-        (vec![(-1, 1), (1, 1)], Category::OpenThree),
-        // -- [1, 0, 1, 0, 1]
-        (vec![(1, 0), (2, 1), (3, 0), (4, 1)], Category::OpenThree),
-        (vec![(-2, 1), (-1, 0), (1, 0), (2, 1)], Category::OpenThree),
-        // -- [1, 0, 1, 1]
-        // -- [1, 1, 0, 1]
-        (vec![(1, 0), (2, 1), (3, 1)], Category::OpenThree),
-        (vec![(-2, 1), (-1, 0), (1, 1)], Category::OpenThree),
-        // -- [1, 0, 0, 1, 1]
-        // -- [1, 1, 0, 0, 1]
-        (vec![(1, 0), (2, 0), (3, 1), (4, 1)], Category::OpenThree),
-        (vec![(-3, 1), (-2, 0), (-1, 0), (1, 1)], Category::OpenThree),
-        // -- [1, 0, 1, 1, 2]
-        // -- [2, 1, 1, 0, 1]
-        (vec![(1, 0), (2, 1), (3, 1), (4, 2)], Category::DeadThree),
-        (vec![(-2, 1), (-1, 0), (1, 1), (2, 2)], Category::DeadThree),
-        (vec![(-3, 1), (-2, 0), (-1, 1), (1, 2)], Category::DeadThree),
-        // -- [2, 1, 0, 1, 1]
-        (vec![(-1, 2), (1, 0), (2, 1), (3, 1)], Category::DeadThree),
-        (vec![(-3, 2), (-2, 1), (-1, 0), (1, 1)], Category::DeadThree),
+        // * CapturedFiveInRow
+        // > Computed after five in a row
+        // * CloseThree
+        // -- [2, {1}, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, {1}, 2]
         (
-            vec![(-4, 2), (-3, 1), (-2, 0), (-1, 1)],
-            Category::DeadThree,
-        ),
-        // -- [1, 1, 0, 1, 2, 0]
-        (
-            vec![(1, 1), (2, 0), (3, 1), (4, 2), (5, 0)],
-            Category::DeadThree,
+            vec![(-1, 2), (1, 1), (2, 1), (3, 0)],
+            Category::CloseThree,
         ),
         (
-            vec![(-1, 1), (1, 0), (2, 1), (3, 2), (4, 0)],
-            Category::DeadThree,
+            vec![(-2, 2), (-1, 1), (1, 1), (2, 0)],
+            Category::CloseThree,
         ),
         (
-            vec![(-3, 1), (-2, 1), (-1, 0), (1, 2), (2, 0)],
-            Category::DeadThree,
+            vec![(-3, 2), (-2, 1), (-1, 1), (1, 0)],
+            Category::CloseThree,
         ),
-        // -- [0, 1, 1, 1, 2]
-        // -- [2, 1, 1, 1, 0]
-        (vec![(-1, 0), (1, 1), (2, 1), (3, 2)], Category::DeadThree),
-        (vec![(-2, 0), (-1, 1), (1, 1), (2, 2)], Category::DeadThree),
-        (vec![(-3, 0), (-2, 1), (-1, 1), (1, 2)], Category::DeadThree),
-        // -- [1, 0, 0, 1, 2]
-        // -- [2, 1, 0, 0, 1]
-        (vec![(1, 0), (2, 0), (3, 1), (4, 2)], Category::OpenTwo),
-        (vec![(-1, 2), (1, 0), (2, 0), (3, 1)], Category::OpenTwo),
-        // -- [2, 1, 0, 1]
-        // -- [1, 0, 1, 2]
-        (vec![(-1, 2), (1, 0), (2, 1)], Category::OpenTwo),
-        (vec![(1, 0), (2, 1), (3, 2)], Category::OpenTwo),
-        // -- [1, 0, 0, 1]
-        (vec![(1, 0), (2, 0), (3, 1)], Category::OpenTwo),
-        // -- [0, 1, 1, 0]
-        (vec![(-1, 0), (1, 1), (2, 0)], Category::OpenTwo),
-        // -- [1, 0, 0, 0, 1]
-        (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Category::DeadTwo),
-        // -- [1, 0, 1]
-        (vec![(1, 0), (2, 1)], Category::OpenTwo),
-        // -- [1, 0, 0, 0, 1]
-        (vec![(1, 0), (2, 0), (3, 0), (4, 1)], Category::DeadTwo),
-        // -- [0, 1, 1, 2]
-        // -- [2, 1, 1, 0]
-        (vec![(-1, 0), (1, 1), (2, 1)], Category::DeadTwo),
-        (vec![(-1, 2), (1, 1), (2, 0)], Category::DeadTwo),
-        // -- [2, 1, 1]
-        // -- [1, 1, 2]
-        (vec![(-1, 2), (1, 1)], Category::DeadTwo),
-        (vec![(-2, 2), (-1, 1)], Category::DeadTwo),
-        // -- [1, 1]
-        (vec![(1, 1)], Category::DeadTwo),
+        // -- [2, {1}, {1}, 0, {1}]
+        // -+ [0, {1}, {1}, {1}, 2]
+        (
+            vec![(-1, 2), (1, 1), (2, 0), (3, 1)],
+            Category::CloseThree,
+        ),
+        (
+            vec![(-2, 2), (-1, 1), (1, 0), (2, 1)],
+            Category::CloseThree,
+        ),
+        (
+            vec![(-4, 2), (-3, 1), (-2, 1), (-1, 0)],
+            Category::CloseThree,
+        ),
+        // * OpenTwo
+        // -- [0, {1}, 1, 0]
+        // -+ [0, 1, {1}, 0]
+        (
+            vec![(-1, 0), (1, 1), (2, 0)],
+            Category::OpenTwo,
+        ),
+        // -- [0, {1}, 0, 1, 0]
+        (
+            vec![(-1, 0), (1, 0), (2, 1), (3, 0)],
+            Category::OpenTwo,
+        ),
+        // * ReduceTwo
+        // -- [{1}, 2, 2]
+        // -+ [2, 2, {1}]
+        (
+            vec![(1, 2), (2, 2)],
+            Category::ReduceTwo,
+        ),
+        // -- [2, {1}, 2]
+        (
+            vec![(-1, 2), (1, 2)],
+            Category::ReduceTwo,
+        ),
+        // * CloseTwo
+        // -- [2, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, 2]
+        (
+            vec![(-1, 2), (1, 1), (2, 0)],
+            Category::CloseTwo,
+        ),
+        (
+            vec![(-2, 2),(-1, 1), (1, 0)],
+            Category::CloseTwo,
+        ),
+        // -- [2, {1}, 0, {1}]
+        // -+ [{1}, 0, {1}, 2]
+        (
+            vec![(-1, 2), (1, 0), (2, 1)],
+            Category::CloseTwo,
+        ),
     ];
 }
