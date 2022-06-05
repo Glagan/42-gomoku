@@ -4,8 +4,8 @@ extern crate lazy_static;
 use crate::{
     constants::{GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, SQUARE_SIZE},
     draw::{
-        color_selector, display_panel_text, display_winner, draw_goban, draw_recommended_move,
-        draw_rock_preview, game_selector, options_selector,
+        color_selector, display_panel_text, display_winner, draw_goban, draw_rock_preview,
+        game_selector, options_selector,
     },
     game::{Game, GameMode, Winner},
     macros::coord,
@@ -96,8 +96,8 @@ async fn main() {
                     }
                     // Move preview and await input
                     else {
-                        if game.generate_recommended_move {
-                            draw_recommended_move(&mut game);
+                        if game.generate_recommended_move && !game.computer_generated_moves {
+                            game.generate_computer_recommended_moves();
                         }
                         draw_rock_preview(&game);
 

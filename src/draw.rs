@@ -13,7 +13,7 @@ use macroquad::{
     hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, Color, Vec2, BLACK, BLUE, MAGENTA, RED, WHITE,
+        mouse_position, Color, Vec2, BLACK, BLUE, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -122,58 +122,52 @@ pub fn draw_goban(game: &Game) {
     }
 
     // Draw computer expected movements
-    let mut black = Color::new(0.0, 0.0, 0.0, 0.7);
-    let mut white = Color::new(1.0, 1.0, 1.0, 0.7);
-    // let mut highlight = Color::new(0.78, 0.48, 1.00, 0.7); // PURPLE
-    for (next, movement) in game.computer_expected_moves.iter().skip(1).enumerate() {
-        if board.get(movement.coordinates.x, movement.coordinates.y) == Rock::None {
-            let (x, y) = (movement.coordinates.x, movement.coordinates.y);
-            let draw_x = (x * SQUARE_SIZE + BORDER_OFFSET) as f32;
-            let draw_y = (y * SQUARE_SIZE + BORDER_OFFSET) as f32;
-            draw_circle(
-                draw_x,
-                draw_y,
-                20.,
-                if movement.player == Player::Black {
-                    black
-                } else {
-                    white
-                },
-            );
-            let next_text = format!("{}", game.rock_move.len() + next + 1).to_string();
-            let text_size = measure_text(&next_text, None, FONT_SIZE, 1.);
-            draw_text(
-                &next_text,
-                draw_x - (text_size.width / 2.),
-                draw_y + text_size.height + 6.,
-                POLICE_SIZE,
-                if movement.player == Player::Black {
-                    white
-                } else {
-                    black
-                },
-            );
-            // draw_circle_lines(draw_x, draw_y, 20., 1., highlight);
-            black.a -= 0.2;
-            white.a -= 0.2;
-            // highlight.a -= 0.1;
-        }
-    }
-}
-
-pub fn draw_recommended_move(game: &mut Game) {
-    let movement = game.computer_recommended_move();
-    if let Some(movement) = movement {
-        if game
-            .board
-            .get(movement.coordinates.x, movement.coordinates.y)
-            == Rock::None
-        {
-            let (x, y) = (movement.coordinates.x, movement.coordinates.y);
-            let draw_x = BORDER_OFFSET as f32 + (x * SQUARE_SIZE) as f32;
-            let draw_y = BORDER_OFFSET as f32 + (y * SQUARE_SIZE) as f32;
-            draw_circle(draw_x, draw_y, 4.0, MAGENTA);
-            draw_circle_lines(draw_x, draw_y, 4., 1., BLACK);
+    if game.show_computer_generated_moves
+        || (game.mode != GameMode::AvA && game.generate_recommended_move)
+    {
+        let skip = if game.mode != GameMode::AvA { 0 } else { 1 };
+        let move_number_inc = if game.mode == GameMode::PvA && !game.generate_recommended_move {
+            0
+        } else {
+            1
+        };
+        let mut black = Color::new(0.0, 0.0, 0.0, 0.7);
+        let mut white = Color::new(1.0, 1.0, 1.0, 0.7);
+        // let mut highlight = Color::new(0.78, 0.48, 1.00, 0.7); // PURPLE
+        for (next, movement) in game.computer_expected_moves.iter().skip(skip).enumerate() {
+            if board.get(movement.coordinates.x, movement.coordinates.y) == Rock::None {
+                let (x, y) = (movement.coordinates.x, movement.coordinates.y);
+                let draw_x = (x * SQUARE_SIZE + BORDER_OFFSET) as f32;
+                let draw_y = (y * SQUARE_SIZE + BORDER_OFFSET) as f32;
+                draw_circle(
+                    draw_x,
+                    draw_y,
+                    20.,
+                    if movement.player == Player::Black {
+                        black
+                    } else {
+                        white
+                    },
+                );
+                let next_text =
+                    format!("{}", game.rock_move.len() + next + move_number_inc).to_string();
+                let text_size = measure_text(&next_text, None, FONT_SIZE, 1.);
+                draw_text(
+                    &next_text,
+                    draw_x - (text_size.width / 2.),
+                    draw_y + text_size.height + 6.,
+                    POLICE_SIZE,
+                    if movement.player == Player::Black {
+                        white
+                    } else {
+                        black
+                    },
+                );
+                // draw_circle_lines(draw_x, draw_y, 20., 1., highlight);
+                black.a -= 0.2;
+                white.a -= 0.2;
+                // highlight.a -= 0.1;
+            }
         }
     }
 }
@@ -215,6 +209,11 @@ pub fn options_selector(game: &mut Game) {
         hash!(),
         "Generate recommended moves",
         &mut game.generate_recommended_move,
+    );
+    ui.checkbox(
+        hash!(),
+        "Display computer generated moves",
+        &mut game.show_computer_generated_moves,
     );
 
     let back_button = widgets::Button::new("Back")

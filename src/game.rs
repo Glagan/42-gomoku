@@ -37,7 +37,7 @@ pub struct Game {
     pub rules: RuleSet,
     pub computer: Computer,
     pub generate_recommended_move: bool,
-    pub recommended_move: Option<Move>,
+    pub computer_generated_moves: bool,
     pub computer_expected_moves: Vec<Move>,
     pub play_time: Instant,
     pub previous_play_time: Duration,
@@ -48,6 +48,7 @@ pub struct Game {
     pub winner: Winner,
     pub rock_move: Vec<Coordinates>,
     pub undone_moves: Vec<Move>,
+    pub show_computer_generated_moves: bool,
 }
 
 impl Default for Game {
@@ -63,7 +64,7 @@ impl Default for Game {
             rules: RuleSet::default(),
             computer: Computer::default(),
             generate_recommended_move: false,
-            recommended_move: None,
+            computer_generated_moves: false,
             computer_expected_moves: vec![],
             play_time: Instant::now(),
             previous_play_time: Duration::from_millis(0),
@@ -74,6 +75,7 @@ impl Default for Game {
             winner: Winner::None,
             rock_move: vec![],
             undone_moves: vec![],
+            show_computer_generated_moves: true,
         }
     }
 }
@@ -87,7 +89,7 @@ impl Game {
         self.player_color = Rock::None;
         self.computer_play_as = Player::Black;
         self.computer = Computer::default();
-        self.recommended_move = None;
+        self.computer_generated_moves = false;
         self.computer_expected_moves = vec![];
         self.play_time = Instant::now();
         self.previous_play_time = Duration::from_millis(0);
@@ -148,6 +150,7 @@ impl Game {
             self.current_player = Player::Black;
         }
         self.previous_play_time = self.play_time.elapsed();
+        self.computer_generated_moves = false;
         self.play_time = Instant::now();
     }
 
@@ -159,7 +162,7 @@ impl Game {
             };
             if self.board.is_move_legal(&self.rules, &movement) {
                 self.board.set_move(&self.rules, &movement);
-                self.recommended_move = None;
+                self.computer_generated_moves = false;
                 self.rock_move.push(coordinates);
                 if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
@@ -171,19 +174,19 @@ impl Game {
         }
     }
 
-    pub fn computer_recommended_move(&mut self) -> Option<Move> {
-        if self.recommended_move.is_some() {
-            return self.recommended_move;
+    pub fn generate_computer_recommended_moves(&mut self) {
+        if self.computer_generated_moves {
+            return;
         }
         let play_result =
             self.computer
                 .play(&self.rules, &mut self.board, DEPTH, self.current_player);
         if let Ok(play) = play_result {
             if !play.movements.is_empty() {
-                self.recommended_move = Some(*play.movements.first().unwrap());
+                self.computer_expected_moves = play.movements;
             }
         }
-        self.recommended_move
+        self.computer_generated_moves = true;
     }
 
     pub fn play_computer(&mut self) {
