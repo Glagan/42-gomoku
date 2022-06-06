@@ -342,8 +342,7 @@ impl Computer {
                 -color,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
-            // let score = -eval.score;
-            let score = eval.score;
+            let score = -eval.score;
             if score > best_eval.score {
                 alpha = score;
                 best_eval.score = score;
