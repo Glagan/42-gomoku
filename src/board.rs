@@ -157,6 +157,25 @@ impl Board {
         &mut self.player_pieces[index][y as usize][x as usize]
     }
 
+    pub fn player_can_play(&self, rules: &RuleSet, player: Player) -> bool {
+        for x in 0..BOARD_SIZE {
+            for y in 0..BOARD_SIZE {
+                if self.get(x, y) == Rock::None
+                    && self.is_move_legal(
+                        rules,
+                        &Move {
+                            coordinates: coord!(x, y),
+                            player,
+                        },
+                    )
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     // All open intersections for the current Board
     // -- Empty cases within other pieces
     pub fn open_intersections(&self) -> Vec<Coordinates> {
@@ -167,15 +186,17 @@ impl Board {
         let mut intersections: Vec<Coordinates> = vec![];
         for existing_rock in self.all_rocks.iter() {
             for (mov_x, mov_y) in DIRECTIONS {
-                let new_coords = coord!(existing_rock.x + mov_x, existing_rock.y + mov_y);
+                let new_coords = (existing_rock.x + mov_x, existing_rock.y + mov_y);
                 // Check Board boundaries
-                if new_coords.x >= 0
-                    && new_coords.y >= 0
-                    && new_coords.x < BOARD_SIZE
-                    && new_coords.y < BOARD_SIZE
+                if new_coords.0 >= 0
+                    && new_coords.1 >= 0
+                    && new_coords.0 < BOARD_SIZE
+                    && new_coords.1 < BOARD_SIZE
                 {
-                    let rock = self.get(new_coords.x, new_coords.y);
-                    if rock == Rock::None && !intersections.contains(&new_coords) {
+                    let new_coords = coord!(new_coords.0, new_coords.1);
+                    if self.get(new_coords.x, new_coords.y) == Rock::None
+                        && !intersections.contains(&new_coords)
+                    {
                         intersections.push(new_coords);
                     }
                 }

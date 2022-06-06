@@ -23,7 +23,7 @@ pub enum Winner {
     None,
     Black,
     White,
-    Tie,
+    Draw,
 }
 
 pub struct Game {
@@ -138,6 +138,11 @@ impl Game {
         };
     }
 
+    pub fn game_draw(&mut self) {
+        self.computer_expected_moves = vec![];
+        self.winner = Winner::Draw;
+    }
+
     pub fn next_player(&mut self) {
         if self.current_player == Player::Black {
             self.current_player = Player::White;
@@ -146,6 +151,10 @@ impl Game {
         }
         self.previous_play_time = self.play_time.elapsed();
         self.computer_generated_moves = false;
+        // Check draw
+        if !self.board.player_can_play(&self.rules, self.current_player) {
+            self.game_draw()
+        }
         self.play_time = Instant::now();
     }
 
@@ -206,7 +215,16 @@ impl Game {
             println!("computer played: {} in {}ms", play, play_time.as_millis());
             // Handle the movement
             self.computer_expected_moves = play.movements;
-            let next_move = self.computer_expected_moves.first();
+            let mut next_move = self.computer_expected_moves.first();
+            if next_move.is_none() {
+                let mut legal_moves = self
+                    .board
+                    .intersections_legal_moves(&self.rules, self.current_player);
+                if !legal_moves.is_empty() {
+                    self.computer_expected_moves = vec![legal_moves.pop().unwrap()];
+                    next_move = self.computer_expected_moves.first();
+                }
+            }
             if let Some(movement) = next_move {
                 self.board.set_move(&self.rules, movement);
                 self.rock_move.push(movement.coordinates);
@@ -216,6 +234,8 @@ impl Game {
                     self.next_player();
                 }
                 println!("{}", self.board);
+            } else {
+                self.game_draw();
             }
         } else {
             println!("{}", "computer returned an empty play result".red());

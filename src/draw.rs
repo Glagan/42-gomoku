@@ -519,14 +519,18 @@ pub fn display_winner(game: &mut Game) {
         // Background
         draw_rectangle_lines(x, y, BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 20., 4., BLACK);
         // Winner text
-        let win_text = format!(
-            "{} win !",
-            if game.winner == Winner::Black {
-                "Black"
-            } else {
-                "White"
-            }
-        );
+        let win_text = if game.winner == Winner::Draw {
+            "Draw".to_string()
+        } else {
+            format!(
+                "{} win !",
+                if game.winner == Winner::Black {
+                    "Black"
+                } else {
+                    "White"
+                }
+            )
+        };
         let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
         draw_text(
             &win_text,
@@ -535,8 +539,10 @@ pub fn display_winner(game: &mut Game) {
             WIN_FONT_SIZE as f32,
             if game.winner == Winner::Black {
                 BLACK
-            } else {
+            } else if game.winner == Winner::White {
                 WHITE
+            } else {
+                BLUE
             },
         );
     }

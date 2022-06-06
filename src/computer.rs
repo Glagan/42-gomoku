@@ -127,6 +127,23 @@ impl Computer {
                 }
             })
             .collect();
+
+        // Check if there is no moves remaining
+        if moves.is_empty() {
+            if action.movement.is_none() {
+                return Ok(Evaluation {
+                    score: 0,
+                    movements: vec![],
+                });
+            } else {
+                let score = self.evaluate_action(&action);
+                return Ok(Evaluation {
+                    score,
+                    movements: vec![],
+                });
+            }
+        }
+
         // Optimise for player ...
         if player == maximize {
             let mut best_eval = Evaluation {
@@ -290,6 +307,23 @@ impl Computer {
                 }
             })
             .collect();
+
+        // Check if there is no moves remaining
+        if moves.is_empty() {
+            if action.movement.is_none() {
+                return Ok(Evaluation {
+                    score: 0,
+                    movements: vec![],
+                });
+            } else {
+                let score = self.evaluate_action(&action);
+                return Ok(Evaluation {
+                    score: color * score,
+                    movements: vec![],
+                });
+            }
+        }
+
         while let Some(sorted_movement) = moves.pop() {
             action.board.set_move(rules, &sorted_movement.movement);
             let eval = self.negamax_alpha_beta(
