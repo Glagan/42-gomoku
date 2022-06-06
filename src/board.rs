@@ -148,13 +148,13 @@ impl Board {
 
     // Helper function to get a Board case for a player with (x, y) coordinates
     #[inline(always)]
-    pub fn get_for_player(&self, x: i16, y: i16, index: usize) -> PlayerRock {
-        self.player_pieces[index][y as usize][x as usize]
+    pub fn get_for_player(&self, x: i16, y: i16, player: Player) -> PlayerRock {
+        self.player_pieces[player as usize][y as usize][x as usize]
     }
 
     #[inline(always)]
-    pub fn get_for_player_mut(&mut self, x: i16, y: i16, index: usize) -> &mut PlayerRock {
-        &mut self.player_pieces[index][y as usize][x as usize]
+    pub fn get_for_player_mut(&mut self, x: i16, y: i16, player: Player) -> &mut PlayerRock {
+        &mut self.player_pieces[player as usize][y as usize][x as usize]
     }
 
     pub fn player_can_play(&self, rules: &RuleSet, player: Player) -> bool {
@@ -221,12 +221,7 @@ impl Board {
             if check_x < 0 || check_x >= BOARD_SIZE || check_y < 0 || check_y >= BOARD_SIZE {
                 return false;
             }
-            if &self.get_for_player(
-                check_x,
-                check_y,
-                if player == Player::Black { 0 } else { 1 },
-            ) != value
-            {
+            if &self.get_for_player(check_x, check_y, player) != value {
                 return false;
             }
         }
@@ -346,7 +341,6 @@ impl Board {
     }
 
     // All *legal* possible movements from the intersections for a given player
-    // TODO self.open_intersections().iter().filter(|index| self.is_move_index_legal(rule, index, player));
     pub fn intersections_legal_moves(&self, rules: &RuleSet, player: Player) -> Vec<Move> {
         // Analyze each intersections and check if a Rock can be set on it
         // -- for the current player according to the rules
@@ -425,15 +419,14 @@ impl Board {
     // Update all boards to update for the given movement
     #[inline(always)]
     pub fn set_on_boards(&mut self, coordinates: &Coordinates, player: Player) {
-        if player == Player::Black {
-            *self.get_mut(coordinates.x, coordinates.y) = Rock::Black;
-            *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::Player;
-            *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::Opponent;
+        *self.get_mut(coordinates.x, coordinates.y) = if player == Player::Black {
+            Rock::Black
         } else {
-            *self.get_mut(coordinates.x, coordinates.y) = Rock::White;
-            *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::Opponent;
-            *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::Player;
-        }
+            Rock::White
+        };
+        *self.get_for_player_mut(coordinates.x, coordinates.y, player) = PlayerRock::Player;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, player.opponent()) =
+            PlayerRock::Opponent;
     }
 
     // Apply a movement to the current Board
@@ -456,8 +449,8 @@ impl Board {
     #[inline(always)]
     pub fn remove_from_boards(&mut self, coordinates: &Coordinates) {
         *self.get_mut(coordinates.x, coordinates.y) = Rock::None;
-        *self.get_for_player_mut(coordinates.x, coordinates.y, 0) = PlayerRock::None;
-        *self.get_for_player_mut(coordinates.x, coordinates.y, 1) = PlayerRock::None;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::Black) = PlayerRock::None;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::White) = PlayerRock::None;
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
@@ -482,7 +475,7 @@ impl Board {
                 self.all_rocks.insert(rock);
             }
         }
-        // Restore rock
+        // Remove rock
         self.remove_from_boards(&movement.coordinates);
         if movement.player == Player::Black {
             self.black.rocks.remove(&movement.coordinates);

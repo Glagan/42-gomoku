@@ -1,7 +1,8 @@
+#[repr(usize)]
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
 pub enum Player {
-    Black,
-    White,
+    Black = 0,
+    White = 1,
 }
 
 impl Player {
