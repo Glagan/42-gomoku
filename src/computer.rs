@@ -259,8 +259,9 @@ impl Computer {
             .intersections_legal_moves(rules, player)
             .iter()
             .map(|&movement| {
-                board.set_move(rules, &movement);
-                let pattern_count = HEURISTIC.count_movement_patterns(rules, board, &movement);
+                let captures = board.set_move(rules, &movement);
+                let pattern_count =
+                    HEURISTIC.count_movement_patterns(rules, board, &movement, captures);
                 board.undo_move(rules, &movement);
                 SortedMove {
                     movement,
