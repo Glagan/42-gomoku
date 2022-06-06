@@ -76,6 +76,9 @@ impl Computer {
         HEURISTIC.patterns_score(action.patterns.as_ref().unwrap())
     }
 
+    // * Minimax functions
+
+    #[cfg(not(feature = "negamax"))]
     fn minimax_alpha_beta(
         &self,
         rules: &RuleSet,
@@ -202,6 +205,151 @@ impl Computer {
         }
     }
 
+    // Use the minimax algorithm with alpha beta prunning to get the next best move
+    #[cfg(not(feature = "threaded"))]
+    #[cfg(not(feature = "negamax"))]
+    pub fn play(
+        &self,
+        rules: &RuleSet,
+        board: &mut Board,
+        depth: usize,
+        player: Player,
+    ) -> Result<Evaluation, String> {
+        // Apply minimax recursively
+        let best_move = self.minimax_alpha_beta(
+            rules,
+            MinimaxAction {
+                board,
+                movement: None,
+                patterns: None,
+            },
+            AlphaBetaIteration {
+                depth,
+                alpha: i32::min_value(),
+                beta: i32::max_value(),
+            },
+            player,
+            player,
+        )?;
+
+        Ok(best_move)
+    }
+
+    // * Negamax functions
+
+    #[cfg(feature = "negamax")]
+    fn negamax_alpha_beta(
+        &self,
+        rules: &RuleSet,
+        action: MinimaxAction,
+        iteration: AlphaBetaIteration,
+        player: Player,
+        color: i32,
+    ) -> Result<Evaluation, String> {
+        let mut alpha = iteration.alpha;
+        let beta = iteration.beta;
+
+        // Check if it's a leaf and compute it's value
+        if iteration.depth == 0 || action.board.is_winning(rules, player) {
+            if action.movement.is_none() {
+                return Err("Empty movement in negamax leaf".to_string());
+            }
+            let score = self.evaluate_action(&action);
+            return Ok(Evaluation {
+                score: color * score,
+                movements: vec![],
+            });
+        }
+
+        // Only the best evaluation is returned
+        let mut best_eval = Evaluation {
+            score: i32::min_value() + 1,
+            movements: vec![],
+        };
+
+        // Iterate each neighbor moves
+        let mut moves: BinaryHeap<SortedMove> = action
+            .board
+            .intersections_legal_moves(rules, player)
+            .iter()
+            .map(|&movement| {
+                let captures = action.board.set_move(rules, &movement);
+                let pattern_count =
+                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
+                action.board.undo_move(rules, &movement);
+                SortedMove {
+                    movement,
+                    best_pattern: pattern_count.best_pattern(),
+                    pattern_count,
+                }
+            })
+            .collect();
+        while let Some(sorted_movement) = moves.pop() {
+            action.board.set_move(rules, &sorted_movement.movement);
+            let eval = self.negamax_alpha_beta(
+                rules,
+                MinimaxAction {
+                    board: action.board,
+                    movement: Some(&sorted_movement.movement),
+                    patterns: Some(&sorted_movement.pattern_count),
+                },
+                AlphaBetaIteration {
+                    depth: iteration.depth - 1,
+                    alpha: -beta,
+                    beta: -alpha,
+                },
+                player.opponent(),
+                -color,
+            )?;
+            action.board.undo_move(rules, &sorted_movement.movement);
+            // let score = -eval.score;
+            let score = eval.score;
+            if score > best_eval.score {
+                alpha = score;
+                best_eval.score = score;
+                best_eval.movements = eval.movements;
+                best_eval.movements.insert(0, sorted_movement.movement);
+                if alpha >= beta {
+                    break;
+                }
+            }
+        }
+
+        Ok(best_eval)
+    }
+
+    // Use the negamax algorithm with alpha beta prunning to get the next best move
+    #[cfg(not(feature = "threaded"))]
+    #[cfg(feature = "negamax")]
+    pub fn play(
+        &self,
+        rules: &RuleSet,
+        board: &mut Board,
+        depth: usize,
+        player: Player,
+    ) -> Result<Evaluation, String> {
+        // Apply negamax recursively
+        let best_move = self.negamax_alpha_beta(
+            rules,
+            MinimaxAction {
+                board,
+                movement: None,
+                patterns: None,
+            },
+            AlphaBetaIteration {
+                depth,
+                alpha: i32::min_value() + 1,
+                beta: i32::max_value(),
+            },
+            player,
+            1,
+        )?;
+
+        Ok(best_move)
+    }
+
+    // * Threaded feature functions
+
     #[cfg(feature = "threaded")]
     fn initial_minimax_alpha_beta(
         &self,
@@ -281,35 +429,6 @@ impl Computer {
             index += 1;
         }
         sorted_list_of_moves
-    }
-
-    // Use the negamax algorithm (minimax variant) to get the next best move
-    #[cfg(not(feature = "threaded"))]
-    pub fn play(
-        &self,
-        rules: &RuleSet,
-        board: &mut Board,
-        depth: usize,
-        player: Player,
-    ) -> Result<Evaluation, String> {
-        // Apply minimax recursively
-        let best_move = self.minimax_alpha_beta(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-                patterns: None,
-            },
-            AlphaBetaIteration {
-                depth,
-                alpha: i32::min_value(),
-                beta: i32::max_value(),
-            },
-            player,
-            player,
-        )?;
-
-        Ok(best_move)
     }
 
     // Use the negamax algorithm (minimax variant) to get the next best move
