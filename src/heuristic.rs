@@ -51,37 +51,37 @@ impl Heuristic {
         movement: &Move,
     ) -> Vec<Category> {
         let mut patterns: Vec<Category> = vec![];
-        for direction in &DIRECTIONS {
-            for (pattern, category) in self.patterns.iter() {
+        for (pattern, category) in self.patterns.iter() {
+            for direction in &DIRECTIONS {
                 if board.check_pattern(&movement.coordinates, direction, pattern, movement.player) {
                     // Check if it's a five in a row that it can't be captured
                     if category == &Category::FiveInRow && rules.game_ending_capture {
-                        let is_free = board.pattern_is_not_under_capture(
+                        let under_capture = board.pattern_is_under_capture(
                             rules,
                             &movement.coordinates,
                             direction,
                             pattern,
                             movement.player,
                         );
-                        if is_free {
-                            patterns.push(Category::FiveInRow);
-                        } else {
+                        if under_capture {
                             patterns.push(Category::CapturedFiveInRow);
+                        } else {
+                            patterns.push(Category::FiveInRow);
                         }
                     }
                     // Avoid creating four in a row that are already under capture
                     else if category == &Category::OpenFour && rules.game_ending_capture {
-                        let is_free = board.pattern_is_not_under_capture(
+                        let under_capture = board.pattern_is_under_capture(
                             rules,
                             &movement.coordinates,
                             direction,
                             pattern,
                             movement.player,
                         );
-                        if is_free {
-                            patterns.push(Category::OpenFour);
+                        if under_capture {
+                            patterns.push(Category::CloseThree);
                         } else {
-                            patterns.push(Category::CloseFour);
+                            patterns.push(Category::OpenFour);
                         }
                     }
                     // TODO avoid KillFour that are under capture
@@ -90,7 +90,7 @@ impl Heuristic {
                     }
                     // Since patterns are sorted by their priority,
                     // -- if a pattern match it's the best one
-                    break; // next direction
+                    // break; // next direction
                 }
             }
         }
@@ -121,12 +121,11 @@ impl Heuristic {
             return i32::max_value();
         } else if patterns.kill_four > 0 {
             return i32::max_value() - 1;
+        } else if patterns.open_four > 0 {
+            return i32::max_value() - 2;
         }
         // Count good patterns that were created
         let mut score: i32 = 0;
-        if patterns.open_four > 0 {
-            score += 70000;
-        }
         if patterns.reduce_three > 0 {
             score += 60000;
         }

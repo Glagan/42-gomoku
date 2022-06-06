@@ -144,16 +144,16 @@ impl PatternCount {
     // Order by which to sort the generated moves
     // Gives priority to moves that save the game or end the game
     pub fn best_pattern(&self) -> u8 {
-        if self.total_captures >= 10 || self.five_in_row > 0 {
-            13
+        (if self.total_captures >= 10 || self.five_in_row > 0 {
+            200
         } else if self.kill_four > 0 {
-            12
+            100
         } else if self.open_four > 0 {
-            11
+            50
         } else if self.reduce_three > 0 {
-            10
+            20
         } else if self.close_four > 0 {
-            9
+            11
         } else if self.open_three > 0 {
             8
         } else if self.kill_three > 0 {
@@ -172,7 +172,7 @@ impl PatternCount {
             1
         } else {
             0
-        }
+        }) + self.inc_captures
     }
 
     pub fn from_patterns(patterns: &Vec<Category>) -> Self {
@@ -254,16 +254,6 @@ lazy_static! {
         ),
         (
             vec![(-3, 1), (-2, 0), (-1, 1), (1, 1), (2, 0), (3, 1)],
-            Category::OpenFour,
-        ),
-        // -- [0, {1}, {1}, 0, 1, 1, 0]
-        // -+ [0, 1, 1, 0, {1}, {1}, 0]
-        (
-            vec![(-1, 0), (1, 1), (2, 0), (3, 1), (4, 1), (5, 0)],
-            Category::OpenFour,
-        ),
-        (
-            vec![(-2, 0), (-1, 1), (1, 0), (2, 1), (3, 1), (4,0)],
             Category::OpenFour,
         ),
         // * ReduceThree
@@ -373,20 +363,6 @@ lazy_static! {
             vec![(-2, 1), (-1, 2), (1, 2), (2, 2)],
             Category::KillThree,
         ),
-        // -- [{1}, 2, {1}, 2, 2, {1}]
-        // -+ [{1}, 2, 2, {1}, 2, {1}]
-        (
-            vec![(1, 2), (2, 1), (3, 2), (4, 2), (5, 1)],
-            Category::KillThree,
-        ),
-        (
-            vec![(-2, 1), (-1, 2), (1, 2), (2, 2), (3, 1)],
-            Category::KillThree,
-        ),
-        (
-            vec![(-5, 1), (-4, 2), (-3, 1), (-2, 2), (-1, 2)],
-            Category::KillThree,
-        ),
         // * BlockedCapture
         // -- [{1}, 1, 1, 2]
         // -+ [2, 1, 1, {1}]
@@ -394,10 +370,10 @@ lazy_static! {
         // * CapturedFiveInRow
         // > Computed after five in a row
         // * CloseThree
-        // -- [2, {1}, {1}, {1}, 0]
-        // -+ [0, {1}, {1}, {1}, 2]
+        // -- [2, {1}, {1}, {1}, 0, 0]
+        // -+ [0, 0, {1}, {1}, {1}, 2]
         (
-            vec![(-1, 2), (1, 1), (2, 1), (3, 0)],
+            vec![(-1, 2), (1, 1), (2, 1), (3, 0), (4, 0)],
             Category::CloseThree,
         ),
         (
@@ -408,25 +384,29 @@ lazy_static! {
             vec![(-3, 2), (-2, 1), (-1, 1), (1, 0)],
             Category::CloseThree,
         ),
-        // -- [2, {1}, {1}, 0, {1}]
-        // -+ [0, {1}, {1}, {1}, 2]
+        // -- [2, {1}, {1}, 0, {1}, 0]
+        // -+ [0, 0, {1}, {1}, {1}, 2]
         (
-            vec![(-1, 2), (1, 1), (2, 0), (3, 1)],
+            vec![(-1, 2), (1, 1), (2, 0), (3, 1), (4, 0)],
             Category::CloseThree,
         ),
         (
-            vec![(-2, 2), (-1, 1), (1, 0), (2, 1)],
+            vec![(-2, 2), (-1, 1), (1, 0), (2, 1), (3, 0)],
             Category::CloseThree,
         ),
         (
-            vec![(-4, 2), (-3, 1), (-2, 1), (-1, 0)],
+            vec![(-4, 2), (-3, 1), (-2, 1), (-1, 0), (1, 0)],
             Category::CloseThree,
         ),
         // * OpenTwo
-        // -- [0, {1}, 1, 0]
-        // -+ [0, 1, {1}, 0]
+        // -- [0, 0, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, 0, 0]
         (
-            vec![(-1, 0), (1, 1), (2, 0)],
+            vec![(-2, 0), (-1, 0), (1, 1), (2, 0)],
+            Category::OpenTwo,
+        ),
+        (
+            vec![(-3, 0), (-2, 0), (-1, 1), (1, 0)],
             Category::OpenTwo,
         ),
         // -- [0, {1}, 0, 1, 0]
@@ -447,20 +427,24 @@ lazy_static! {
             Category::ReduceTwo,
         ),
         // * CloseTwo
-        // -- [2, {1}, {1}, 0]
-        // -+ [0, {1}, {1}, 2]
+        // -- [2, {1}, {1}, 0, 0]
+        // -+ [0, 0, {1}, {1}, 2]
         (
-            vec![(-1, 2), (1, 1), (2, 0)],
+            vec![(-1, 2), (1, 1), (2, 0), (3, 0)],
             Category::CloseTwo,
         ),
         (
-            vec![(-2, 2),(-1, 1), (1, 0)],
+            vec![(-2, 2),(-1, 1), (1, 0), (2, 0)],
             Category::CloseTwo,
         ),
-        // -- [2, {1}, 0, {1}]
-        // -+ [{1}, 0, {1}, 2]
+        // -- [2, {1}, 0, {1}, 0, 0]
+        // -+ [0, 0, {1}, 0, {1}, 2]
         (
-            vec![(-1, 2), (1, 0), (2, 1)],
+            vec![(-1, 2), (1, 0), (2, 1), (3, 0), (4, 0)],
+            Category::CloseTwo,
+        ),
+        (
+            vec![(-3, 2), (-2, 1), (-1, 0), (1, 0), (2, 0)],
             Category::CloseTwo,
         ),
     ];

@@ -494,7 +494,7 @@ impl Board {
     }
 
     // Check if a rock with an associated pattern is not under capture
-    pub fn pattern_is_not_under_capture(
+    pub fn pattern_is_under_capture(
         &self,
         rules: &RuleSet,
         coordinates: &Coordinates,
@@ -505,12 +505,12 @@ impl Board {
         let opponent = player.opponent();
         // Check if the rock that initiated the five in a row is not under capture...
         // Pattern: [0 {1} {1} 2]
-        UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, capture_pattern)| {
-            DIRECTIONS.iter().all(|direction| {
+        UNDER_CAPTURE_PATTERNS.iter().enumerate().any(|(index, capture_pattern)| {
+            DIRECTIONS.iter().any(|direction| {
                 // Check that the pattern *doesn't* match ...
-                !self.check_pattern(coordinates, direction, capture_pattern, player)
+                self.check_pattern(coordinates, direction, capture_pattern, player)
                 // ... or that the move in [0] is illegal for the other player
-                || (index == 0 && !self.is_move_legal(
+                && ((index == 0 && self.is_move_legal(
                     rules,
                     &Move {
                         player: opponent,
@@ -519,7 +519,7 @@ impl Board {
                             coordinates.y + -direction.1
                         ),
                     },
-                )) || (index == 1 && !self.is_move_legal(
+                )) || (index == 1 && self.is_move_legal(
                     rules,
                     &Move {
                         player: opponent,
@@ -528,20 +528,20 @@ impl Board {
                             coordinates.y + direction.1 * -2
                         ),
                     },
-                ))
+                )))
             })
         })
         // ... and check if each other rock in the five in a row are not under capture
-        && pattern.iter().all(|(mov, _)| {
+        || pattern.iter().any(|(mov, _)| {
             // The checked rock is the another rock in the current five in a row pattern
             let other_rock_coords = coord!(coordinates.x + original_direction.0 * mov, coordinates.y + original_direction.1 * mov);
             // Pattern: [0 {1} {1} 2]
-            UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, capture_pattern)| {
-                DIRECTIONS.iter().all(|direction| {
+            UNDER_CAPTURE_PATTERNS.iter().enumerate().any(|(index, capture_pattern)| {
+                DIRECTIONS.iter().any(|direction| {
                     // Check that the pattern *doesn't* match ...
-                    !self.check_pattern(&other_rock_coords, direction, capture_pattern, player)
+                    self.check_pattern(&other_rock_coords, direction, capture_pattern, player)
                     // ... or that the move in [0] is illegal for the other player
-                    || (index == 0 && !self.is_move_legal(
+                    && ((index == 0 && self.is_move_legal(
                         rules,
                         &Move {
                             player: opponent,
@@ -550,7 +550,7 @@ impl Board {
                                 other_rock_coords.y + -direction.1
                             ),
                         },
-                    )) || (index == 1 && !self.is_move_legal(
+                    )) || (index == 1 && self.is_move_legal(
                         rules,
                         &Move {
                             player: opponent,
@@ -559,7 +559,7 @@ impl Board {
                                 other_rock_coords.y + direction.1 * -2
                             ),
                         },
-                    ))
+                    )))
                 })
             })
         })
@@ -589,7 +589,7 @@ impl Board {
             for five_in_a_row_direction in &DIRECTIONS {
                 for pattern in FIVE_PATTERNS {
                     if self.check_pattern(rock, five_in_a_row_direction, pattern, player)
-                        && self.pattern_is_not_under_capture(
+                        && !self.pattern_is_under_capture(
                             rules,
                             rock,
                             five_in_a_row_direction,

@@ -164,8 +164,8 @@ pub fn draw_goban(game: &Game) {
                     },
                 );
                 // draw_circle_lines(draw_x, draw_y, 20., 1., highlight);
-                black.a -= 0.2;
-                white.a -= 0.2;
+                black.a -= 0.15;
+                white.a -= 0.15;
                 // highlight.a -= 0.1;
             }
         }
