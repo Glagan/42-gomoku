@@ -472,12 +472,12 @@ impl Board {
         self.moves -= 1;
     }
 
-    // Check if a five in a row (as a pattern) is not under capture
-    pub fn five_in_a_row_is_under_capture(
+    // Check if a rock with an associated pattern is not under capture
+    pub fn pattern_is_not_under_capture(
         &self,
         rules: &RuleSet,
         coordinates: &Coordinates,
-        five_in_a_row_direction: &(i16, i16),
+        original_direction: &(i16, i16),
         pattern: &[(i16, PlayerRock)],
         player: Player,
     ) -> bool {
@@ -513,7 +513,7 @@ impl Board {
         // ... and check if each other rock in the five in a row are not under capture
         && pattern.iter().all(|(mov, _)| {
             // The checked rock is the another rock in the current five in a row pattern
-            let other_rock_coords = coord!(coordinates.x + five_in_a_row_direction.0 * mov, coordinates.y + five_in_a_row_direction.1 * mov);
+            let other_rock_coords = coord!(coordinates.x + original_direction.0 * mov, coordinates.y + original_direction.1 * mov);
             // Pattern: [0 {1} {1} 2]
             UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, capture_pattern)| {
                 DIRECTIONS.iter().all(|direction| {
@@ -568,7 +568,7 @@ impl Board {
             for five_in_a_row_direction in &DIRECTIONS {
                 for pattern in FIVE_PATTERNS {
                     if self.check_pattern(rock, five_in_a_row_direction, pattern, player)
-                        && self.five_in_a_row_is_under_capture(
+                        && self.pattern_is_not_under_capture(
                             rules,
                             rock,
                             five_in_a_row_direction,

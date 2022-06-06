@@ -56,24 +56,41 @@ impl Heuristic {
                 if board.check_pattern(&movement.coordinates, direction, pattern, movement.player) {
                     // Check if it's a five in a row that it can't be captured
                     if category == &Category::FiveInRow && rules.game_ending_capture {
-                        let is_under_capture = board.five_in_a_row_is_under_capture(
+                        let is_free = board.pattern_is_not_under_capture(
                             rules,
                             &movement.coordinates,
                             direction,
                             pattern,
                             movement.player,
                         );
-                        if !is_under_capture {
-                            patterns.push(Category::CapturedFiveInRow);
-                        } else {
+                        if is_free {
                             patterns.push(Category::FiveInRow);
+                        } else {
+                            patterns.push(Category::CapturedFiveInRow);
                         }
-                    } else {
+                    }
+                    // Avoid creating four in a row that are already under capture
+                    else if category == &Category::OpenFour && rules.game_ending_capture {
+                        let is_free = board.pattern_is_not_under_capture(
+                            rules,
+                            &movement.coordinates,
+                            direction,
+                            pattern,
+                            movement.player,
+                        );
+                        if is_free {
+                            patterns.push(Category::OpenFour);
+                        } else {
+                            patterns.push(Category::CloseFour);
+                        }
+                    }
+                    // TODO avoid KillFour that are under capture
+                    else {
                         patterns.push(*category);
                     }
                     // Since patterns are sorted by their priority,
                     // -- if a pattern match it's the best one
-                    // break; // next direction
+                    break; // next direction
                 }
             }
         }
