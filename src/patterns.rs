@@ -2,6 +2,7 @@ use crate::rock::PlayerRock;
 
 // * Static patterns
 
+// -- [0 {1} 1 {1} 0]
 pub const FREE_THREE_DIRECT_PATTERN: [(i16, PlayerRock); 4] = [
     (-1, PlayerRock::None),
     (1, PlayerRock::Player),
@@ -9,6 +10,7 @@ pub const FREE_THREE_DIRECT_PATTERN: [(i16, PlayerRock); 4] = [
     (3, PlayerRock::None),
 ];
 
+// -- [0 1 {1} 1 0]
 pub const FREE_THREE_DIRECT_CENTER_PATTERN: [(i16, PlayerRock); 4] = [
     (-2, PlayerRock::None),
     (-1, PlayerRock::Player),
@@ -16,6 +18,8 @@ pub const FREE_THREE_DIRECT_CENTER_PATTERN: [(i16, PlayerRock); 4] = [
     (2, PlayerRock::None),
 ];
 
+// Missing [0 {1} 1 0 1 0] ?
+// -- [0 {1} 0 1 1 0]
 pub const FREE_THREE_SECONDARY_PATTERN: [(i16, PlayerRock); 5] = [
     (-1, PlayerRock::None),
     (1, PlayerRock::None),
@@ -24,6 +28,7 @@ pub const FREE_THREE_SECONDARY_PATTERN: [(i16, PlayerRock); 5] = [
     (4, PlayerRock::None),
 ];
 
+// -- [0 1 {1} 0 1 0]
 pub const FREE_THREE_SECONDARY_CENTER_PATTERN: [(i16, PlayerRock); 5] = [
     (-2, PlayerRock::None),
     (-1, PlayerRock::Player),
@@ -53,6 +58,8 @@ pub const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
     ],
 ];
 
+// -- [0, {1}, {1}, 2]
+// -+ [2, {1}, {1}, 0]
 pub const UNDER_CAPTURE_PATTERNS: [[(i16, PlayerRock); 3]; 2] = [
     [
         (-1, PlayerRock::None),
@@ -60,18 +67,22 @@ pub const UNDER_CAPTURE_PATTERNS: [[(i16, PlayerRock); 3]; 2] = [
         (2, PlayerRock::Opponent),
     ],
     [
-        (-1, PlayerRock::Opponent),
-        (1, PlayerRock::Player),
-        (2, PlayerRock::None),
+        (-2, PlayerRock::None),
+        (-1, PlayerRock::Player),
+        (1, PlayerRock::Opponent),
     ],
 ];
 
+// 0 is used as the reference with this pattern
+// -- [2 {0} 1 2]
+// -+ [2  1 {0} 2]
 pub const RECURSIVE_CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
     (-1, PlayerRock::Opponent),
     (1, PlayerRock::Player),
     (2, PlayerRock::Opponent),
 ];
 
+// -- [{1}, 2, 2, {1}]
 pub const CAPTURE_PATTERN: &[(i16, PlayerRock); 3] = &[
     (1, PlayerRock::Opponent),
     (2, PlayerRock::Opponent),

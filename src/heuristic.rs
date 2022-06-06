@@ -63,7 +63,7 @@ impl Heuristic {
                             pattern,
                             movement.player,
                         );
-                        if is_under_capture {
+                        if !is_under_capture {
                             patterns.push(Category::CapturedFiveInRow);
                         } else {
                             patterns.push(Category::FiveInRow);
@@ -108,16 +108,16 @@ impl Heuristic {
         // Count good patterns that were created
         let mut score: i32 = 0;
         if patterns.open_four > 0 {
-            score += 50000;
+            score += 70000;
+        }
+        if patterns.reduce_three > 0 {
+            score += 60000;
         }
         if patterns.inc_captures > 2 {
             score += 40000
         }
-        if patterns.reduce_three > 0 {
+        if patterns.kill_three > 0 {
             score += 40000;
-        }
-        if patterns.inc_captures > 0 {
-            score += 30000;
         }
         if patterns.close_four > 0 {
             score += 30000;
@@ -125,20 +125,20 @@ impl Heuristic {
         if patterns.open_three > 0 {
             score += 20000;
         }
-        if patterns.kill_three > 0 {
+        if patterns.inc_captures > 0 {
             score += 10000;
         }
         if patterns.blocked_capture > 0 {
             score += 10000;
         }
-        // if patterns.captured_five_in_row > 0 {
-        //     score += 5000;
-        // }
+        if patterns.captured_five_in_row > 0 {
+            score += 5000;
+        }
         if patterns.close_three > 0 {
             score += 4000;
         }
         if patterns.open_two > 0 {
-            score += 3000;
+            score += 3500;
         }
         if patterns.reduce_two > 0 {
             score += 3000;

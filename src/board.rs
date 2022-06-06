@@ -38,18 +38,20 @@ impl fmt::Display for Move {
         if self.player == Player::Black {
             write!(
                 f,
-                "{} {}x{}",
+                "{} {}x{} ({})",
                 "black".white().on_black(),
-                self.coordinates.x,
                 self.coordinates.y,
+                self.coordinates.x,
+                self.coordinates.y + self.coordinates.x * BOARD_SIZE
             )
         } else {
             write!(
                 f,
-                "{} {}x{}",
+                "{} {}x{} ({})",
                 "white".black().on_white(),
-                self.coordinates.x,
                 self.coordinates.y,
+                self.coordinates.x,
+                self.coordinates.y + self.coordinates.x * BOARD_SIZE
             )
         }
     }
@@ -480,11 +482,12 @@ impl Board {
         player: Player,
     ) -> bool {
         let opponent = player.opponent();
-        DIRECTIONS.iter().all(|direction| {
-            // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-            UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
+        // Check if the rock that initiated the five in a row is not under capture...
+        // Pattern: [0 {1} {1} 2]
+        UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, capture_pattern)| {
+            DIRECTIONS.iter().all(|direction| {
                 // Check that the pattern *doesn't* match ...
-                !self.check_pattern(coordinates, direction, recursive_capture_pattern, player)
+                !self.check_pattern(coordinates, direction, capture_pattern, player)
                 // ... or that the move in [0] is illegal for the other player
                 || (index == 0 && !self.is_move_legal(
                     rules,
@@ -500,20 +503,22 @@ impl Board {
                     &Move {
                         player: opponent,
                         coordinates: coord!(
-                            coordinates.x + direction.0 * 2,
-                            coordinates.y + direction.1 * 2
+                            coordinates.x + direction.0 * -2,
+                            coordinates.y + direction.1 * -2
                         ),
                     },
                 ))
             })
-            // ... and check if each other rock in the five in a row to check that it's not under capture
-            && pattern.iter().all(|(mov, _)| {
-                // The checked rock is the another rock in the current five in a row pattern
-                let other_rock_coords = coord!(coordinates.x + five_in_a_row_direction.0 * mov, coordinates.y + five_in_a_row_direction.1 * mov);
-                // Pattern: [0 1 1 2] where the rock possibly in either [1] positions
-                UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, recursive_capture_pattern)| {
+        })
+        // ... and check if each other rock in the five in a row are not under capture
+        && pattern.iter().all(|(mov, _)| {
+            // The checked rock is the another rock in the current five in a row pattern
+            let other_rock_coords = coord!(coordinates.x + five_in_a_row_direction.0 * mov, coordinates.y + five_in_a_row_direction.1 * mov);
+            // Pattern: [0 {1} {1} 2]
+            UNDER_CAPTURE_PATTERNS.iter().enumerate().all(|(index, capture_pattern)| {
+                DIRECTIONS.iter().all(|direction| {
                     // Check that the pattern *doesn't* match ...
-                    !self.check_pattern(&other_rock_coords, direction, recursive_capture_pattern, player)
+                    !self.check_pattern(&other_rock_coords, direction, capture_pattern, player)
                     // ... or that the move in [0] is illegal for the other player
                     || (index == 0 && !self.is_move_legal(
                         rules,
@@ -529,8 +534,8 @@ impl Board {
                         &Move {
                             player: opponent,
                             coordinates: coord!(
-                                other_rock_coords.x + direction.0 * 2,
-                                other_rock_coords.y + direction.1 * 2
+                                other_rock_coords.x + direction.0 * -2,
+                                other_rock_coords.y + direction.1 * -2
                             ),
                         },
                     ))
