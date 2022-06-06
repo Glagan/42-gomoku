@@ -114,11 +114,6 @@ impl Game {
             self.computer_play_as = Player::Black;
         }
         self.mode = GameMode::PvA;
-        println!(
-            "Starting a game [{:#?}] with rules: {:#?}",
-            GameMode::PvA,
-            self.rules
-        );
         self.playing = true;
     }
 

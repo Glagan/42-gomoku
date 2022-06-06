@@ -249,8 +249,14 @@ impl Computer {
         let mut alpha = iteration.alpha;
         let beta = iteration.beta;
 
-        // Check if it's a leaf and compute it's value
-        if iteration.depth == 0 || action.board.is_winning(rules, player) {
+        // Check if it's a leaf and compute it's valuelet is_leaf = iteration.depth == 0
+        let is_leaf = iteration.depth == 0
+            || if let Some(movement) = action.movement {
+                action.board.is_winning(rules, movement.player)
+            } else {
+                false
+            };
+        if is_leaf {
             if action.movement.is_none() {
                 return Err("Empty movement in negamax leaf".to_string());
             }
