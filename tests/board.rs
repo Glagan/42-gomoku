@@ -5,7 +5,6 @@ use gomoku::{
     rock::{PlayerRock, Rock},
     rules::RuleSet,
 };
-use std::collections::HashSet;
 
 macro_rules! coord {
     ($x: expr, $y: expr) => {{
@@ -144,14 +143,14 @@ fn undo_single_move() {
     board.set_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
-    assert_eq!(board.all_rocks, HashSet::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
 
     board.undo_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::None);
     assert!(board.moves_restore.is_empty());
-    assert_eq!(board.black.rocks, HashSet::new());
-    assert_eq!(board.all_rocks, HashSet::new());
+    assert_eq!(board.black.rocks, vec![]);
+    assert_eq!(board.all_rocks, vec![]);
 }
 
 #[test]
@@ -165,9 +164,9 @@ fn undo_two_moves() {
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::None);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, HashSet::new());
-    assert_eq!(board.all_rocks, HashSet::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, vec![]);
+    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
 
     let movement_2 = Move {
         player: Player::White,
@@ -177,25 +176,25 @@ fn undo_two_moves() {
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::White);
     assert_eq!(board.moves_restore, vec![vec![], vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, HashSet::from([coord!(1, 0)]));
-    assert_eq!(board.all_rocks, HashSet::from([coord!(0, 0), coord!(1, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, Vec::from([coord!(1, 0)]));
+    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0), coord!(1, 0)]));
 
     board.undo_move(&RuleSet::default(), &movement_2);
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::None);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, HashSet::new());
-    assert_eq!(board.all_rocks, HashSet::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, vec![]);
+    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
 
     board.undo_move(&RuleSet::default(), &movement_1);
     assert_eq!(board.get(0, 0), Rock::None);
     assert_eq!(board.get(1, 0), Rock::None);
     assert!(board.moves_restore.is_empty());
-    assert_eq!(board.black.rocks, HashSet::new());
-    assert_eq!(board.white.rocks, HashSet::new());
-    assert_eq!(board.all_rocks, HashSet::new());
+    assert_eq!(board.black.rocks, vec![]);
+    assert_eq!(board.white.rocks, vec![]);
+    assert_eq!(board.all_rocks, vec![]);
 }
 
 #[test]
@@ -233,16 +232,13 @@ fn undo_capture() {
         PlayerRock::Player
     );
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);
-    assert_eq!(
-        board.white.rocks,
-        HashSet::from([coord!(1, 0), coord!(2, 0)])
-    );
+    assert_eq!(board.white.rocks, Vec::from([coord!(1, 0), coord!(2, 0)]));
     assert_eq!(board.white.captures, 0);
     assert_eq!(
         board.all_rocks,
-        HashSet::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
+        Vec::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
     );
 
     // Make capture move
@@ -279,14 +275,11 @@ fn undo_capture() {
         board.moves_restore,
         vec![vec![], vec![], vec![], vec![coord!(2, 0), coord!(1, 0)]]
     );
-    assert_eq!(
-        board.black.rocks,
-        HashSet::from([coord!(0, 0), coord!(3, 0)])
-    );
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0), coord!(3, 0)]));
     assert_eq!(board.black.captures, 2);
-    assert_eq!(board.white.rocks, HashSet::new());
+    assert_eq!(board.white.rocks, vec![]);
     assert_eq!(board.white.captures, 0);
-    assert_eq!(board.all_rocks, HashSet::from([coord!(0, 0), coord!(3, 0)]));
+    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0), coord!(3, 0)]));
 
     // Undo capture
     board.undo_move(&RuleSet::default(), &movement);
@@ -318,16 +311,13 @@ fn undo_capture() {
         PlayerRock::Player
     );
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
-    assert_eq!(board.black.rocks, HashSet::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);
-    assert_eq!(
-        board.white.rocks,
-        HashSet::from([coord!(1, 0), coord!(2, 0)])
-    );
+    assert_eq!(board.white.rocks, Vec::from([coord!(2, 0), coord!(1, 0)]));
     assert_eq!(board.white.captures, 0);
     assert_eq!(
         board.all_rocks,
-        HashSet::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
+        Vec::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
     );
 }
 
@@ -372,7 +362,7 @@ fn board_save_black_moves_1() {
             coordinates: CENTER,
         },
     );
-    assert_eq!(board.black.rocks, HashSet::from([CENTER]));
+    assert_eq!(board.black.rocks, Vec::from([CENTER]));
 }
 
 #[test]
@@ -393,7 +383,7 @@ fn board_save_black_moves_2() {
             coordinates: center_right,
         },
     );
-    assert_eq!(board.black.rocks, HashSet::from([CENTER, center_right]));
+    assert_eq!(board.black.rocks, Vec::from([CENTER, center_right]));
 }
 
 #[test]
@@ -406,7 +396,7 @@ fn board_save_white_moves_1() {
             coordinates: CENTER,
         },
     );
-    assert_eq!(board.white.rocks, HashSet::from([CENTER]));
+    assert_eq!(board.white.rocks, Vec::from([CENTER]));
 }
 
 #[test]
@@ -427,7 +417,7 @@ fn board_save_white_moves_2() {
             coordinates: center_right,
         },
     );
-    assert_eq!(board.white.rocks, HashSet::from([CENTER, center_right]));
+    assert_eq!(board.white.rocks, Vec::from([CENTER, center_right]));
 }
 
 // * Five in a row detection

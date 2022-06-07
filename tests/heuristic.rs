@@ -272,26 +272,16 @@ fn construct_board_from_pattern(direction: &(i16, i16), pattern: &Vec<(i16, Play
 
     for (mov, rock) in pattern {
         if rock != &PlayerRock::None {
-            board.set_move(
-                &RuleSet::default(),
-                &Move {
-                    player: match rock {
-                        PlayerRock::Opponent => Player::White,
-                        _ => Player::Black,
-                    },
-                    coordinates: coord!(CENTER.x + direction.0 * mov, CENTER.y + direction.1 * mov),
+            board.set_on_boards(
+                &coord!(CENTER.x + direction.0 * mov, CENTER.y + direction.1 * mov),
+                match rock {
+                    PlayerRock::Opponent => Player::White,
+                    _ => Player::Black,
                 },
             );
         }
     }
-    board.set_move(
-        &RuleSet::default(),
-        &Move {
-            player: Player::Black,
-            coordinates: coord!(CENTER.x, CENTER.y),
-        },
-    );
-
+    board.set_on_boards(&CENTER, Player::Black);
     board
 }
 
