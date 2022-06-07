@@ -13,52 +13,13 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{
-    cmp::Ordering,
-    collections::HashSet,
-    fmt,
-    hash::{Hash, Hasher},
-};
+use std::fmt;
 
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Coordinates {
     pub x: i16,
     pub y: i16,
 }
-
-impl Eq for Coordinates {}
-
-impl PartialEq for Coordinates {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
-    }
-}
-
-impl Ord for Coordinates {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let res = self.x.cmp(&other.x);
-        if res.is_eq() {
-            self.y.cmp(&other.y)
-        } else {
-            res
-        }
-    }
-}
-
-impl PartialOrd for Coordinates {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Hash for Coordinates {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.hash(state);
-        0.hash(state);
-        self.y.hash(state);
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
     pub player: Player,
@@ -99,12 +60,12 @@ impl fmt::Display for Move {
 pub struct PlayerState {
     pub captures: u8,
     // Index of all of the player rocks
-    pub rocks: HashSet<Coordinates>,
+    pub rocks: Vec<Coordinates>,
 }
 
 impl Default for PlayerState {
     fn default() -> Self {
-        let mut rocks = HashSet::new();
+        let mut rocks = Vec::new();
         rocks.reserve(BOARD_PIECES_USIZE);
         Self { captures: 0, rocks }
     }
@@ -118,7 +79,7 @@ pub struct Board {
     pub moves: u16,
     pub black: PlayerState,
     pub white: PlayerState,
-    pub all_rocks: HashSet<Coordinates>,
+    pub all_rocks: Vec<Coordinates>,
     // Rocks to restore (to undo a capture) when undoing the last move
     pub moves_restore: Vec<Vec<Coordinates>>,
 }
@@ -127,7 +88,7 @@ impl Default for Board {
     fn default() -> Board {
         let mut moves_restore = vec![];
         moves_restore.reserve(BOARD_PIECES_USIZE);
-        let mut all_rocks = HashSet::new();
+        let mut all_rocks = vec![];
         all_rocks.reserve(BOARD_PIECES_USIZE);
         Board {
             pieces: [[Rock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
@@ -443,12 +404,29 @@ impl Board {
             self.remove_from_boards(&coordinates);
             if movement.player == Player::Black {
                 self.black.captures += 1;
-                self.white.rocks.remove(&coordinates);
+                self.white.rocks.swap_remove(
+                    self.white
+                        .rocks
+                        .iter()
+                        .position(|&rock| rock == coordinates)
+                        .unwrap(),
+                );
             } else {
                 self.white.captures += 1;
-                self.black.rocks.remove(&coordinates);
+                self.black.rocks.swap_remove(
+                    self.black
+                        .rocks
+                        .iter()
+                        .position(|&rock| rock == coordinates)
+                        .unwrap(),
+                );
             }
-            self.all_rocks.remove(&coordinates);
+            self.all_rocks.swap_remove(
+                self.all_rocks
+                    .iter()
+                    .position(|&rock| rock == coordinates)
+                    .unwrap(),
+            );
         }
         let captures_len = captures.len() as u8;
         self.moves_restore.push(captures);
@@ -476,11 +454,11 @@ impl Board {
             captures = self.check_capture(movement);
         }
         if movement.player == Player::Black {
-            self.black.rocks.insert(movement.coordinates);
+            self.black.rocks.push(movement.coordinates);
         } else {
-            self.white.rocks.insert(movement.coordinates);
+            self.white.rocks.push(movement.coordinates);
         }
-        self.all_rocks.insert(movement.coordinates);
+        self.all_rocks.push(movement.coordinates);
         self.moves += 1;
         captures
     }
@@ -507,21 +485,38 @@ impl Board {
             for rock in rocks {
                 self.set_on_boards(&rock, opponent);
                 if movement.player == Player::Black {
-                    self.white.rocks.insert(rock);
+                    self.white.rocks.push(rock);
                 } else {
-                    self.black.rocks.insert(rock);
+                    self.black.rocks.push(rock);
                 }
-                self.all_rocks.insert(rock);
+                self.all_rocks.push(rock);
             }
         }
         // Remove rock
         self.remove_from_boards(&movement.coordinates);
         if movement.player == Player::Black {
-            self.black.rocks.remove(&movement.coordinates);
+            self.black.rocks.swap_remove(
+                self.black
+                    .rocks
+                    .iter()
+                    .position(|&rock| rock == movement.coordinates)
+                    .unwrap(),
+            );
         } else {
-            self.white.rocks.remove(&movement.coordinates);
+            self.white.rocks.swap_remove(
+                self.white
+                    .rocks
+                    .iter()
+                    .position(|&rock| rock == movement.coordinates)
+                    .unwrap(),
+            );
         }
-        self.all_rocks.remove(&movement.coordinates);
+        self.all_rocks.swap_remove(
+            self.all_rocks
+                .iter()
+                .position(|&rock| rock == movement.coordinates)
+                .unwrap(),
+        );
         self.moves -= 1;
     }
 

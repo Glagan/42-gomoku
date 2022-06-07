@@ -147,7 +147,7 @@ impl Computer {
         // Optimise for player ...
         if player == maximize {
             let mut best_eval = Evaluation {
-                score: i32::min_value(),
+                score: i32::min_value() + 1,
                 movements: vec![],
             };
             while let Some(sorted_movement) = moves.pop() {
@@ -173,11 +173,11 @@ impl Computer {
                     best_eval.movements = eval.movements;
                     best_eval.movements.insert(0, sorted_movement.movement);
                 }
-                if best_eval.score >= beta {
-                    break;
-                }
                 if best_eval.score > alpha {
                     alpha = best_eval.score;
+                }
+                if beta <= alpha {
+                    break;
                 }
             }
             Ok(best_eval)
@@ -211,11 +211,11 @@ impl Computer {
                     best_eval.movements = eval.movements;
                     best_eval.movements.insert(0, sorted_movement.movement);
                 }
-                if best_eval.score <= alpha {
-                    break;
-                }
                 if best_eval.score < beta {
                     beta = best_eval.score;
+                }
+                if beta <= alpha {
+                    break;
                 }
             }
             Ok(best_eval)
@@ -233,6 +233,7 @@ impl Computer {
         player: Player,
     ) -> Result<Evaluation, String> {
         // Apply minimax recursively
+        println!("Generating moves for player {:#?}", player);
         let best_move = self.minimax_alpha_beta(
             rules,
             MinimaxAction {
@@ -242,7 +243,7 @@ impl Computer {
             },
             AlphaBetaIteration {
                 depth,
-                alpha: i32::min_value(),
+                alpha: i32::min_value() + 1,
                 beta: i32::max_value(),
             },
             player,
@@ -402,7 +403,7 @@ impl Computer {
 
         // Only the player can be optimized in the initial call
         let mut best_eval = Evaluation {
-            score: i32::min_value(),
+            score: i32::min_value() + 1,
             movements: vec![],
         };
         while let Some(sorted_movement) = moves.pop() {
@@ -500,7 +501,7 @@ impl Computer {
                     },
                     AlphaBetaIteration {
                         depth,
-                        alpha: i32::min_value(),
+                        alpha: i32::min_value() + 1,
                         beta: i32::max_value(),
                     },
                     player,
@@ -511,7 +512,7 @@ impl Computer {
         }
 
         let mut best_move = Evaluation {
-            score: i32::min_value(),
+            score: i32::min_value() + 1,
             movements: vec![],
         };
 
