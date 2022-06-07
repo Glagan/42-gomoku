@@ -351,7 +351,27 @@ fn find_all_reduce_three() {
 
 #[test]
 fn find_all_close_four() {
-    assert!(pattern_category_increase_count(Category::CloseFour));
+    // ! The last 2 OpenFour patterns (variations) are under capture
+    HEURISTIC
+        .patterns
+        .iter()
+        .filter(|pattern| pattern.1 == Category::CloseFour)
+        .all(|(pattern, _)| {
+            construct_all_boards_from_pattern(pattern)
+                .iter()
+                .all(|board| {
+                    let patterns = HEURISTIC.count_movement_patterns(
+                        &RuleSet::default(),
+                        board,
+                        &Move {
+                            player: Player::Black,
+                            coordinates: coord!(CENTER.x, CENTER.y),
+                        },
+                        0,
+                    );
+                    patterns.close_four >= 1 /*  || patterns.close_three >= 1 */
+                })
+        });
 }
 
 #[test]
