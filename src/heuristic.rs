@@ -127,16 +127,16 @@ impl Heuristic {
         // Count good patterns that were created
         let mut score: i32 = 0;
         if patterns.reduce_three > 0 {
-            score += 60000;
+            score += 100001;
         }
         if patterns.inc_captures > 2 {
             score += 40000
         }
         if patterns.kill_three > 0 {
-            score += 40000;
+            score += 50001;
         }
         if patterns.close_four > 0 {
-            score += 30000;
+            score += 40000;
         }
         if patterns.open_three > 0 {
             score += 20000;
@@ -154,13 +154,13 @@ impl Heuristic {
             score += 4000;
         }
         if patterns.open_two > 0 {
-            score += 3500;
+            score += 500;
         }
         if patterns.reduce_two > 0 {
-            score += 3000;
+            score += 300;
         }
         if patterns.close_two > 0 {
-            score += 1000;
+            score += 100;
         }
         score
     }
