@@ -70,7 +70,9 @@ impl Heuristic {
                         }
                     }
                     // Avoid creating four in a row that are already under capture
-                    else if category == &Category::OpenFour && rules.game_ending_capture {
+                    else if (category == &Category::OpenFour || category == &Category::CloseFour)
+                        && rules.game_ending_capture
+                    {
                         let under_capture = board.pattern_is_under_capture(
                             rules,
                             &movement.coordinates,
@@ -81,7 +83,7 @@ impl Heuristic {
                         if under_capture {
                             patterns.push(Category::CloseThree);
                         } else {
-                            patterns.push(Category::OpenFour);
+                            patterns.push(*category);
                         }
                     }
                     // TODO avoid KillFour that are under capture

@@ -13,12 +13,50 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{collections::HashSet, fmt};
+use std::{
+    cmp::Ordering,
+    collections::HashSet,
+    fmt,
+    hash::{Hash, Hasher},
+};
 
-#[derive(Default, PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Coordinates {
     pub x: i16,
     pub y: i16,
+}
+
+impl Eq for Coordinates {}
+
+impl PartialEq for Coordinates {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl Ord for Coordinates {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let res = self.x.cmp(&other.x);
+        if res.is_eq() {
+            self.y.cmp(&other.y)
+        } else {
+            res
+        }
+    }
+}
+
+impl PartialOrd for Coordinates {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for Coordinates {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        0.hash(state);
+        self.y.hash(state);
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,18 +78,18 @@ impl fmt::Display for Move {
                 f,
                 "{} {}x{} ({})",
                 "black".white().on_black(),
-                self.coordinates.y,
                 self.coordinates.x,
-                self.coordinates.y + self.coordinates.x * BOARD_SIZE
+                self.coordinates.y,
+                self.coordinates.x + self.coordinates.y * BOARD_SIZE
             )
         } else {
             write!(
                 f,
                 "{} {}x{} ({})",
                 "white".black().on_white(),
-                self.coordinates.y,
                 self.coordinates.x,
-                self.coordinates.y + self.coordinates.x * BOARD_SIZE
+                self.coordinates.y,
+                self.coordinates.x + self.coordinates.y * BOARD_SIZE
             )
         }
     }
@@ -105,13 +143,14 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (x_index, row) in self.pieces.iter().enumerate() {
+        for (y_index, row) in self.pieces.iter().enumerate() {
             write!(
                 f,
-                "{}",
+                "{: >2} {}",
+                y_index.to_string().dimmed(),
                 row.iter()
                     .enumerate()
-                    .map(|(y_index, p)| format!(
+                    .map(|(x_index, p)| format!(
                         "{: >3}",
                         if p == &Rock::Black {
                             format!("{}", x_index + y_index * BOARD_SIZE_USIZE)
