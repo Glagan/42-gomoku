@@ -1,5 +1,5 @@
 macro_rules! coord {
-    ($x:expr, $y:expr) => {{
+    ($x: expr, $y: expr) => {{
         use crate::board::Coordinates;
         Coordinates { x: $x, y: $y }
     }};

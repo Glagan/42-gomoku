@@ -305,14 +305,14 @@ impl Board {
     // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
     // For the pattern to be considered a free-three, it strictly need to have both ends "free"
     // -- so borders does *not* count
-    fn movement_create_double_free_three(&self, movement: &Move) -> bool {
+    pub fn movement_create_double_free_three(&self, movement: &Move) -> bool {
         self.move_create_free_three_direct_pattern(movement)
             + self.move_create_free_three_secondary_pattern(movement)
             >= 2
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
-    fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
+    pub fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
