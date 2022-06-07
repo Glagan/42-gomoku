@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub struct Heuristic {
-    patterns: Vec<(Vec<(i16, PlayerRock)>, Category)>,
+    pub patterns: Vec<(Vec<(i16, PlayerRock)>, Category)>,
 }
 
 impl Default for Heuristic {

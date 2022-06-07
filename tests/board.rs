@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use gomoku::{
     board::{Board, Coordinates, Move},
     constants::{BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
@@ -7,6 +5,7 @@ use gomoku::{
     rock::{PlayerRock, Rock},
     rules::RuleSet,
 };
+use std::collections::HashSet;
 
 macro_rules! coord {
     ($x: expr, $y: expr) => {{
