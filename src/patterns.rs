@@ -108,6 +108,8 @@ pub enum Category {
     KillThree,
     // Block a capture
     BlockedCapture,
+    // Create a possible capture
+    CreateCapture,
     // Create a captured five in a row
     // Interesting since it might be upgradable with BlockedCapture
     CapturedFiveInRow,
@@ -136,6 +138,7 @@ pub struct PatternCount {
     pub open_two: u8,
     pub reduce_two: u8,
     pub close_two: u8,
+    pub created_captures: u8,
     pub total_captures: u8,
     pub inc_captures: u8,
 }
@@ -166,7 +169,7 @@ impl PatternCount {
             4
         } else if self.open_two > 0 {
             3
-        } else if self.reduce_two > 0 {
+        } else if self.reduce_two > 0 || self.created_captures > 0 {
             2
         } else if self.close_two > 0 {
             1
@@ -202,6 +205,8 @@ impl PatternCount {
                 pattern_count.open_two += 1;
             } else if pattern == Category::ReduceTwo {
                 pattern_count.reduce_two += 1;
+            } else if pattern == Category::CreateCapture {
+                pattern_count.created_captures += 1;
             } else if pattern == Category::CloseTwo {
                 pattern_count.close_two += 1;
             }
@@ -367,6 +372,10 @@ lazy_static! {
         // -- [{1}, 1, 1, 2]
         // -+ [2, 1, 1, {1}]
         (vec![(1, 1), (2, 1), (3, 2)], Category::BlockedCapture),
+        // * CreateCapture
+        // -- [{1}, 2, 2, 0]
+        // -+ [0, 2, 2, {1}]
+        (vec![(1, 2), (2, 2), (3, 0)], Category::CreateCapture),
         // * CapturedFiveInRow
         // > Computed after five in a row
         // * CloseThree

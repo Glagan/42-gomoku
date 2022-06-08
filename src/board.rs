@@ -222,34 +222,30 @@ impl Board {
     // Pattern: [0 1 1 1 0]
     // Since the move rock can be in any 1 position, we need to check all possible patterns:
     // [0 ? 1 1 0], [0 1 ? 1 0], [0 1 1 ? 0]
-    pub fn move_create_free_three_direct_pattern(&self, movement: &Move) -> u8 {
+    pub fn move_create_free_three_direct_pattern(
+        &self,
+        coordinates: &Coordinates,
+        player: Player,
+    ) -> u8 {
         let mut total = 0;
 
         // Handle the [0 {1} 1 {1} 0] patterns
         for direction in &DIRECTIONS {
-            if self.check_pattern(
-                &movement.coordinates,
-                direction,
-                &FREE_THREE_DIRECT_PATTERN,
-                movement.player,
-            ) {
+            if self.check_pattern(coordinates, direction, &FREE_THREE_DIRECT_PATTERN, player) {
                 total += 1;
             }
         }
 
         // Handle the [0 1 {1} 1 0] pattern to only count it once for a global direction
         for (left, right) in &OPPOSITE_DIRECTIONS {
-            if self.check_pattern(
-                &movement.coordinates,
-                left,
-                &FREE_THREE_DIRECT_CENTER_PATTERN,
-                movement.player,
-            ) || self.check_pattern(
-                &movement.coordinates,
-                right,
-                &FREE_THREE_DIRECT_CENTER_PATTERN,
-                movement.player,
-            ) {
+            if self.check_pattern(coordinates, left, &FREE_THREE_DIRECT_CENTER_PATTERN, player)
+                || self.check_pattern(
+                    coordinates,
+                    right,
+                    &FREE_THREE_DIRECT_CENTER_PATTERN,
+                    player,
+                )
+            {
                 total += 1;
             }
         }
@@ -258,16 +254,20 @@ impl Board {
     }
 
     // Pattern: [0 1 1 0 1 0] and [0 1 0 1 1 0]
-    pub fn move_create_free_three_secondary_pattern(&self, movement: &Move) -> u8 {
+    pub fn move_create_free_three_secondary_pattern(
+        &self,
+        coordinates: &Coordinates,
+        player: Player,
+    ) -> u8 {
         let mut total = 0;
 
         // Handle [0 {1} 1 0 {1} 0]
         for direction in &DIRECTIONS {
             if self.check_pattern(
-                &movement.coordinates,
+                coordinates,
                 direction,
                 &FREE_THREE_SECONDARY_PATTERN,
-                movement.player,
+                player,
             ) {
                 total += 1;
             }
@@ -276,15 +276,15 @@ impl Board {
         // Handle the [0 1 {1} 0 1 0] pattern to only count it once for a global direction
         for (left, right) in &OPPOSITE_DIRECTIONS {
             if self.check_pattern(
-                &movement.coordinates,
+                coordinates,
                 left,
                 &FREE_THREE_SECONDARY_CENTER_PATTERN,
-                movement.player,
+                player,
             ) || self.check_pattern(
-                &movement.coordinates,
+                coordinates,
                 right,
                 &FREE_THREE_SECONDARY_CENTER_PATTERN,
-                movement.player,
+                player,
             ) {
                 total += 1;
             }
@@ -296,21 +296,24 @@ impl Board {
     // Pattern: [0 1 1 1 0] and [0 1 1 0 1 0] ([0 1 0 1 1 0] is just *right* and the original is left)
     // For the pattern to be considered a free-three, it strictly need to have both ends "free"
     // -- so borders does *not* count
-    pub fn movement_create_double_free_three(&self, movement: &Move) -> bool {
-        self.move_create_free_three_direct_pattern(movement)
-            + self.move_create_free_three_secondary_pattern(movement)
+    pub fn movement_create_double_free_three(
+        &self,
+        coordinates: &Coordinates,
+        player: Player,
+    ) -> bool {
+        self.move_create_free_three_direct_pattern(coordinates, player)
+            + self.move_create_free_three_secondary_pattern(coordinates, player)
             >= 2
     }
 
     // Pattern: [2 1 0 2] or [2 0 1 2] where [0] is the movement index
-    pub fn movement_create_recursive_capture(&self, movement: &Move) -> bool {
+    pub fn movement_create_recursive_capture(
+        &self,
+        coordinates: &Coordinates,
+        player: Player,
+    ) -> bool {
         for direction in &DIRECTIONS {
-            if self.check_pattern(
-                &movement.coordinates,
-                direction,
-                RECURSIVE_CAPTURE_PATTERN,
-                movement.player,
-            ) {
+            if self.check_pattern(coordinates, direction, RECURSIVE_CAPTURE_PATTERN, player) {
                 return true;
             }
         }
@@ -319,16 +322,26 @@ impl Board {
     }
 
     // Check if a move *can* be executed according to the rules
-    pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
+    pub fn coordinates_are_legal(
+        &self,
+        rules: &RuleSet,
+        coordinates: &Coordinates,
+        player: Player,
+    ) -> bool {
         // Forbid movements that would create a "double three"
-        if rules.no_double_three && self.movement_create_double_free_three(movement) {
+        if rules.no_double_three && self.movement_create_double_free_three(coordinates, player) {
             return false;
         }
         // Forbid movements that would put a rock in a "recursive capture" state
-        if rules.capture && self.movement_create_recursive_capture(movement) {
+        if rules.capture && self.movement_create_recursive_capture(coordinates, player) {
             return false;
         }
         true
+    }
+
+    // Check if a move *can* be executed according to the rules
+    pub fn is_move_legal(&self, rules: &RuleSet, movement: &Move) -> bool {
+        self.coordinates_are_legal(rules, &movement.coordinates, movement.player)
     }
 
     // All *legal* possible movements from the intersections for a given player
@@ -587,6 +600,17 @@ impl Board {
             }
         }
 
+        false
+    }
+
+    pub fn rock_is_five_in_a_row(&self, rock: &Coordinates, player: Player) -> bool {
+        for direction in &DIRECTIONS {
+            for pattern in FIVE_PATTERNS {
+                if self.check_pattern(rock, direction, pattern, player) {
+                    return true;
+                }
+            }
+        }
         false
     }
 

@@ -1,6 +1,7 @@
 use crate::{
     board::{Board, Move},
     constants::DIRECTIONS,
+    macros::coord,
     patterns::{Category, PatternCount, PATTERNS},
     player::Player,
     rock::PlayerRock,
@@ -54,40 +55,101 @@ impl Heuristic {
         for (pattern, category) in self.patterns.iter() {
             for direction in &DIRECTIONS {
                 if board.check_pattern(&movement.coordinates, direction, pattern, movement.player) {
-                    // Check if it's a five in a row that it can't be captured
-                    if category == &Category::FiveInRow && rules.game_ending_capture {
-                        let under_capture = board.pattern_is_under_capture(
-                            rules,
-                            &movement.coordinates,
-                            direction,
-                            pattern,
-                            movement.player,
-                        );
-                        if under_capture {
-                            patterns.push(Category::CapturedFiveInRow);
-                        } else {
-                            patterns.push(Category::FiveInRow);
+                    if rules.game_ending_capture {
+                        // Check if it's a five in a row that it can't be captured
+                        if category == &Category::FiveInRow {
+                            let under_capture = board.pattern_is_under_capture(
+                                rules,
+                                &movement.coordinates,
+                                direction,
+                                pattern,
+                                movement.player,
+                            );
+                            if under_capture {
+                                patterns.push(Category::CapturedFiveInRow);
+                            } else {
+                                patterns.push(Category::FiveInRow);
+                            }
                         }
-                    }
-                    // Avoid creating four in a row that are already under capture
-                    else if (category == &Category::OpenFour || category == &Category::CloseFour)
-                        && rules.game_ending_capture
-                    {
-                        let under_capture = board.pattern_is_under_capture(
-                            rules,
-                            &movement.coordinates,
-                            direction,
-                            pattern,
-                            movement.player,
-                        );
-                        if under_capture {
-                            patterns.push(Category::CloseThree);
-                        } else {
+                        // Avoid creating four in a row that are already under capture
+                        else if category == &Category::OpenFour
+                            || category == &Category::CloseFour
+                        {
+                            let under_capture = board.pattern_is_under_capture(
+                                rules,
+                                &movement.coordinates,
+                                direction,
+                                pattern,
+                                movement.player,
+                            );
+                            if under_capture {
+                                patterns.push(Category::CloseThree);
+                            } else {
+                                patterns.push(*category);
+                            }
+                        }
+                        // Upgrade blocked captures to check if it unblock an open four or a five in a row
+                        else if category == &Category::BlockedCapture {
+                            // Check if either of the [1] that are unblocked are five in a row
+                            // TODO Check that no other rocks in the pattern are under capture
+                            let unblocked = coord!(
+                                movement.coordinates.x + pattern[1].0 * direction.0,
+                                movement.coordinates.y + pattern[1].0 * direction.1
+                            );
+                            if board.rock_is_five_in_a_row(&unblocked, movement.player) {
+                                patterns.push(Category::FiveInRow);
+                                continue;
+                            }
+                            let unblocked = coord!(
+                                movement.coordinates.x + 2 * pattern[1].0 * direction.0,
+                                movement.coordinates.y + 2 * pattern[1].0 * direction.1
+                            );
+                            if board.rock_is_five_in_a_row(&unblocked, movement.player) {
+                                patterns.push(Category::FiveInRow);
+                                continue;
+                            }
+                            patterns.push(Category::BlockedCapture);
+                        }
+                        // Increase capture score that break an OpenFour or more to KillFour
+                        else if category == &Category::CreateCapture {
+                            // Check if the capture is legal first
+                            let capture_from = coord!(
+                                movement.coordinates.x + pattern[1].0 * direction.0,
+                                movement.coordinates.y + pattern[1].0 * direction.1
+                            );
+                            if !board.is_move_legal(
+                                rules,
+                                &Move {
+                                    player: movement.player,
+                                    coordinates: capture_from,
+                                },
+                            ) {
+                                continue;
+                            }
+                            // Check if the opponent pattern in the capture is an open four or more
+                            let blocked = coord!(
+                                movement.coordinates.x + pattern[1].0 * direction.0,
+                                movement.coordinates.y + pattern[1].0 * direction.1
+                            );
+                            if board.rock_is_five_in_a_row(&blocked, movement.player.opponent()) {
+                                patterns.push(Category::KillFour);
+                                continue;
+                            }
+                            let blocked = coord!(
+                                movement.coordinates.x + 2 * pattern[1].0 * direction.0,
+                                movement.coordinates.y + 2 * pattern[1].0 * direction.1
+                            );
+                            if board.rock_is_five_in_a_row(&blocked, movement.player.opponent()) {
+                                patterns.push(Category::KillFour);
+                                continue;
+                            }
+                            patterns.push(Category::BlockedCapture);
+                        }
+                        // TODO downgrade KillFour that are under capture
+                        else {
                             patterns.push(*category);
                         }
-                    }
-                    // TODO avoid KillFour that are under capture
-                    else {
+                    } else {
                         patterns.push(*category);
                     }
                     // Since patterns are sorted by their priority,
