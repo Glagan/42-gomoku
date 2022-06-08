@@ -13,7 +13,7 @@ use macroquad::{
     hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, Color, Vec2, BLACK, BLUE, RED, WHITE,
+        mouse_position, Color, Vec2, BLACK, BLUE, PURPLE, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -149,6 +149,16 @@ pub fn draw_goban(game: &Game) {
                         white
                     },
                 );
+                // Add highlight for recommended move
+                if game.generate_recommended_move && next == 0 {
+                    draw_circle_lines(
+                        (x * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                        (y * SQUARE_SIZE + BORDER_OFFSET) as f32,
+                        20.,
+                        2.,
+                        PURPLE,
+                    );
+                }
                 let next_text =
                     format!("{}", game.rock_move.len() + next + move_number_inc).to_string();
                 let text_size = measure_text(&next_text, None, FONT_SIZE, 1.);
