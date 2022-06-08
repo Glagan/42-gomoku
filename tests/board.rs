@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use gomoku::{
     board::{Board, Coordinates, Move},
     constants::{BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
@@ -143,14 +145,14 @@ fn undo_single_move() {
     board.set_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
-    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
+    assert_eq!(board.all_rocks, BTreeSet::from([coord!(0, 0)]));
 
     board.undo_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::None);
     assert!(board.moves_restore.is_empty());
-    assert_eq!(board.black.rocks, vec![]);
-    assert_eq!(board.all_rocks, vec![]);
+    assert_eq!(board.black.rocks, BTreeSet::new());
+    assert_eq!(board.all_rocks, BTreeSet::new());
 }
 
 #[test]
@@ -164,9 +166,9 @@ fn undo_two_moves() {
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::None);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, vec![]);
-    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, BTreeSet::new());
+    assert_eq!(board.all_rocks, BTreeSet::from([coord!(0, 0)]));
 
     let movement_2 = Move {
         player: Player::White,
@@ -176,25 +178,28 @@ fn undo_two_moves() {
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::White);
     assert_eq!(board.moves_restore, vec![vec![], vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, Vec::from([coord!(1, 0)]));
-    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0), coord!(1, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, BTreeSet::from([coord!(1, 0)]));
+    assert_eq!(
+        board.all_rocks,
+        BTreeSet::from([coord!(0, 0), coord!(1, 0)])
+    );
 
     board.undo_move(&RuleSet::default(), &movement_2);
     assert_eq!(board.get(0, 0), Rock::Black);
     assert_eq!(board.get(1, 0), Rock::None);
     assert_eq!(board.moves_restore, vec![vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
-    assert_eq!(board.white.rocks, vec![]);
-    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
+    assert_eq!(board.white.rocks, BTreeSet::new());
+    assert_eq!(board.all_rocks, BTreeSet::from([coord!(0, 0)]));
 
     board.undo_move(&RuleSet::default(), &movement_1);
     assert_eq!(board.get(0, 0), Rock::None);
     assert_eq!(board.get(1, 0), Rock::None);
     assert!(board.moves_restore.is_empty());
-    assert_eq!(board.black.rocks, vec![]);
-    assert_eq!(board.white.rocks, vec![]);
-    assert_eq!(board.all_rocks, vec![]);
+    assert_eq!(board.black.rocks, BTreeSet::new());
+    assert_eq!(board.white.rocks, BTreeSet::new());
+    assert_eq!(board.all_rocks, BTreeSet::new());
 }
 
 #[test]
@@ -232,13 +237,16 @@ fn undo_capture() {
         PlayerRock::Player
     );
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);
-    assert_eq!(board.white.rocks, Vec::from([coord!(1, 0), coord!(2, 0)]));
+    assert_eq!(
+        board.white.rocks,
+        BTreeSet::from([coord!(1, 0), coord!(2, 0)])
+    );
     assert_eq!(board.white.captures, 0);
     assert_eq!(
         board.all_rocks,
-        Vec::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
+        BTreeSet::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
     );
 
     // Make capture move
@@ -275,11 +283,17 @@ fn undo_capture() {
         board.moves_restore,
         vec![vec![], vec![], vec![], vec![coord!(2, 0), coord!(1, 0)]]
     );
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0), coord!(3, 0)]));
+    assert_eq!(
+        board.black.rocks,
+        BTreeSet::from([coord!(0, 0), coord!(3, 0)])
+    );
     assert_eq!(board.black.captures, 2);
-    assert_eq!(board.white.rocks, vec![]);
+    assert_eq!(board.white.rocks, BTreeSet::new());
     assert_eq!(board.white.captures, 0);
-    assert_eq!(board.all_rocks, Vec::from([coord!(0, 0), coord!(3, 0)]));
+    assert_eq!(
+        board.all_rocks,
+        BTreeSet::from([coord!(0, 0), coord!(3, 0)])
+    );
 
     // Undo capture
     board.undo_move(&RuleSet::default(), &movement);
@@ -311,13 +325,16 @@ fn undo_capture() {
         PlayerRock::Player
     );
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
-    assert_eq!(board.black.rocks, Vec::from([coord!(0, 0)]));
+    assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);
-    assert_eq!(board.white.rocks, Vec::from([coord!(2, 0), coord!(1, 0)]));
+    assert_eq!(
+        board.white.rocks,
+        BTreeSet::from([coord!(2, 0), coord!(1, 0)])
+    );
     assert_eq!(board.white.captures, 0);
     assert_eq!(
         board.all_rocks,
-        Vec::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
+        BTreeSet::from([coord!(0, 0), coord!(1, 0), coord!(2, 0)])
     );
 }
 
@@ -362,7 +379,7 @@ fn board_save_black_moves_1() {
             coordinates: CENTER,
         },
     );
-    assert_eq!(board.black.rocks, Vec::from([CENTER]));
+    assert_eq!(board.black.rocks, BTreeSet::from([CENTER]));
 }
 
 #[test]
@@ -383,7 +400,7 @@ fn board_save_black_moves_2() {
             coordinates: center_right,
         },
     );
-    assert_eq!(board.black.rocks, Vec::from([CENTER, center_right]));
+    assert_eq!(board.black.rocks, BTreeSet::from([CENTER, center_right]));
 }
 
 #[test]
@@ -396,7 +413,7 @@ fn board_save_white_moves_1() {
             coordinates: CENTER,
         },
     );
-    assert_eq!(board.white.rocks, Vec::from([CENTER]));
+    assert_eq!(board.white.rocks, BTreeSet::from([CENTER]));
 }
 
 #[test]
@@ -417,7 +434,7 @@ fn board_save_white_moves_2() {
             coordinates: center_right,
         },
     );
-    assert_eq!(board.white.rocks, Vec::from([CENTER, center_right]));
+    assert_eq!(board.white.rocks, BTreeSet::from([CENTER, center_right]));
 }
 
 // * Five in a row detection
@@ -771,9 +788,12 @@ fn free_three_1_detected_horizontal() {
         coordinates: coord!(2, 0),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -782,11 +802,11 @@ fn free_three_1_detected_horizontal() {
         coordinates: coord!(3, 0),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
 }
@@ -808,9 +828,12 @@ fn free_three_1_detected_vertical() {
         coordinates: coord!(0, 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -819,11 +842,11 @@ fn free_three_1_detected_vertical() {
         coordinates: coord!(0, 3),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
 }
@@ -845,9 +868,12 @@ fn free_three_1_detected_diagonal_left() {
         coordinates: coord!(2, 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -856,11 +882,11 @@ fn free_three_1_detected_diagonal_left() {
         coordinates: coord!(3, 3),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
 }
@@ -882,9 +908,12 @@ fn free_three_1_detected_diagonal_right() {
         coordinates: coord!(BORDER - 2, BORDER - 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -893,11 +922,11 @@ fn free_three_1_detected_diagonal_right() {
         coordinates: coord!(BORDER - 3, BORDER - 3),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
 }
@@ -919,9 +948,12 @@ fn free_three_2_detected_horizontal() {
         coordinates: coord!(2, 0),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -930,11 +962,11 @@ fn free_three_2_detected_horizontal() {
         coordinates: coord!(4, 0),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
 }
@@ -956,9 +988,12 @@ fn free_three_2_detected_vertical() {
         coordinates: coord!(0, 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -967,11 +1002,11 @@ fn free_three_2_detected_vertical() {
         coordinates: coord!(0, 4),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
 }
@@ -993,9 +1028,12 @@ fn free_three_2_detected_diagonal_left() {
         coordinates: coord!(2, 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -1004,11 +1042,11 @@ fn free_three_2_detected_diagonal_left() {
         coordinates: coord!(4, 4),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
 }
@@ -1030,9 +1068,12 @@ fn free_three_2_detected_diagonal_right() {
         coordinates: coord!(BORDER - 2, BORDER - 2),
     };
     board.set_move(&rules, &second_move);
-    assert_eq!(board.move_create_free_three_direct_pattern(&second_move), 0);
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&second_move),
+        board.move_create_free_three_direct_pattern(&second_move.coordinates, Player::Black),
+        0
+    );
+    assert_eq!(
+        board.move_create_free_three_secondary_pattern(&second_move.coordinates, Player::Black),
         0
     );
 
@@ -1041,11 +1082,11 @@ fn free_three_2_detected_diagonal_right() {
         coordinates: coord!(BORDER - 4, BORDER - 4),
     };
     assert_eq!(
-        board.move_create_free_three_direct_pattern(&free_three_move),
+        board.move_create_free_three_direct_pattern(&free_three_move.coordinates, Player::Black),
         0
     );
     assert_eq!(
-        board.move_create_free_three_secondary_pattern(&free_three_move),
+        board.move_create_free_three_secondary_pattern(&free_three_move.coordinates, Player::Black),
         1
     );
 }
@@ -1069,7 +1110,7 @@ fn create_double_free_three_1() {
         player: Player::Black,
         coordinates: coord!(CENTER.x, CENTER.y),
     };
-    assert!(board.movement_create_double_free_three(&movement));
+    assert!(board.movement_create_double_free_three(&movement.coordinates, Player::Black));
 }
 
 #[test]
@@ -1089,7 +1130,7 @@ fn create_double_free_three_2() {
         player: Player::Black,
         coordinates: coord!(CENTER.x, CENTER.y),
     };
-    assert!(board.movement_create_double_free_three(&movement));
+    assert!(board.movement_create_double_free_three(&movement.coordinates, Player::Black));
 }
 
 // * Recursive capture
@@ -1104,10 +1145,7 @@ fn movement_create_recursive_capture_horizontal_1() {
         (CENTER.x + 3, CENTER.y)
     );
     set_many!(mut board, Player::White, (CENTER.x + 1, CENTER.y));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 2, CENTER.y),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x + 2, CENTER.y), Player::White));
 
     let mut board = Board::default();
     set_many!(
@@ -1117,10 +1155,7 @@ fn movement_create_recursive_capture_horizontal_1() {
         (CENTER.x + 3, CENTER.y)
     );
     set_many!(mut board, Player::White, (CENTER.x + 2, CENTER.y));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 1, CENTER.y),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x + 1, CENTER.y), Player::White));
 }
 
 #[test]
@@ -1133,10 +1168,7 @@ fn movement_create_recursive_capture_horizontal_2() {
         (CENTER.x - 3, CENTER.y)
     );
     set_many!(mut board, Player::White, (CENTER.x - 1, CENTER.y));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 2, CENTER.y),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x - 2, CENTER.y), Player::White));
 
     let mut board = Board::default();
     set_many!(
@@ -1146,10 +1178,7 @@ fn movement_create_recursive_capture_horizontal_2() {
         (CENTER.x - 3, CENTER.y)
     );
     set_many!(mut board, Player::White, (CENTER.x - 2, CENTER.y));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 1, CENTER.y),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x - 1, CENTER.y), Player::White));
 }
 
 #[test]
@@ -1162,10 +1191,7 @@ fn movement_create_recursive_capture_vertical_1() {
         (CENTER.x, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x, CENTER.y + 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x, CENTER.y + 2),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x, CENTER.y + 2), Player::White));
 
     let mut board = Board::default();
     set_many!(
@@ -1175,10 +1201,7 @@ fn movement_create_recursive_capture_vertical_1() {
         (CENTER.x, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x, CENTER.y + 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x, CENTER.y + 1),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x, CENTER.y + 1), Player::White));
 }
 
 #[test]
@@ -1191,10 +1214,7 @@ fn movement_create_recursive_capture_vertical_2() {
         (CENTER.x, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x, CENTER.y - 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x, CENTER.y - 2),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x, CENTER.y - 2), Player::White));
 
     let mut board = Board::default();
     set_many!(
@@ -1204,10 +1224,7 @@ fn movement_create_recursive_capture_vertical_2() {
         (CENTER.x, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x, CENTER.y - 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x, CENTER.y - 1),
-    }));
+    assert!(board.movement_create_recursive_capture(&coord!(CENTER.x, CENTER.y - 1), Player::White));
 }
 
 #[test]
@@ -1220,10 +1237,9 @@ fn movement_create_recursive_capture_diagonal_left_1() {
         (CENTER.x - 3, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x - 1, CENTER.y - 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 2, CENTER.y - 2),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x - 2, CENTER.y - 2), Player::White)
+    );
 
     let mut board = Board::default();
     set_many!(
@@ -1233,10 +1249,9 @@ fn movement_create_recursive_capture_diagonal_left_1() {
         (CENTER.x - 3, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x - 2, CENTER.y - 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 1, CENTER.y - 1),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x - 1, CENTER.y - 1), Player::White)
+    );
 }
 
 #[test]
@@ -1249,10 +1264,9 @@ fn movement_create_recursive_capture_diagonal_left_2() {
         (CENTER.x + 3, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x + 1, CENTER.y + 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 2, CENTER.y + 2),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x + 2, CENTER.y + 2), Player::White)
+    );
 
     let mut board = Board::default();
     set_many!(
@@ -1262,10 +1276,9 @@ fn movement_create_recursive_capture_diagonal_left_2() {
         (CENTER.x + 3, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x + 2, CENTER.y + 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 1, CENTER.y + 1),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x + 1, CENTER.y + 1), Player::White)
+    );
 }
 
 #[test]
@@ -1278,10 +1291,9 @@ fn movement_create_recursive_capture_diagonal_right_1() {
         (CENTER.x + 3, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x + 1, CENTER.y - 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 2, CENTER.y - 2),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x + 2, CENTER.y - 2), Player::White)
+    );
 
     let mut board = Board::default();
     set_many!(
@@ -1291,10 +1303,9 @@ fn movement_create_recursive_capture_diagonal_right_1() {
         (CENTER.x + 3, CENTER.y - 3)
     );
     set_many!(mut board, Player::White, (CENTER.x + 2, CENTER.y - 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x + 1, CENTER.y - 1),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x + 1, CENTER.y - 1), Player::White)
+    );
 }
 
 #[test]
@@ -1307,10 +1318,9 @@ fn movement_create_recursive_capture_diagonal_right_2() {
         (CENTER.x - 3, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x - 1, CENTER.y + 1));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 2, CENTER.y + 2),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x - 2, CENTER.y + 2), Player::White)
+    );
 
     let mut board = Board::default();
     set_many!(
@@ -1320,10 +1330,9 @@ fn movement_create_recursive_capture_diagonal_right_2() {
         (CENTER.x - 3, CENTER.y + 3)
     );
     set_many!(mut board, Player::White, (CENTER.x - 2, CENTER.y + 2));
-    assert!(board.movement_create_recursive_capture(&Move {
-        player: Player::White,
-        coordinates: coord!(CENTER.x - 1, CENTER.y + 1),
-    }));
+    assert!(
+        board.movement_create_recursive_capture(&coord!(CENTER.x - 1, CENTER.y + 1), Player::White)
+    );
 }
 
 // * Five in a row under capture

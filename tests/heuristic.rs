@@ -323,6 +323,7 @@ fn pattern_category_increase_count(category: Category) -> bool {
                         Category::CloseThree => patterns.close_three,
                         Category::OpenTwo => patterns.open_two,
                         Category::ReduceTwo => patterns.reduce_two,
+                        Category::CreateCapture => patterns.created_captures,
                         Category::CloseTwo => patterns.close_two,
                     }) >= 1
                 })
