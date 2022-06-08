@@ -1,22 +1,17 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crate::{
-    constants::{GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE, SQUARE_SIZE},
-    draw::{
-        color_selector, display_panel_text, display_winner, draw_goban, draw_rock_preview,
-        game_selector, options_selector,
-    },
-    game::{Game, GameMode, Winner},
-    macros::coord,
-    rock::Rock,
-};
+use crate::game::{Game, GameMode, Winner};
+
+#[cfg(not(feature = "cli_ava"))]
 use macroquad::prelude::*;
+#[cfg(not(feature = "cli_ava"))]
 use macroquad::ui::{root_ui, Skin};
 
 mod board;
 mod computer;
 mod constants;
+#[cfg(not(feature = "cli_ava"))]
 mod draw;
 mod game;
 mod heuristic;
@@ -26,7 +21,10 @@ mod player;
 mod rock;
 mod rules;
 
+#[cfg(not(feature = "cli_ava"))]
 fn window_conf() -> Conf {
+    use crate::draw::{GRID_WINDOW_SIZE, PANEL_WINDOW_SIZE};
+
     Conf {
         window_title: "Gomoku".to_owned(),
         window_height: GRID_WINDOW_SIZE as i32,
@@ -39,6 +37,15 @@ fn window_conf() -> Conf {
 #[cfg(not(feature = "cli_ava"))]
 #[macroquad::main(window_conf)]
 async fn main() {
+    use crate::{
+        draw::{
+            color_selector, display_panel_text, display_winner, draw_goban, draw_rock_preview,
+            game_selector, options_selector, GRID_WINDOW_SIZE, SQUARE_SIZE,
+        },
+        macros::coord,
+        rock::Rock,
+    };
+
     // Add skin for checkboxes
     let default_skin = {
         let checkbox_style = root_ui()
