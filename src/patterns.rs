@@ -37,6 +37,50 @@ pub const FREE_THREE_SECONDARY_CENTER_PATTERN: [(i16, PlayerRock); 5] = [
     (3, PlayerRock::None),
 ];
 
+pub const DIRECT_FOUR_PATTERNS: [&[(i16, PlayerRock); 5]; 2] = [
+    &[
+        (-1, PlayerRock::None),
+        (1, PlayerRock::Player),
+        (2, PlayerRock::Player),
+        (3, PlayerRock::Player),
+        (4, PlayerRock::None),
+    ],
+    &[
+        (-2, PlayerRock::None),
+        (-1, PlayerRock::Player),
+        (1, PlayerRock::Player),
+        (2, PlayerRock::Player),
+        (3, PlayerRock::None),
+    ],
+];
+
+pub const SECONDARY_FOUR_PATTERNS: [&[(i16, PlayerRock); 6]; 3] = [
+    &[
+        (1, PlayerRock::None),
+        (2, PlayerRock::Player),
+        (3, PlayerRock::Player),
+        (4, PlayerRock::Player),
+        (5, PlayerRock::None),
+        (6, PlayerRock::Player),
+    ],
+    &[
+        (-2, PlayerRock::Player),
+        (-1, PlayerRock::None),
+        (1, PlayerRock::Player),
+        (2, PlayerRock::Player),
+        (3, PlayerRock::None),
+        (4, PlayerRock::Player),
+    ],
+    &[
+        (-3, PlayerRock::Player),
+        (-2, PlayerRock::None),
+        (-1, PlayerRock::Player),
+        (1, PlayerRock::Player),
+        (2, PlayerRock::None),
+        (3, PlayerRock::Player),
+    ],
+];
+
 pub const FIVE_PATTERNS: [&[(i16, PlayerRock); 4]; 3] = [
     &[
         (1, PlayerRock::Player),

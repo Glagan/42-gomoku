@@ -4,9 +4,10 @@ use crate::{
     },
     macros::coord,
     patterns::{
-        CAPTURE_PATTERN, FIVE_PATTERNS, FREE_THREE_DIRECT_CENTER_PATTERN,
+        CAPTURE_PATTERN, DIRECT_FOUR_PATTERNS, FIVE_PATTERNS, FREE_THREE_DIRECT_CENTER_PATTERN,
         FREE_THREE_DIRECT_PATTERN, FREE_THREE_SECONDARY_CENTER_PATTERN,
-        FREE_THREE_SECONDARY_PATTERN, RECURSIVE_CAPTURE_PATTERN, UNDER_CAPTURE_PATTERNS,
+        FREE_THREE_SECONDARY_PATTERN, RECURSIVE_CAPTURE_PATTERN, SECONDARY_FOUR_PATTERNS,
+        UNDER_CAPTURE_PATTERNS,
     },
     player::Player,
     rock::{PlayerRock, Rock},
@@ -612,6 +613,32 @@ impl Board {
             }
         }
         false
+    }
+
+    pub fn rock_is_four_in_a_row(&self, rock: &Coordinates, player: Player) -> bool {
+        for direction in &DIRECTIONS {
+            for pattern in DIRECT_FOUR_PATTERNS {
+                if self.check_pattern(rock, direction, pattern, player) {
+                    return true;
+                }
+            }
+            for pattern in SECONDARY_FOUR_PATTERNS {
+                if self.check_pattern(rock, direction, pattern, player) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn rock_is_four_or_more(&self, rock: &Coordinates, player: Player) -> u8 {
+        if self.rock_is_five_in_a_row(rock, player) {
+            2
+        } else if self.rock_is_four_in_a_row(rock, player) {
+            1
+        } else {
+            0
+        }
     }
 
     pub fn has_five_in_a_row(&self, player: Player) -> bool {

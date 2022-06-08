@@ -91,21 +91,33 @@ impl Heuristic {
                         // Upgrade blocked captures to check if it unblock an open four or a five in a row
                         else if category == &Category::BlockedCapture {
                             // Check if either of the [1] that are unblocked are five in a row
-                            // TODO Check that no other rocks in the pattern are under capture
+                            // ? Check that no other rocks in the pattern are under capture
                             let unblocked = coord!(
                                 movement.coordinates.x + pattern[1].0 * direction.0,
                                 movement.coordinates.y + pattern[1].0 * direction.1
                             );
-                            if board.rock_is_five_in_a_row(&unblocked, movement.player) {
-                                patterns.push(Category::FiveInRow);
+                            let is_four_or_more =
+                                board.rock_is_four_or_more(&unblocked, movement.player);
+                            if is_four_or_more > 0 {
+                                patterns.push(if is_four_or_more == 2 {
+                                    Category::FiveInRow
+                                } else {
+                                    Category::OpenFour
+                                });
                                 continue;
                             }
                             let unblocked = coord!(
                                 movement.coordinates.x + 2 * pattern[1].0 * direction.0,
                                 movement.coordinates.y + 2 * pattern[1].0 * direction.1
                             );
-                            if board.rock_is_five_in_a_row(&unblocked, movement.player) {
-                                patterns.push(Category::FiveInRow);
+                            let is_four_or_more =
+                                board.rock_is_four_or_more(&unblocked, movement.player);
+                            if is_four_or_more > 0 {
+                                patterns.push(if is_four_or_more == 2 {
+                                    Category::FiveInRow
+                                } else {
+                                    Category::OpenFour
+                                });
                                 continue;
                             }
                             patterns.push(Category::BlockedCapture);
@@ -131,7 +143,8 @@ impl Heuristic {
                                 movement.coordinates.x + pattern[1].0 * direction.0,
                                 movement.coordinates.y + pattern[1].0 * direction.1
                             );
-                            if board.rock_is_five_in_a_row(&blocked, movement.player.opponent()) {
+                            if board.rock_is_four_or_more(&blocked, movement.player.opponent()) > 0
+                            {
                                 patterns.push(Category::KillFour);
                                 continue;
                             }
@@ -139,13 +152,16 @@ impl Heuristic {
                                 movement.coordinates.x + 2 * pattern[1].0 * direction.0,
                                 movement.coordinates.y + 2 * pattern[1].0 * direction.1
                             );
-                            if board.rock_is_five_in_a_row(&blocked, movement.player.opponent()) {
+                            if board.rock_is_four_or_more(&blocked, movement.player.opponent()) > 0
+                            {
                                 patterns.push(Category::KillFour);
                                 continue;
                             }
                             patterns.push(Category::BlockedCapture);
                         }
-                        // TODO downgrade KillFour that are under capture
+                        // ? Downgrade KillFour that are under capture
+                        // ? -- Not necessary since OpenFour under capture
+                        // ? -- are seen by the opponent and can be uncaptured
                         else {
                             patterns.push(*category);
                         }
