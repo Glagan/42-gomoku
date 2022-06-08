@@ -21,7 +21,6 @@ mod draw;
 mod game;
 mod heuristic;
 mod macros;
-mod options;
 mod patterns;
 mod player;
 mod rock;

@@ -6,7 +6,6 @@ pub mod computer;
 pub mod constants;
 pub mod heuristic;
 pub mod macros;
-pub mod options;
 pub mod patterns;
 pub mod player;
 pub mod rock;

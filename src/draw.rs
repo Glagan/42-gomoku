@@ -343,6 +343,25 @@ pub fn color_selector(game: &mut Game) -> bool {
         return true;
     }
 
+    root_ui().window(
+        hash!(),
+        vec2(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32
+                - BUTTTON_LENGTH
+                - BUTTTON_LENGTH / 3.,
+            (GRID_WINDOW_SIZE / 2) as f32 + BUTTTON_HEIGTH - BUTTTON_HEIGTH / 3.,
+        ),
+        vec2(BUTTTON_LENGTH * 2., 26.),
+        |ui| {
+            ui.combo_box(
+                hash!(),
+                "Difficulty",
+                &["Easy", "Medium", "Hard (Slow)"],
+                &mut game.difficulty_index,
+            );
+        },
+    );
+
     false
 }
 

@@ -2,7 +2,6 @@ use crate::{
     board::{Board, Coordinates, Move},
     computer::{Algorithm, Computer},
     constants::DEPTH,
-    options::Options,
     player::Player,
     rock::Rock,
     rules::RuleSet,
@@ -18,6 +17,13 @@ pub enum GameMode {
     AvA,
 }
 
+#[derive(Debug)]
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+}
+
 #[derive(PartialEq)]
 pub enum Winner {
     None,
@@ -28,7 +34,6 @@ pub enum Winner {
 
 pub struct Game {
     pub in_options: bool,
-    pub options: Options,
     pub playing: bool,
     pub board: Board,
     pub mode: GameMode,
@@ -50,13 +55,13 @@ pub struct Game {
     pub undone_moves: Vec<Move>,
     pub show_computer_generated_moves: bool,
     pub algorithm_index: Option<usize>,
+    pub difficulty_index: Option<usize>,
 }
 
 impl Default for Game {
     fn default() -> Self {
         Game {
             in_options: false,
-            options: Options::default(),
             playing: false,
             board: Board::default(),
             mode: GameMode::None,
@@ -78,6 +83,7 @@ impl Default for Game {
             undone_moves: vec![],
             show_computer_generated_moves: true,
             algorithm_index: Some(0),
+            difficulty_index: Some(1),
         }
     }
 }
@@ -102,6 +108,7 @@ impl Game {
         self.winner = Winner::None;
         self.rock_move = vec![];
         self.undone_moves = vec![];
+        self.difficulty_index = Some(1);
     }
 
     pub fn start_pva(&mut self, color: Rock) {
@@ -191,6 +198,23 @@ impl Game {
         }
     }
 
+    fn difficulty(&self) -> Difficulty {
+        let index = self.difficulty_index.unwrap_or_default();
+        match index {
+            2 => Difficulty::Hard,
+            0 => Difficulty::Easy,
+            _ => Difficulty::Medium,
+        }
+    }
+
+    fn difficulty_depth(&self) -> usize {
+        match self.difficulty() {
+            Difficulty::Hard => DEPTH + 2,
+            Difficulty::Easy => DEPTH.max(1),
+            Difficulty::Medium => (DEPTH - 2).max(1),
+        }
+    }
+
     pub fn generate_computer_recommended_moves(&mut self) {
         if self.computer_generated_moves {
             return;
@@ -211,11 +235,16 @@ impl Game {
     }
 
     pub fn play_computer(&mut self) {
+        let depth = if self.mode == GameMode::PvA {
+            self.difficulty_depth()
+        } else {
+            DEPTH
+        };
         let play_result = self.computer.play(
             self.algorithm(),
             &self.rules,
             &mut self.board,
-            DEPTH,
+            depth,
             self.current_player,
         );
         if let Ok(play) = play_result {
