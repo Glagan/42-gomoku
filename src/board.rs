@@ -13,13 +13,14 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::fmt;
+use std::{collections::BTreeSet, fmt};
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Coordinates {
     pub x: i16,
     pub y: i16,
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
     pub player: Player,
@@ -56,19 +57,11 @@ impl fmt::Display for Move {
     }
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct PlayerState {
     pub captures: u8,
     // Index of all of the player rocks
-    pub rocks: Vec<Coordinates>,
-}
-
-impl Default for PlayerState {
-    fn default() -> Self {
-        let mut rocks = Vec::new();
-        rocks.reserve(BOARD_PIECES_USIZE);
-        Self { captures: 0, rocks }
-    }
+    pub rocks: BTreeSet<Coordinates>,
 }
 
 #[derive(Clone)]
@@ -79,7 +72,7 @@ pub struct Board {
     pub moves: u16,
     pub black: PlayerState,
     pub white: PlayerState,
-    pub all_rocks: Vec<Coordinates>,
+    pub all_rocks: BTreeSet<Coordinates>,
     // Rocks to restore (to undo a capture) when undoing the last move
     pub moves_restore: Vec<Vec<Coordinates>>,
 }
@@ -88,15 +81,13 @@ impl Default for Board {
     fn default() -> Board {
         let mut moves_restore = vec![];
         moves_restore.reserve(BOARD_PIECES_USIZE);
-        let mut all_rocks = vec![];
-        all_rocks.reserve(BOARD_PIECES_USIZE);
         Board {
             pieces: [[Rock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
             player_pieces: [[[PlayerRock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
             moves: 0,
             black: PlayerState::default(),
             white: PlayerState::default(),
-            all_rocks,
+            all_rocks: BTreeSet::new(),
             moves_restore,
         }
     }
@@ -404,29 +395,12 @@ impl Board {
             self.remove_from_boards(&coordinates);
             if movement.player == Player::Black {
                 self.black.captures += 1;
-                self.white.rocks.swap_remove(
-                    self.white
-                        .rocks
-                        .iter()
-                        .position(|&rock| rock == coordinates)
-                        .unwrap(),
-                );
+                self.white.rocks.remove(&coordinates);
             } else {
                 self.white.captures += 1;
-                self.black.rocks.swap_remove(
-                    self.black
-                        .rocks
-                        .iter()
-                        .position(|&rock| rock == coordinates)
-                        .unwrap(),
-                );
+                self.black.rocks.remove(&coordinates);
             }
-            self.all_rocks.swap_remove(
-                self.all_rocks
-                    .iter()
-                    .position(|&rock| rock == coordinates)
-                    .unwrap(),
-            );
+            self.all_rocks.remove(&coordinates);
         }
         let captures_len = captures.len() as u8;
         self.moves_restore.push(captures);
@@ -454,11 +428,11 @@ impl Board {
             captures = self.check_capture(movement);
         }
         if movement.player == Player::Black {
-            self.black.rocks.push(movement.coordinates);
+            self.black.rocks.insert(movement.coordinates);
         } else {
-            self.white.rocks.push(movement.coordinates);
+            self.white.rocks.insert(movement.coordinates);
         }
-        self.all_rocks.push(movement.coordinates);
+        self.all_rocks.insert(movement.coordinates);
         self.moves += 1;
         captures
     }
@@ -485,38 +459,21 @@ impl Board {
             for rock in rocks {
                 self.set_on_boards(&rock, opponent);
                 if movement.player == Player::Black {
-                    self.white.rocks.push(rock);
+                    self.white.rocks.insert(rock);
                 } else {
-                    self.black.rocks.push(rock);
+                    self.black.rocks.insert(rock);
                 }
-                self.all_rocks.push(rock);
+                self.all_rocks.insert(rock);
             }
         }
         // Remove rock
         self.remove_from_boards(&movement.coordinates);
         if movement.player == Player::Black {
-            self.black.rocks.swap_remove(
-                self.black
-                    .rocks
-                    .iter()
-                    .position(|&rock| rock == movement.coordinates)
-                    .unwrap(),
-            );
+            self.black.rocks.remove(&movement.coordinates);
         } else {
-            self.white.rocks.swap_remove(
-                self.white
-                    .rocks
-                    .iter()
-                    .position(|&rock| rock == movement.coordinates)
-                    .unwrap(),
-            );
+            self.white.rocks.remove(&movement.coordinates);
         }
-        self.all_rocks.swap_remove(
-            self.all_rocks
-                .iter()
-                .position(|&rock| rock == movement.coordinates)
-                .unwrap(),
-        );
+        self.all_rocks.remove(&movement.coordinates);
         self.moves -= 1;
     }
 

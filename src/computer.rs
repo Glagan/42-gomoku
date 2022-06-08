@@ -229,7 +229,6 @@ impl Computer {
         player: Player,
     ) -> Result<Evaluation, String> {
         // Apply minimax recursively
-        println!("Generating moves for player {:#?}", player);
         let best_move = self.minimax_alpha_beta(
             rules,
             MinimaxAction {
