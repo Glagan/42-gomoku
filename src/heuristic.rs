@@ -210,7 +210,9 @@ impl Heuristic {
             score += 100001;
         }
         if patterns.inc_captures > 2 {
-            score += 40000
+            let total_bonus: i32 =
+                (patterns.total_captures.max(patterns.inc_captures) - patterns.inc_captures).into();
+            score += 40000 + total_bonus * 10000;
         }
         if patterns.kill_three > 0 {
             score += 50001;
@@ -222,7 +224,9 @@ impl Heuristic {
             score += 20000;
         }
         if patterns.inc_captures > 0 {
-            score += 10000;
+            let total_bonus: i32 =
+                (patterns.total_captures.max(patterns.inc_captures) - patterns.inc_captures).into();
+            score += 10000 + total_bonus * 10000;
         }
         if patterns.blocked_capture > 0 {
             score += 10000;

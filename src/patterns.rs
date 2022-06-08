@@ -219,7 +219,11 @@ impl PatternCount {
             1
         } else {
             0
-        }) + self.inc_captures
+        }) + if self.inc_captures > 0 {
+            self.inc_captures + self.total_captures
+        } else {
+            0
+        }
     }
 
     pub fn from_patterns(patterns: &Vec<Category>) -> Self {
