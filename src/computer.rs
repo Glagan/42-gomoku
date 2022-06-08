@@ -126,6 +126,7 @@ impl Computer {
                     pattern_count,
                 }
             })
+            .rev()
             .collect();
 
         // Check if there is no moves remaining
@@ -176,7 +177,7 @@ impl Computer {
                 if best_eval.score > alpha {
                     alpha = best_eval.score;
                 }
-                if beta <= alpha {
+                if best_eval.score >= beta {
                     break;
                 }
             }
@@ -214,7 +215,7 @@ impl Computer {
                 if best_eval.score < beta {
                     beta = best_eval.score;
                 }
-                if beta <= alpha {
+                if best_eval.score <= alpha {
                     break;
                 }
             }
