@@ -2,7 +2,7 @@
 
 The goal of this project is to make a computer play the game of [Gomoku](https://en.wikipedia.org/wiki/Gomoku), using the [Minimax](https://en.wikipedia.org/wiki/Minimax) algorithm.
 
-Two game modes are available, a player-vs-player mode, with hints from the computer, and a player-vs-computer mode.
+Three game modes are available, a Player-vs-Player mode, with hints from the computer, a Player-vs-Computer mode and a Computer-vs-Computer mode.
 
 <table>
   <tr>
@@ -17,10 +17,12 @@ Two game modes are available, a player-vs-player mode, with hints from the compu
 
 ## Features
 
-* 3 modes, **Player vs Player**, **Player vs Computer** and **Computer vs Computer**
-* Generate recommended moves and show all of them
+* 3 modes, **Player-vs-Player**, **Player-vs-Computer** and **Computer-vs-Computer**
+* Generate recommended moves and show all generated moves
 * Highlight the last move and display an undo button after a game is over to rewind the game
 * Disable and enable the optional rules in the options
+* Selectable algorithm between Minimax, Negamax and a Greedy algorithm that choose the first move from the heuristic
+* Three difficulties level that change the depth of the algorithm
 
 ## Requirements
 
@@ -28,12 +30,11 @@ The minimum requirements are the same as [macroquad](https://github.com/not-fl3/
 
 ## Usage
 
-You can start and play with a simple ``cargo run --release``.
+You can start and play with a simple ``cargo run --release``, and change the options in the options menu.
 
-There is two features that you can enable:
+There is a single feature that you can *enable*:
 
-* ``--features cli_ava`` which will play a single game in AvA mode and display the output in the terminal only.
-* ``--features negamax`` which will use the [Negamax](https://en.wikipedia.org/wiki/Negamax) algorithm instead of the Minimax.
+* ``--features cli_ava`` which will play a single game in AvA mode with all default options and display the output in the terminal only.
 
 ## Resources
 
