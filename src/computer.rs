@@ -1,5 +1,3 @@
-#[cfg(feature = "threaded")]
-use crate::constants::NB_THREAD;
 use crate::{
     board::{Board, Move},
     heuristic::HEURISTIC,
@@ -9,8 +7,6 @@ use crate::{
 };
 use colored::Colorize;
 use std::{cmp::Ordering, collections::BinaryHeap, fmt};
-#[cfg(feature = "threaded")]
-use std::{sync::mpsc, thread};
 
 #[derive(Debug, Clone)]
 pub struct SortedMove {
@@ -101,7 +97,7 @@ impl Computer {
             };
         if is_leaf {
             if action.movement.is_none() {
-                return Err("Empty movement in negamax leaf".to_string());
+                return Err("Empty movement in minimax leaf".to_string());
             }
             let score = self.evaluate_action(&action);
             return Ok(Evaluation {
@@ -224,7 +220,6 @@ impl Computer {
     }
 
     // Use the minimax algorithm with alpha beta prunning to get the next best move
-    #[cfg(not(feature = "threaded"))]
     #[cfg(not(feature = "negamax"))]
     pub fn play(
         &self,
@@ -308,6 +303,7 @@ impl Computer {
                     pattern_count,
                 }
             })
+            .rev()
             .collect();
 
         // Check if there is no moves remaining
@@ -360,7 +356,6 @@ impl Computer {
     }
 
     // Use the negamax algorithm with alpha beta prunning to get the next best move
-    #[cfg(not(feature = "threaded"))]
     #[cfg(feature = "negamax")]
     pub fn play(
         &self,
@@ -385,145 +380,6 @@ impl Computer {
             player,
             1,
         )?;
-
-        Ok(best_move)
-    }
-
-    // * Threaded feature functions
-
-    #[cfg(feature = "threaded")]
-    fn initial_minimax_alpha_beta(
-        &self,
-        rules: &RuleSet,
-        action: MinimaxAction,
-        iteration: AlphaBetaIteration,
-        player: Player,
-        mut moves: BinaryHeap<SortedMove>,
-    ) -> Result<Evaluation, String> {
-        let mut alpha = iteration.alpha;
-
-        // Only the player can be optimized in the initial call
-        let mut best_eval = Evaluation {
-            score: i32::min_value() + 1,
-            movements: vec![],
-        };
-        while let Some(sorted_movement) = moves.pop() {
-            action.board.set_move(rules, &sorted_movement.movement);
-            let eval = self.minimax_alpha_beta(
-                rules,
-                MinimaxAction {
-                    board: action.board,
-                    movement: Some(&sorted_movement.movement),
-                    patterns: Some(&sorted_movement.pattern_count),
-                },
-                AlphaBetaIteration {
-                    depth: iteration.depth - 1,
-                    alpha,
-                    beta: iteration.beta,
-                },
-                player.opponent(),
-                player,
-            )?;
-            action.board.undo_move(rules, &sorted_movement.movement);
-            if eval.score > best_eval.score {
-                best_eval.score = eval.score;
-                best_eval.movements = eval.movements;
-                best_eval.movements.insert(0, sorted_movement.movement);
-            }
-            if best_eval.score > alpha {
-                alpha = best_eval.score;
-            }
-        }
-        Ok(best_eval)
-    }
-
-    #[cfg(feature = "threaded")]
-    pub fn get_all_first_movements_sorted(
-        &self,
-        rules: &RuleSet,
-        board: &mut Board,
-        player: Player,
-    ) -> Vec<BinaryHeap<SortedMove>> {
-        let mut moves: BinaryHeap<SortedMove> = board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| {
-                let captures = board.set_move(rules, &movement);
-                let pattern_count =
-                    HEURISTIC.count_movement_patterns(rules, board, &movement, captures);
-                board.undo_move(rules, &movement);
-                SortedMove {
-                    movement,
-                    best_pattern: pattern_count.best_pattern(),
-                    pattern_count,
-                }
-            })
-            .collect();
-
-        // Split the moves between NB_THREAD lists
-        // -- and send the NB_THREAD first (best) moves to different lists, one for each thread
-        let mut sorted_list_of_moves: Vec<BinaryHeap<SortedMove>> =
-            vec![BinaryHeap::new(); NB_THREAD];
-        let mut index: usize = 0;
-        while let Some(sorted_movement) = moves.pop() {
-            sorted_list_of_moves[index % NB_THREAD].push(sorted_movement);
-            index += 1;
-        }
-        sorted_list_of_moves
-    }
-
-    // Use the negamax algorithm (minimax variant) to get the next best move
-    #[cfg(feature = "threaded")]
-    pub fn play(
-        &self,
-        rules: &RuleSet,
-        board: &mut Board,
-        depth: usize,
-        player: Player,
-    ) -> Result<Evaluation, String> {
-        // Get all possible moves to launch them in multiple threads
-        let sorted_list_of_moves = self.get_all_first_movements_sorted(rules, board, player);
-
-        // Open channel
-        let (tx, rx) = mpsc::channel();
-        for moves in sorted_list_of_moves {
-            let rules_clone = *rules;
-            let mut board_clone = board.clone();
-            let self_clone = self.clone();
-            let tx_clone = tx.clone();
-
-            thread::spawn(move || {
-                let thread_result = self_clone.initial_minimax_alpha_beta(
-                    &rules_clone,
-                    MinimaxAction {
-                        board: &mut board_clone,
-                        movement: None,
-                        patterns: None,
-                    },
-                    AlphaBetaIteration {
-                        depth,
-                        alpha: i32::min_value() + 1,
-                        beta: i32::max_value(),
-                    },
-                    player,
-                    moves,
-                );
-                let _ = tx_clone.send(thread_result);
-            });
-        }
-
-        let mut best_move = Evaluation {
-            score: i32::min_value() + 1,
-            movements: vec![],
-        };
-
-        for _ in 0..NB_THREAD {
-            let thread_result = rx.recv().unwrap().unwrap();
-            if thread_result.score >= best_move.score {
-                best_move.score = thread_result.score;
-                best_move.movements = thread_result.movements;
-            }
-        }
 
         Ok(best_move)
     }
