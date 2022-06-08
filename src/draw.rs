@@ -13,7 +13,7 @@ use macroquad::{
     hash,
     prelude::{
         draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, Color, Vec2, BLACK, BLUE, PURPLE, RED, WHITE,
+        mouse_position, vec2, Color, Vec2, BLACK, BLUE, PURPLE, RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
@@ -204,28 +204,35 @@ pub fn draw_rock_preview(game: &Game) {
 
 pub fn options_selector(game: &mut Game) {
     let ui = &mut root_ui();
-    ui.checkbox(hash!(), "Enable Capture", &mut game.rules.capture);
-    ui.checkbox(
-        hash!(),
-        "Enable game ending capture",
-        &mut game.rules.game_ending_capture,
-    );
-    ui.checkbox(
-        hash!(),
-        "Disallow double free three",
-        &mut game.rules.no_double_three,
-    );
-    ui.checkbox(
-        hash!(),
-        "Generate recommended moves",
-        &mut game.generate_recommended_move,
-    );
-    ui.checkbox(
-        hash!(),
-        "Display computer generated moves",
-        &mut game.show_computer_generated_moves,
-    );
-
+    ui.window(hash!(), vec2(250., 300.), vec2(500., 400.), |ui| {
+        ui.combo_box(
+            hash!(),
+            "Algorithm",
+            &["Negamax", "Minimax", "Greedy"],
+            &mut game.algorithm_index,
+        );
+        ui.checkbox(hash!(), "Enable Capture", &mut game.rules.capture);
+        ui.checkbox(
+            hash!(),
+            "Enable game ending capture",
+            &mut game.rules.game_ending_capture,
+        );
+        ui.checkbox(
+            hash!(),
+            "Disallow double free three",
+            &mut game.rules.no_double_three,
+        );
+        ui.checkbox(
+            hash!(),
+            "Generate recommended moves",
+            &mut game.generate_recommended_move,
+        );
+        ui.checkbox(
+            hash!(),
+            "Display computer generated moves",
+            &mut game.show_computer_generated_moves,
+        );
+    });
     let back_button = widgets::Button::new("Back")
         .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(

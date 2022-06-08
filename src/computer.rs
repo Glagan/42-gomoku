@@ -9,6 +9,13 @@ use colored::Colorize;
 use std::{cmp::Ordering, collections::BinaryHeap, fmt};
 
 #[derive(Debug, Clone)]
+pub enum Algorithm {
+    Negamax,
+    Minimax,
+    Greedy,
+}
+
+#[derive(Debug, Clone)]
 pub struct SortedMove {
     pub movement: Move,
     pub pattern_count: PatternCount,
@@ -72,9 +79,113 @@ impl Computer {
         HEURISTIC.patterns_score(action.patterns.as_ref().unwrap())
     }
 
-    // * Minimax functions
+    // * Negamax function
 
-    #[cfg(not(feature = "negamax"))]
+    fn negamax_alpha_beta(
+        &self,
+        rules: &RuleSet,
+        action: MinimaxAction,
+        iteration: AlphaBetaIteration,
+        player: Player,
+        color: i32,
+    ) -> Result<Evaluation, String> {
+        let mut alpha = iteration.alpha;
+        let beta = iteration.beta;
+
+        // Check if it's a leaf and compute it's valuelet is_leaf = iteration.depth == 0
+        let is_leaf = iteration.depth == 0
+            || if let Some(movement) = action.movement {
+                action.board.is_winning(rules, movement.player)
+            } else {
+                false
+            };
+        if is_leaf {
+            if action.movement.is_none() {
+                return Err("Empty movement in negamax leaf".to_string());
+            }
+            let score = self.evaluate_action(&action);
+            return Ok(Evaluation {
+                score: color * score,
+                movements: vec![],
+            });
+        }
+
+        // Only the best evaluation is returned
+        let mut best_eval = Evaluation {
+            score: i32::min_value() + 1,
+            movements: vec![],
+        };
+
+        // Iterate each neighbor moves
+        let mut moves: BinaryHeap<SortedMove> = action
+            .board
+            .intersections_legal_moves(rules, player)
+            .iter()
+            .map(|&movement| {
+                let captures = action.board.set_move(rules, &movement);
+                let pattern_count =
+                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
+                action.board.undo_move(rules, &movement);
+                SortedMove {
+                    movement,
+                    best_pattern: pattern_count.best_pattern(),
+                    pattern_count,
+                }
+            })
+            .rev()
+            .collect();
+
+        // Check if there is no moves remaining
+        if moves.is_empty() {
+            if action.movement.is_none() {
+                return Ok(Evaluation {
+                    score: 0,
+                    movements: vec![],
+                });
+            } else {
+                let score = self.evaluate_action(&action);
+                return Ok(Evaluation {
+                    score: color * score,
+                    movements: vec![],
+                });
+            }
+        }
+
+        while let Some(sorted_movement) = moves.pop() {
+            action.board.set_move(rules, &sorted_movement.movement);
+            let eval = self.negamax_alpha_beta(
+                rules,
+                MinimaxAction {
+                    board: action.board,
+                    movement: Some(&sorted_movement.movement),
+                    patterns: Some(&sorted_movement.pattern_count),
+                },
+                AlphaBetaIteration {
+                    depth: iteration.depth - 1,
+                    alpha: -beta,
+                    beta: -alpha,
+                },
+                player.opponent(),
+                -color,
+            )?;
+            action.board.undo_move(rules, &sorted_movement.movement);
+            let score = -eval.score;
+            if score > best_eval.score {
+                alpha = score;
+                best_eval.score = score;
+                best_eval.movements = eval.movements;
+                best_eval.movements.insert(0, sorted_movement.movement);
+                if alpha >= beta {
+                    break;
+                }
+            }
+        }
+
+        Ok(best_eval)
+    }
+
+    // * Minimax function
+
     fn minimax_alpha_beta(
         &self,
         rules: &RuleSet,
@@ -219,51 +330,19 @@ impl Computer {
         }
     }
 
-    // Use the minimax algorithm with alpha beta prunning to get the next best move
-    #[cfg(not(feature = "negamax"))]
-    pub fn play(
-        &self,
-        rules: &RuleSet,
-        board: &mut Board,
-        depth: usize,
-        player: Player,
-    ) -> Result<Evaluation, String> {
-        // Apply minimax recursively
-        let best_move = self.minimax_alpha_beta(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-                patterns: None,
-            },
-            AlphaBetaIteration {
-                depth,
-                alpha: i32::min_value() + 1,
-                beta: i32::max_value(),
-            },
-            player,
-            player,
-        )?;
+    // * Greedy function
 
-        Ok(best_move)
-    }
-
-    // * Negamax functions
-
-    #[cfg(feature = "negamax")]
-    fn negamax_alpha_beta(
+    fn greedy(
         &self,
         rules: &RuleSet,
         action: MinimaxAction,
-        iteration: AlphaBetaIteration,
+        depth: usize,
         player: Player,
-        color: i32,
     ) -> Result<Evaluation, String> {
-        let mut alpha = iteration.alpha;
-        let beta = iteration.beta;
-
-        // Check if it's a leaf and compute it's valuelet is_leaf = iteration.depth == 0
-        let is_leaf = iteration.depth == 0
+        // Check if it's a leaf and compute it's value
+        // The current action is a movement for the *other* player
+        // -- so we need to check if the *other* player is winning
+        let is_leaf = depth == 0
             || if let Some(movement) = action.movement {
                 action.board.is_winning(rules, movement.player)
             } else {
@@ -271,22 +350,16 @@ impl Computer {
             };
         if is_leaf {
             if action.movement.is_none() {
-                return Err("Empty movement in negamax leaf".to_string());
+                return Err("Empty movement in minimax leaf".to_string());
             }
             let score = self.evaluate_action(&action);
             return Ok(Evaluation {
-                score: color * score,
+                score,
                 movements: vec![],
             });
         }
 
-        // Only the best evaluation is returned
-        let mut best_eval = Evaluation {
-            score: i32::min_value() + 1,
-            movements: vec![],
-        };
-
-        // Iterate each neighbor moves
+        // Generate moves
         let mut moves: BinaryHeap<SortedMove> = action
             .board
             .intersections_legal_moves(rules, player)
@@ -315,71 +388,86 @@ impl Computer {
             } else {
                 let score = self.evaluate_action(&action);
                 return Ok(Evaluation {
-                    score: color * score,
+                    score,
                     movements: vec![],
                 });
             }
         }
 
-        while let Some(sorted_movement) = moves.pop() {
-            action.board.set_move(rules, &sorted_movement.movement);
-            let eval = self.negamax_alpha_beta(
-                rules,
-                MinimaxAction {
-                    board: action.board,
-                    movement: Some(&sorted_movement.movement),
-                    patterns: Some(&sorted_movement.pattern_count),
-                },
-                AlphaBetaIteration {
-                    depth: iteration.depth - 1,
-                    alpha: -beta,
-                    beta: -alpha,
-                },
-                player.opponent(),
-                -color,
-            )?;
-            action.board.undo_move(rules, &sorted_movement.movement);
-            let score = -eval.score;
-            if score > best_eval.score {
-                alpha = score;
-                best_eval.score = score;
-                best_eval.movements = eval.movements;
-                best_eval.movements.insert(0, sorted_movement.movement);
-                if alpha >= beta {
-                    break;
-                }
-            }
-        }
-
-        Ok(best_eval)
+        // Select the best move up to DEPTH
+        let first_movement = moves.pop().unwrap();
+        action.board.set_move(rules, &first_movement.movement);
+        let eval = self.greedy(
+            rules,
+            MinimaxAction {
+                board: action.board,
+                movement: Some(&first_movement.movement),
+                patterns: Some(&first_movement.pattern_count),
+            },
+            depth - 1,
+            player.opponent(),
+        )?;
+        action.board.undo_move(rules, &first_movement.movement);
+        let mut merged_eval = Evaluation {
+            score: eval.score,
+            movements: eval.movements,
+        };
+        merged_eval.movements.insert(0, first_movement.movement);
+        Ok(merged_eval)
     }
 
-    // Use the negamax algorithm with alpha beta prunning to get the next best move
-    #[cfg(feature = "negamax")]
     pub fn play(
         &self,
+        algorithm: Algorithm,
         rules: &RuleSet,
         board: &mut Board,
         depth: usize,
         player: Player,
     ) -> Result<Evaluation, String> {
-        // Apply negamax recursively
-        let best_move = self.negamax_alpha_beta(
-            rules,
-            MinimaxAction {
-                board,
-                movement: None,
-                patterns: None,
-            },
-            AlphaBetaIteration {
+        Ok(match algorithm {
+            // Use the negamax algorithm with alpha beta prunning to get the next best move
+            Algorithm::Negamax => self.negamax_alpha_beta(
+                rules,
+                MinimaxAction {
+                    board,
+                    movement: None,
+                    patterns: None,
+                },
+                AlphaBetaIteration {
+                    depth,
+                    alpha: i32::min_value() + 1,
+                    beta: i32::max_value(),
+                },
+                player,
+                1,
+            )?,
+            // Use the minimax algorithm with alpha beta prunning to get the next best move
+            Algorithm::Minimax => self.minimax_alpha_beta(
+                rules,
+                MinimaxAction {
+                    board,
+                    movement: None,
+                    patterns: None,
+                },
+                AlphaBetaIteration {
+                    depth,
+                    alpha: i32::min_value() + 1,
+                    beta: i32::max_value(),
+                },
+                player,
+                player,
+            )?,
+            // Select only the next move from the heuristic
+            Algorithm::Greedy => self.greedy(
+                rules,
+                MinimaxAction {
+                    board,
+                    movement: None,
+                    patterns: None,
+                },
                 depth,
-                alpha: i32::min_value() + 1,
-                beta: i32::max_value(),
-            },
-            player,
-            1,
-        )?;
-
-        Ok(best_move)
+                player,
+            )?,
+        })
     }
 }

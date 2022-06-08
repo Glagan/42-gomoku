@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, Coordinates, Move},
-    computer::Computer,
+    computer::{Algorithm, Computer},
     constants::DEPTH,
     options::Options,
     player::Player,
@@ -49,6 +49,7 @@ pub struct Game {
     pub rock_move: Vec<Coordinates>,
     pub undone_moves: Vec<Move>,
     pub show_computer_generated_moves: bool,
+    pub algorithm_index: Option<usize>,
 }
 
 impl Default for Game {
@@ -76,6 +77,7 @@ impl Default for Game {
             rock_move: vec![],
             undone_moves: vec![],
             show_computer_generated_moves: true,
+            algorithm_index: Some(0),
         }
     }
 }
@@ -124,8 +126,10 @@ impl Game {
         }
         self.mode = mode;
         println!(
-            "Starting a game [{:#?}] with rules: {:#?}",
-            mode, self.rules
+            "Starting a game [{:#?}] ({:#?}) with rules: {:#?}",
+            mode,
+            self.algorithm(),
+            self.rules
         );
         self.playing = true;
     }
@@ -178,13 +182,26 @@ impl Game {
         }
     }
 
+    fn algorithm(&self) -> Algorithm {
+        let index = self.algorithm_index.unwrap_or_default();
+        match index {
+            2 => Algorithm::Greedy,
+            1 => Algorithm::Minimax,
+            _ => Algorithm::Negamax,
+        }
+    }
+
     pub fn generate_computer_recommended_moves(&mut self) {
         if self.computer_generated_moves {
             return;
         }
-        let play_result =
-            self.computer
-                .play(&self.rules, &mut self.board, DEPTH, self.current_player);
+        let play_result = self.computer.play(
+            self.algorithm(),
+            &self.rules,
+            &mut self.board,
+            DEPTH,
+            self.current_player,
+        );
         if let Ok(play) = play_result {
             if !play.movements.is_empty() {
                 self.computer_expected_moves = play.movements;
@@ -194,9 +211,13 @@ impl Game {
     }
 
     pub fn play_computer(&mut self) {
-        let play_result =
-            self.computer
-                .play(&self.rules, &mut self.board, DEPTH, self.current_player);
+        let play_result = self.computer.play(
+            self.algorithm(),
+            &self.rules,
+            &mut self.board,
+            DEPTH,
+            self.current_player,
+        );
         if let Ok(play) = play_result {
             // Collect times
             let play_time = self.play_time.elapsed();

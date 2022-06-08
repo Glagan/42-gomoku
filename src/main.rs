@@ -50,8 +50,16 @@ async fn main() {
             .color_selected_hovered(GREEN)
             .color(RED)
             .build();
+        let window_style = root_ui()
+            .style_builder()
+            .background(Image::from_file_with_format(
+                include_bytes!("../ui/background.png"),
+                None,
+            ))
+            .build();
         Skin {
             checkbox_style,
+            window_style,
             ..root_ui().default_skin()
         }
     };
