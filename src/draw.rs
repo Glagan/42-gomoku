@@ -8,13 +8,15 @@ use crate::{
 use macroquad::{
     color_u8, hash,
     prelude::{
-        draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, draw_text, measure_text,
-        mouse_position, vec2, Color, Vec2, BLACK, BLUE, PURPLE, RED, WHITE,
+        draw_circle, draw_circle_lines, draw_line, draw_rectangle_lines, load_ttf_font_from_bytes,
+        measure_text, mouse_position, vec2, Color, Font, TextParams, Vec2, BLACK, BLUE, PURPLE,
+        RED, WHITE,
     },
     ui::{root_ui, widgets},
 };
 
 // Interface
+pub const FONT_BYTES: &[u8; 116008] = include_bytes!("../ui/PressStart2P-Regular.ttf");
 pub const GRID_WINDOW_SIZE: i16 = 800;
 pub const PANEL_WINDOW_SIZE: i16 = 200;
 pub const BORDER_OFFSET: i16 = 22;
@@ -22,13 +24,30 @@ pub const SQUARE_SIZE: i16 = 42;
 pub const BUTTTON_HEIGTH: f32 = 70.;
 pub const BUTTTON_LENGTH: f32 = 200.;
 pub const TEXT_OFFSET: f32 = 20.;
-pub const FONT_SIZE: u16 = 20;
-pub const WIN_FONT_SIZE: u16 = 30;
-pub const POLICE_SIZE: f32 = 20.;
+pub const FONT_SIZE: u16 = 10;
 
 // Colors
 pub const BLACK_SEMI: Color = color_u8!(0, 0, 0, 200);
 pub const WHITE_SEMI: Color = color_u8!(255, 255, 255, 200);
+
+lazy_static! {
+    static ref FONT: Font = load_ttf_font_from_bytes(FONT_BYTES).unwrap();
+}
+
+fn draw_text(text: &str, x: f32, y: f32, font_size: u16, color: Color) {
+    macroquad::prelude::draw_text_ex(
+        text,
+        x,
+        y,
+        TextParams {
+            font: *FONT,
+            font_size,
+            font_scale: 1.0,
+            font_scale_aspect: 1.0,
+            color,
+        },
+    )
+}
 
 pub fn draw_goban(game: &Game) {
     let board = &game.board;
@@ -111,7 +130,7 @@ pub fn draw_goban(game: &Game) {
                         &move_text,
                         (x * SQUARE_SIZE + BORDER_OFFSET) as f32 - text_size.width / 2.,
                         (y * SQUARE_SIZE + BORDER_OFFSET) as f32 + text_size.height / 2.,
-                        POLICE_SIZE,
+                        FONT_SIZE,
                         if board.get(x, y) == Rock::Black {
                             WHITE
                         } else {
@@ -178,7 +197,7 @@ pub fn draw_goban(game: &Game) {
                     &next_text,
                     draw_x - (text_size.width / 2.),
                     draw_y + text_size.height + 6.,
-                    POLICE_SIZE,
+                    FONT_SIZE,
                     if movement.player == Player::Black {
                         white
                     } else {
@@ -325,7 +344,7 @@ pub fn color_selector(game: &mut Game) -> bool {
         "Play as",
         ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH - BUTTTON_LENGTH / 3.,
         (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH + BUTTTON_HEIGTH / 3.,
-        POLICE_SIZE,
+        FONT_SIZE,
         BLACK,
     );
 
@@ -403,7 +422,7 @@ pub fn display_panel_text(game: &mut Game) {
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         y_offset,
-        POLICE_SIZE,
+        FONT_SIZE,
         BLACK,
     );
 
@@ -418,7 +437,7 @@ pub fn display_panel_text(game: &mut Game) {
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         y_offset,
-        POLICE_SIZE,
+        FONT_SIZE,
         BLACK,
     );
 
@@ -437,7 +456,7 @@ pub fn display_panel_text(game: &mut Game) {
             .as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
             y_offset,
-            POLICE_SIZE,
+            FONT_SIZE,
             BLACK,
         );
 
@@ -451,7 +470,7 @@ pub fn display_panel_text(game: &mut Game) {
             .as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
             y_offset,
-            POLICE_SIZE,
+            FONT_SIZE,
             BLACK,
         );
 
@@ -469,7 +488,7 @@ pub fn display_panel_text(game: &mut Game) {
             .as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
             y_offset,
-            POLICE_SIZE,
+            FONT_SIZE,
             BLACK,
         );
     }
@@ -480,7 +499,7 @@ pub fn display_panel_text(game: &mut Game) {
             format!("Black capture: {}", game.board.black.captures).as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
             y_offset,
-            POLICE_SIZE,
+            FONT_SIZE,
             BLACK,
         );
 
@@ -489,7 +508,7 @@ pub fn display_panel_text(game: &mut Game) {
             format!("White capture: {}", game.board.white.captures).as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
             y_offset,
-            POLICE_SIZE,
+            FONT_SIZE,
             BLACK,
         );
     }
@@ -507,7 +526,7 @@ pub fn display_panel_text(game: &mut Game) {
         .as_str(),
         GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
         y_offset,
-        POLICE_SIZE,
+        FONT_SIZE,
         BLACK,
     );
 
@@ -539,6 +558,8 @@ pub fn display_panel_text(game: &mut Game) {
 }
 
 pub fn display_winner(game: &mut Game) {
+    const WIN_FONT_SIZE: u16 = 20;
+
     if game.winner != Winner::None {
         // Display undo and redo buttons
         let x = (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - ((BUTTTON_LENGTH - 30.) / 2.);
@@ -584,7 +605,7 @@ pub fn display_winner(game: &mut Game) {
             &win_text,
             x + ((BUTTTON_LENGTH - 30. - text_size.width) / 2.),
             y + (BUTTTON_HEIGTH - 20. - text_size.height), // Should be 2.0 ...
-            WIN_FONT_SIZE as f32,
+            WIN_FONT_SIZE,
             if game.winner == Winner::Black {
                 BLACK
             } else if game.winner == Winner::White {

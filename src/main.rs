@@ -40,7 +40,7 @@ async fn main() {
     use crate::{
         draw::{
             color_selector, display_panel_text, display_winner, draw_goban, draw_rock_preview,
-            game_selector, options_selector, GRID_WINDOW_SIZE, SQUARE_SIZE,
+            game_selector, options_selector, FONT_BYTES, FONT_SIZE, GRID_WINDOW_SIZE, SQUARE_SIZE,
         },
         macros::coord,
         rock::Rock,
@@ -55,6 +55,8 @@ async fn main() {
             .color_clicked(BLUE)
             .color_selected_hovered(GREEN)
             .color(RED)
+            .font(FONT_BYTES)
+            .unwrap()
             .build();
         let window_style = root_ui()
             .style_builder()
@@ -62,10 +64,33 @@ async fn main() {
                 include_bytes!("../ui/background.png"),
                 None,
             ))
+            .font(FONT_BYTES)
+            .unwrap()
+            .build();
+        let button_style = root_ui()
+            .style_builder()
+            .font(FONT_BYTES)
+            .unwrap()
+            .font_size(FONT_SIZE)
+            .build();
+        let combobox_style = root_ui()
+            .style_builder()
+            .font(FONT_BYTES)
+            .unwrap()
+            .font_size(FONT_SIZE)
+            .build();
+        let label_style = root_ui()
+            .style_builder()
+            .font(FONT_BYTES)
+            .unwrap()
+            .font_size(FONT_SIZE)
             .build();
         Skin {
             checkbox_style,
             window_style,
+            button_style,
+            combobox_style,
+            label_style,
             ..root_ui().default_skin()
         }
     };
