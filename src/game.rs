@@ -9,6 +9,7 @@ use crate::{
     rules::RuleSet,
 };
 use colored::Colorize;
+use rand::Rng;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -68,7 +69,7 @@ pub struct Game {
     pub completed_opening: bool,
     pub ask_player_choice: bool,
     pub player_place_stones: usize,
-    pub first_player_opened: bool,
+    pub placed_three_stones: bool,
 }
 
 impl Default for Game {
@@ -101,7 +102,7 @@ impl Default for Game {
             completed_opening: false,
             ask_player_choice: false,
             player_place_stones: 0,
-            first_player_opened: false,
+            placed_three_stones: false,
         }
     }
 }
@@ -130,7 +131,7 @@ impl Game {
         self.completed_opening = false;
         self.ask_player_choice = false;
         self.player_place_stones = 0;
-        self.first_player_opened = false;
+        self.placed_three_stones = false;
     }
 
     pub fn start_pva(&mut self, color: Rock) {
@@ -148,6 +149,11 @@ impl Game {
             }
         } else {
             self.computer_play_as = Player::Black;
+            if self.opening() == Opening::Swap2 {
+                self.random_swap2_opening();
+                self.ask_player_choice = true;
+                self.placed_three_stones = true;
+            }
         }
     }
 
@@ -165,8 +171,42 @@ impl Game {
             self.opening()
         );
         self.playing = true;
-        if self.opening() == Opening::Swap2 && self.mode == GameMode::PvP {
-            self.player_place_stones = 3
+        if self.opening() == Opening::Swap2 {
+            // Place the first 3 stones in the main loop if a human player plays first
+            if self.mode == GameMode::PvP {
+                self.player_place_stones = 3
+            }
+            // Play the opening directly in AvA
+            else if self.mode == GameMode::AvA {
+                self.random_swap2_opening();
+                // Randomly choose an option
+                let mut rng = rand::thread_rng();
+                let rand = rng.gen_range(1..=3);
+                // Option 3, place more stone and resume thegame
+                if rand == 3 {
+                    // These stones are randomly generated
+                    let coordinates = coord!(8, 8);
+                    self.board.set_move(
+                        &self.rules,
+                        &Move {
+                            coordinates,
+                            player: Player::White,
+                        },
+                    );
+                    self.rock_move.push(coordinates);
+                    let coordinates = coord!(10, 10);
+                    self.board.set_move(
+                        &self.rules,
+                        &Move {
+                            coordinates,
+                            player: Player::Black,
+                        },
+                    );
+                    self.rock_move.push(coordinates);
+                }
+                // rand 1 and 2 change the player that play, but in AvA mode it does nothing
+                self.completed_opening = true;
+            }
         }
     }
 
@@ -211,13 +251,68 @@ impl Game {
                 self.next_player();
                 self.player_place_stones -= 1;
                 if self.player_place_stones == 0 {
-                    // In PvA the computer will always play as white
-                    // In PvP only 1 choice is made and the second one is forced to play as white
-                    if self.mode == GameMode::PvA || self.first_player_opened {
-                        self.completed_opening = true;
-                    } else {
-                        self.first_player_opened = true;
-                        self.ask_player_choice = true;
+                    // In PvA if the player placed 3 stones
+                    // -- the computer randomly select an option
+                    // -- and either pass the choice to the player or make the game resume
+                    if self.mode == GameMode::PvA {
+                        let mut rng = rand::thread_rng();
+                        // Computer choose to play as black or white
+                        if self.computer_play_as == Player::Black && self.placed_three_stones {
+                            let rand = rng.gen_range(1..=2);
+                            if rand == 1 {
+                                self.computer_play_as = Player::Black;
+                            } else {
+                                self.computer_play_as = Player::White;
+                            }
+                            self.completed_opening = true;
+                        }
+                        // Computer choose to play or randomly play 2 stones and givee the choice back to the player
+                        else if self.computer_play_as == Player::White {
+                            let rand = rng.gen_range(1..=3);
+                            // Option 1 and 2 resume the game
+                            if rand == 1 {
+                                println!("Computer will play as Black");
+                                self.computer_play_as = Player::Black;
+                                self.completed_opening = true;
+                            } else if rand == 2 {
+                                println!("Computer will play as White");
+                                self.computer_play_as = Player::White;
+                                self.completed_opening = true;
+                            }
+                            // Option 3, place more stone and ask the player
+                            else {
+                                // These stones are randomly generated
+                                let coordinates = coord!(8, 8);
+                                self.board.set_move(
+                                    &self.rules,
+                                    &Move {
+                                        coordinates,
+                                        player: Player::White,
+                                    },
+                                );
+                                self.rock_move.push(coordinates);
+                                let coordinates = coord!(10, 10);
+                                self.board.set_move(
+                                    &self.rules,
+                                    &Move {
+                                        coordinates,
+                                        player: Player::Black,
+                                    },
+                                );
+                                self.rock_move.push(coordinates);
+                                self.placed_three_stones = true;
+                                self.ask_player_choice = true;
+                            }
+                        }
+                    }
+                    // In PvP, the first 3 placed stones then ask the second player
+                    // -- if he choose to place 2 stones again, it will then limit to select black or white
+                    else if self.mode == GameMode::PvP {
+                        if self.placed_three_stones {
+                            self.completed_opening = true;
+                        } else {
+                            self.ask_player_choice = true;
+                        }
                     }
                 }
             }
@@ -303,8 +398,9 @@ impl Game {
     }
 
     pub fn random_swap2_opening(&mut self) {
-        let _random = 2; // Randomly generated number
-                         // First stone
+        // Randomly generated number
+        let _random = 2;
+        // First stone
         let coordinates = coord!(9, 9);
         self.board.set_move(
             &self.rules,
@@ -336,24 +432,25 @@ impl Game {
         self.rock_move.push(coordinates);
         // Pass the choice to the other player
         self.current_player = Player::White;
-        if self.mode == GameMode::AvA {
-            // The computer always choose to play White to avoid nested rock placement
-            // -- So in AvA mode the next "player" will choose to play white
-            self.completed_opening = true;
-        } else {
-            self.ask_player_choice = true;
-        }
+        self.ask_player_choice = true;
     }
 
-    pub fn complete_opening(&mut self) {
+    pub fn play_as(&mut self, player: Player) {
+        if self.mode == GameMode::PvA {
+            if player == Player::Black {
+                self.computer_play_as = Player::White;
+            } else {
+                self.computer_play_as = Player::Black;
+            }
+        }
         self.completed_opening = true;
-        self.current_player = Player::White;
     }
 
     pub fn player_place_stone(&mut self) {
         self.player_place_stones = 2;
         self.current_player = Player::White;
         self.computer_play_as = Player::White;
+        self.placed_three_stones = true;
     }
 
     pub fn play_computer(&mut self) {

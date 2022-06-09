@@ -45,7 +45,6 @@ async fn main() {
         },
         game::Opening,
         macros::coord,
-        player::Player,
         rock::Rock,
     };
 
@@ -108,12 +107,7 @@ async fn main() {
                 let opening = game.opening();
                 // Handle openings
                 if opening != Opening::None && !game.completed_opening {
-                    if game.mode != GameMode::PvP
-                        && game.computer_play_as == Player::Black
-                        && !game.ask_player_choice
-                    {
-                        game.random_swap2_opening()
-                    } else if game.player_place_stones > 0 {
+                    if game.player_place_stones > 0 {
                         draw_rock_preview(&game);
                         draw_player_remaining_stones(&game);
 

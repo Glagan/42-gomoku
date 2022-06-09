@@ -617,27 +617,40 @@ pub fn display_winner(game: &mut Game) {
 }
 
 pub fn draw_player_choices(game: &mut Game) {
-    let play_as_white = widgets::Button::new("Play as White")
+    if !game.placed_three_stones {
+        let place_stones = widgets::Button::new("Place 2 Stones")
+            .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+            .position(Vec2::new(
+                (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+                GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 3.25,
+            ))
+            .ui(&mut root_ui());
+
+        if place_stones {
+            game.player_place_stone();
+        }
+    }
+
+    let play_as_black = widgets::Button::new("Play as Black")
         .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(
             (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
             GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 2.25,
         ))
         .ui(&mut root_ui());
-    if play_as_white {
-        game.complete_opening();
+    if play_as_black {
+        game.play_as(Player::Black);
     }
 
-    let place_stones = widgets::Button::new("Place 2 Stones")
+    let play_as_white = widgets::Button::new("Play as White")
         .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
         .position(Vec2::new(
             (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
             GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 1.5,
         ))
         .ui(&mut root_ui());
-
-    if place_stones {
-        game.player_place_stone();
+    if play_as_white {
+        game.play_as(Player::White);
     }
 }
 
