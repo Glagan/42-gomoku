@@ -248,6 +248,17 @@ impl Heuristic {
         }
         score
     }
+
+    pub fn movement_score(
+        &self,
+        rules: &RuleSet,
+        board: &Board,
+        movement: &Move,
+        captures: u8,
+    ) -> i32 {
+        let patterns = self.count_movement_patterns(rules, board, movement, captures);
+        self.patterns_score(&patterns)
+    }
 }
 
 lazy_static! {

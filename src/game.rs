@@ -2,6 +2,7 @@ use crate::{
     board::{Board, Coordinates, Move},
     computer::{Algorithm, Computer},
     constants::DEPTH,
+    heuristic::HEURISTIC,
     player::Player,
     rock::Rock,
     rules::RuleSet,
@@ -176,7 +177,12 @@ impl Game {
                 player: self.current_player,
             };
             if self.board.is_move_legal(&self.rules, &movement) {
-                self.board.set_move(&self.rules, &movement);
+                let captures = self.board.set_move(&self.rules, &movement);
+                println!(
+                    "player played: {} with a score of {}",
+                    movement,
+                    HEURISTIC.movement_score(&self.rules, &self.board, &movement, captures),
+                );
                 self.computer_generated_moves = false;
                 self.rock_move.push(coordinates);
                 if self.board.is_winning(&self.rules, movement.player) {
@@ -262,7 +268,6 @@ impl Game {
             if play_time < self.computer_lowest_play_time {
                 self.computer_lowest_play_time = play_time;
             }
-            println!("computer played: {} in {}ms", play, play_time.as_millis());
             // Handle the movement
             self.computer_expected_moves = play.movements;
             let mut next_move = self.computer_expected_moves.first();
@@ -276,17 +281,23 @@ impl Game {
                 }
             }
             if let Some(movement) = next_move {
-                self.board.set_move(&self.rules, movement);
+                let captures = self.board.set_move(&self.rules, movement);
+                println!(
+                    "computer played: {} with a score of {} in {}ms",
+                    movement,
+                    HEURISTIC.movement_score(&self.rules, &self.board, movement, captures),
+                    play_time.as_millis()
+                );
                 self.rock_move.push(movement.coordinates);
                 if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {
                     self.next_player();
                 }
-                println!("{}", self.board);
             } else {
                 self.game_draw();
             }
+            println!("{}", self.board);
         } else {
             println!("{}", "computer returned an empty play result".red());
         }

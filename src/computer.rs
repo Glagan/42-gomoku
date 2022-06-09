@@ -132,7 +132,6 @@ impl Computer {
                     pattern_count,
                 }
             })
-            .rev()
             .collect();
 
         // Check if there is no moves remaining
@@ -176,7 +175,7 @@ impl Computer {
                 best_eval.movements = eval.movements;
                 best_eval.movements.insert(0, sorted_movement.movement);
                 if alpha >= beta {
-                    break;
+                    return Ok(best_eval);
                 }
             }
         }
@@ -192,7 +191,7 @@ impl Computer {
         action: MinimaxAction,
         iteration: AlphaBetaIteration,
         player: Player,
-        maximize: Player,
+        maximize: bool,
     ) -> Result<Evaluation, String> {
         let mut alpha = iteration.alpha;
         let mut beta = iteration.beta;
@@ -233,7 +232,6 @@ impl Computer {
                     pattern_count,
                 }
             })
-            .rev()
             .collect();
 
         // Check if there is no moves remaining
@@ -253,7 +251,7 @@ impl Computer {
         }
 
         // Optimise for player ...
-        if player == maximize {
+        if maximize {
             let mut best_eval = Evaluation {
                 score: i32::min_value() + 1,
                 movements: vec![],
@@ -273,7 +271,7 @@ impl Computer {
                         beta,
                     },
                     player.opponent(),
-                    maximize,
+                    !maximize,
                 )?;
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score > best_eval.score {
@@ -281,11 +279,11 @@ impl Computer {
                     best_eval.movements = eval.movements;
                     best_eval.movements.insert(0, sorted_movement.movement);
                 }
-                if best_eval.score > alpha {
-                    alpha = best_eval.score;
+                if eval.score > alpha {
+                    alpha = eval.score;
                 }
-                if best_eval.score >= beta {
-                    break;
+                if eval.score >= beta {
+                    return Ok(best_eval);
                 }
             }
             Ok(best_eval)
@@ -311,7 +309,7 @@ impl Computer {
                         beta,
                     },
                     player.opponent(),
-                    maximize,
+                    !maximize,
                 )?;
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score < best_eval.score {
@@ -319,11 +317,11 @@ impl Computer {
                     best_eval.movements = eval.movements;
                     best_eval.movements.insert(0, sorted_movement.movement);
                 }
-                if best_eval.score < beta {
-                    beta = best_eval.score;
+                if eval.score < beta {
+                    beta = eval.score;
                 }
-                if best_eval.score <= alpha {
-                    break;
+                if eval.score <= alpha {
+                    return Ok(best_eval);
                 }
             }
             Ok(best_eval)
@@ -375,7 +373,6 @@ impl Computer {
                     pattern_count,
                 }
             })
-            .rev()
             .collect();
 
         // Check if there is no moves remaining
@@ -455,7 +452,7 @@ impl Computer {
                     beta: i32::max_value(),
                 },
                 player,
-                player,
+                true,
             )?,
             // Select only the next move from the heuristic
             Algorithm::Greedy => self.greedy(
