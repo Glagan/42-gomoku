@@ -39,10 +39,13 @@ fn window_conf() -> Conf {
 async fn main() {
     use crate::{
         draw::{
-            color_selector, display_panel_text, display_winner, draw_goban, draw_rock_preview,
-            game_selector, options_selector, GRID_WINDOW_SIZE, SQUARE_SIZE,
+            color_selector, display_panel_text, display_winner, draw_goban, draw_player_choices,
+            draw_player_remaining_stones, draw_rock_preview, game_selector, options_selector,
+            GRID_WINDOW_SIZE, SQUARE_SIZE,
         },
+        game::Opening,
         macros::coord,
+        player::Player,
         rock::Rock,
     };
 
@@ -102,8 +105,39 @@ async fn main() {
             if game.winner != Winner::None {
                 display_winner(&mut game);
             } else {
+                let opening = game.opening();
+                // Handle openings
+                if opening != Opening::None && !game.completed_opening {
+                    if game.mode != GameMode::PvP
+                        && game.computer_play_as == Player::Black
+                        && !game.ask_player_choice
+                    {
+                        game.random_swap2_opening()
+                    } else if game.player_place_stones > 0 {
+                        draw_rock_preview(&game);
+                        draw_player_remaining_stones(&game);
+
+                        // Player play
+                        if is_mouse_button_released(MouseButton::Left) {
+                            b_mouse_pressed = false;
+                        } else if is_mouse_button_down(MouseButton::Left) && !b_mouse_pressed {
+                            b_mouse_pressed = true;
+                            let (mouse_x, mouse_y) = mouse_position();
+                            if mouse_x < (GRID_WINDOW_SIZE - 2) as f32
+                                && mouse_y < (GRID_WINDOW_SIZE - 2) as f32
+                            {
+                                game.play_opening(coord!(
+                                    mouse_x as i16 / SQUARE_SIZE,
+                                    mouse_y as i16 / SQUARE_SIZE
+                                ));
+                            }
+                        }
+                    } else if game.ask_player_choice {
+                        draw_player_choices(&mut game);
+                    }
+                }
                 // Handle Input based on current game mode
-                if game.mode != GameMode::AvA {
+                else if game.mode != GameMode::AvA {
                     // Computer Play
                     if game.mode == GameMode::PvA && game.current_player == game.computer_play_as {
                         game.play_computer()

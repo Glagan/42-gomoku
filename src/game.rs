@@ -3,6 +3,7 @@ use crate::{
     computer::{Algorithm, Computer},
     constants::DEPTH,
     heuristic::HEURISTIC,
+    macros::coord,
     player::Player,
     rock::Rock,
     rules::RuleSet,
@@ -23,6 +24,12 @@ pub enum Difficulty {
     Easy,
     Medium,
     Hard,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Opening {
+    None,
+    Swap2,
 }
 
 #[derive(PartialEq)]
@@ -57,6 +64,11 @@ pub struct Game {
     pub show_computer_generated_moves: bool,
     pub algorithm_index: Option<usize>,
     pub difficulty_index: Option<usize>,
+    pub opening_index: Option<usize>,
+    pub completed_opening: bool,
+    pub ask_player_choice: bool,
+    pub player_place_stones: usize,
+    pub first_player_opened: bool,
 }
 
 impl Default for Game {
@@ -85,6 +97,11 @@ impl Default for Game {
             show_computer_generated_moves: true,
             algorithm_index: Some(0),
             difficulty_index: Some(1),
+            opening_index: Some(0),
+            completed_opening: false,
+            ask_player_choice: false,
+            player_place_stones: 0,
+            first_player_opened: false,
         }
     }
 }
@@ -110,6 +127,10 @@ impl Game {
         self.rock_move = vec![];
         self.undone_moves = vec![];
         self.difficulty_index = Some(1);
+        self.completed_opening = false;
+        self.ask_player_choice = false;
+        self.player_place_stones = 0;
+        self.first_player_opened = false;
     }
 
     pub fn start_pva(&mut self, color: Rock) {
@@ -118,13 +139,16 @@ impl Game {
             self.rules.game_ending_capture = false;
         }
         self.player_color = color;
+        self.mode = GameMode::PvA;
+        self.playing = true;
         if color == Rock::Black {
             self.computer_play_as = Player::White;
+            if self.opening() == Opening::Swap2 {
+                self.player_place_stones = 3
+            }
         } else {
             self.computer_play_as = Player::Black;
         }
-        self.mode = GameMode::PvA;
-        self.playing = true;
     }
 
     pub fn start(&mut self, mode: GameMode) {
@@ -134,12 +158,16 @@ impl Game {
         }
         self.mode = mode;
         println!(
-            "Starting a game [{:#?}] ({:#?}) with rules: {:#?}",
+            "Starting a game [{:#?}] ({:#?}) with rules: {:#?} opening {:#?}",
             mode,
             self.algorithm(),
-            self.rules
+            self.rules,
+            self.opening()
         );
         self.playing = true;
+        if self.opening() == Opening::Swap2 && self.mode == GameMode::PvP {
+            self.player_place_stones = 3
+        }
     }
 
     pub fn player_won(&mut self) {
@@ -170,6 +198,32 @@ impl Game {
         self.play_time = Instant::now();
     }
 
+    pub fn play_opening(&mut self, coordinates: Coordinates) {
+        if self.board.get(coordinates.x, coordinates.y) == Rock::None {
+            let movement = Move {
+                coordinates,
+                player: self.current_player,
+            };
+            // TODO is_move_legal_for_opening
+            if self.board.is_move_legal(&self.rules, &movement) {
+                self.board.set_move(&self.rules, &movement);
+                self.rock_move.push(coordinates);
+                self.next_player();
+                self.player_place_stones -= 1;
+                if self.player_place_stones == 0 {
+                    // In PvA the computer will always play as white
+                    // In PvP only 1 choice is made and the second one is forced to play as white
+                    if self.mode == GameMode::PvA || self.first_player_opened {
+                        self.completed_opening = true;
+                    } else {
+                        self.first_player_opened = true;
+                        self.ask_player_choice = true;
+                    }
+                }
+            }
+        }
+    }
+
     pub fn play_player(&mut self, coordinates: Coordinates) {
         if self.board.get(coordinates.x, coordinates.y) == Rock::None {
             let movement = Move {
@@ -192,6 +246,14 @@ impl Game {
                 }
                 println!("{}", self.board);
             }
+        }
+    }
+
+    pub fn opening(&self) -> Opening {
+        let index = self.opening_index.unwrap_or_default();
+        match index {
+            1 => Opening::Swap2,
+            _ => Opening::None,
         }
     }
 
@@ -238,6 +300,60 @@ impl Game {
             }
         }
         self.computer_generated_moves = true;
+    }
+
+    pub fn random_swap2_opening(&mut self) {
+        let _random = 2; // Randomly generated number
+                         // First stone
+        let coordinates = coord!(9, 9);
+        self.board.set_move(
+            &self.rules,
+            &Move {
+                coordinates,
+                player: Player::Black,
+            },
+        );
+        self.rock_move.push(coordinates);
+        // Second stone
+        let coordinates = coord!(9, 8);
+        self.board.set_move(
+            &self.rules,
+            &Move {
+                coordinates,
+                player: Player::White,
+            },
+        );
+        self.rock_move.push(coordinates);
+        // Third stone
+        let coordinates = coord!(8, 9);
+        self.board.set_move(
+            &self.rules,
+            &Move {
+                coordinates,
+                player: Player::Black,
+            },
+        );
+        self.rock_move.push(coordinates);
+        // Pass the choice to the other player
+        self.current_player = Player::White;
+        if self.mode == GameMode::AvA {
+            // The computer always choose to play White to avoid nested rock placement
+            // -- So in AvA mode the next "player" will choose to play white
+            self.completed_opening = true;
+        } else {
+            self.ask_player_choice = true;
+        }
+    }
+
+    pub fn complete_opening(&mut self) {
+        self.completed_opening = true;
+        self.current_player = Player::White;
+    }
+
+    pub fn player_place_stone(&mut self) {
+        self.player_place_stones = 2;
+        self.current_player = Player::White;
+        self.computer_play_as = Player::White;
     }
 
     pub fn play_computer(&mut self) {

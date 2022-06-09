@@ -1,6 +1,6 @@
 use crate::{
     constants::BOARD_SIZE,
-    game::{Game, GameMode, Winner},
+    game::{Game, GameMode, Opening, Winner},
     macros::coord,
     player::Player,
     rock::Rock,
@@ -270,6 +270,23 @@ pub fn game_selector(game: &mut Game) -> bool {
         return false;
     }
 
+    root_ui().window(
+        hash!(),
+        vec2(
+            ((GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE) / 2) as f32 - BUTTTON_LENGTH / 2.,
+            (GRID_WINDOW_SIZE / 2) as f32 - BUTTTON_HEIGTH - 100.,
+        ),
+        vec2(BUTTTON_LENGTH * 1.25, 26.),
+        |ui| {
+            ui.combo_box(
+                hash!(),
+                "Opening",
+                &["None", "Swap2"],
+                &mut game.opening_index,
+            );
+        },
+    );
+
     let pvp_button = widgets::Button::new("Start PvP game")
         .size(Vec2::new(BUTTTON_LENGTH, BUTTTON_HEIGTH))
         .position(Vec2::new(
@@ -363,7 +380,7 @@ pub fn color_selector(game: &mut Game) -> bool {
                 - BUTTTON_LENGTH / 3.,
             (GRID_WINDOW_SIZE / 2) as f32 + BUTTTON_HEIGTH - BUTTTON_HEIGTH / 3.,
         ),
-        vec2(BUTTTON_LENGTH * 2., 26.),
+        vec2(BUTTTON_LENGTH * 1.25, 100.),
         |ui| {
             ui.combo_box(
                 hash!(),
@@ -511,8 +528,11 @@ pub fn display_panel_text(game: &mut Game) {
         BLACK,
     );
 
-    let surrender_button = widgets::Button::new(
-        if game.mode == GameMode::AvA || game.winner != Winner::None {
+    let exit_button = widgets::Button::new(
+        if game.mode == GameMode::AvA
+            || game.winner != Winner::None
+            || (game.opening() != Opening::None && !game.completed_opening)
+        {
             "Back"
         } else {
             "Surrender"
@@ -525,8 +545,10 @@ pub fn display_panel_text(game: &mut Game) {
     ))
     .ui(&mut root_ui());
 
-    if surrender_button {
-        if game.winner == Winner::None {
+    if exit_button {
+        if game.winner == Winner::None
+            && (game.opening() == Opening::None || game.completed_opening)
+        {
             game.winner = if game.current_player == Player::Black {
                 Winner::White
             } else {
@@ -539,59 +561,101 @@ pub fn display_panel_text(game: &mut Game) {
 }
 
 pub fn display_winner(game: &mut Game) {
-    if game.winner != Winner::None {
-        // Display undo and redo buttons
-        let x = (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - ((BUTTTON_LENGTH - 30.) / 2.);
-        let y = GRID_WINDOW_SIZE as f32 - 70. - (BUTTTON_HEIGTH * 1.5);
-        if !game.rock_move.is_empty() {
-            let undo = widgets::Button::new("Undo")
-                .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
-                .position(Vec2::new(x, y))
-                .ui(&mut root_ui());
-            if undo {
-                game.undo_move();
-            }
+    // Display undo and redo buttons
+    let x = (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - ((BUTTTON_LENGTH - 30.) / 2.);
+    let y = GRID_WINDOW_SIZE as f32 - 70. - (BUTTTON_HEIGTH * 1.5);
+    if !game.rock_move.is_empty() {
+        let undo = widgets::Button::new("Undo")
+            .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
+            .position(Vec2::new(x, y))
+            .ui(&mut root_ui());
+        if undo {
+            game.undo_move();
         }
-        if !game.undone_moves.is_empty() {
-            let redo = widgets::Button::new("Redo")
-                .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
-                .position(Vec2::new(x + (BUTTTON_LENGTH - 40.) / 2. + 10., y))
-                .ui(&mut root_ui());
-            if redo {
-                game.redo_move();
-            }
-        }
-
-        // Display winner text
-        let y = y + BUTTTON_HEIGTH / 1.5;
-        // Background
-        draw_rectangle_lines(x, y, BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 20., 4., BLACK);
-        // Winner text
-        let win_text = if game.winner == Winner::Draw {
-            "Draw".to_string()
-        } else {
-            format!(
-                "{} win !",
-                if game.winner == Winner::Black {
-                    "Black"
-                } else {
-                    "White"
-                }
-            )
-        };
-        let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
-        draw_text(
-            &win_text,
-            x + ((BUTTTON_LENGTH - 30. - text_size.width) / 2.),
-            y + (BUTTTON_HEIGTH - 20. - text_size.height), // Should be 2.0 ...
-            WIN_FONT_SIZE as f32,
-            if game.winner == Winner::Black {
-                BLACK
-            } else if game.winner == Winner::White {
-                WHITE
-            } else {
-                BLUE
-            },
-        );
     }
+    if !game.undone_moves.is_empty() {
+        let redo = widgets::Button::new("Redo")
+            .size(Vec2::new((BUTTTON_LENGTH - 40.) / 2., BUTTTON_HEIGTH - 30.))
+            .position(Vec2::new(x + (BUTTTON_LENGTH - 40.) / 2. + 10., y))
+            .ui(&mut root_ui());
+        if redo {
+            game.redo_move();
+        }
+    }
+
+    // Display winner text
+    let y = y + BUTTTON_HEIGTH / 1.5;
+    // Background
+    draw_rectangle_lines(x, y, BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 20., 4., BLACK);
+    // Winner text
+    let win_text = if game.winner == Winner::Draw {
+        "Draw".to_string()
+    } else {
+        format!(
+            "{} win !",
+            if game.winner == Winner::Black {
+                "Black"
+            } else {
+                "White"
+            }
+        )
+    };
+    let text_size = measure_text(&win_text, None, WIN_FONT_SIZE, 1.);
+    draw_text(
+        &win_text,
+        x + ((BUTTTON_LENGTH - 30. - text_size.width) / 2.),
+        y + (BUTTTON_HEIGTH - 20. - text_size.height), // Should be 2.0 ...
+        WIN_FONT_SIZE as f32,
+        if game.winner == Winner::Black {
+            BLACK
+        } else if game.winner == Winner::White {
+            WHITE
+        } else {
+            BLUE
+        },
+    );
+}
+
+pub fn draw_player_choices(game: &mut Game) {
+    let play_as_white = widgets::Button::new("Play as White")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 2.25,
+        ))
+        .ui(&mut root_ui());
+    if play_as_white {
+        game.complete_opening();
+    }
+
+    let place_stones = widgets::Button::new("Place 2 Stones")
+        .size(Vec2::new(BUTTTON_LENGTH - 30., BUTTTON_HEIGTH - 30.))
+        .position(Vec2::new(
+            (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+            GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 1.5,
+        ))
+        .ui(&mut root_ui());
+
+    if place_stones {
+        game.player_place_stone();
+    }
+}
+
+pub fn draw_player_remaining_stones(game: &Game) {
+    let remaining = format!(
+        "{} stone{} remaining",
+        game.player_place_stones,
+        if game.player_place_stones > 1 {
+            "s"
+        } else {
+            ""
+        }
+    );
+    draw_text(
+        &remaining,
+        (GRID_WINDOW_SIZE + PANEL_WINDOW_SIZE / 2) as f32 - (BUTTTON_LENGTH - 30.) / 2.,
+        GRID_WINDOW_SIZE as f32 - 70. - BUTTTON_HEIGTH * 1.5,
+        FONT_SIZE as f32,
+        BLACK,
+    );
 }
