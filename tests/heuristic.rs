@@ -310,7 +310,7 @@ fn pattern_category_increase_count(category: Category) -> bool {
                         },
                         0,
                     );
-                    (match category {
+                    if (match category {
                         Category::FiveInRow => patterns.five_in_row,
                         Category::KillFour => patterns.kill_four,
                         Category::OpenFour => patterns.open_four,
@@ -326,6 +326,12 @@ fn pattern_category_increase_count(category: Category) -> bool {
                         Category::CreateCapture => patterns.created_captures,
                         Category::CloseTwo => patterns.close_two,
                     }) >= 1
+                    {
+                        true
+                    } else {
+                        println!("{:#?}\n{}", patterns, board);
+                        false
+                    }
                 })
         })
 }
@@ -413,6 +419,11 @@ fn find_all_reduce_two() {
 #[test]
 fn find_all_close_two() {
     assert!(pattern_category_increase_count(Category::CloseTwo));
+}
+
+#[test]
+fn find_create_capture() {
+    assert!(pattern_category_increase_count(Category::CreateCapture));
 }
 
 // * Check that all patterns under capture are downgraded

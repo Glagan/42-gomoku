@@ -205,7 +205,7 @@ impl PatternCount {
             8
         } else if self.kill_three > 0 {
             7
-        } else if self.blocked_capture > 0 {
+        } else if self.blocked_capture > 0 || self.created_captures > 0 {
             6
         } else if self.captured_five_in_row > 0 {
             5
@@ -213,7 +213,7 @@ impl PatternCount {
             4
         } else if self.open_two > 0 {
             3
-        } else if self.reduce_two > 0 || self.created_captures > 0 {
+        } else if self.reduce_two > 0 {
             2
         } else if self.close_two > 0 {
             1

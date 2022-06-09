@@ -210,8 +210,8 @@ impl Game {
     fn difficulty_depth(&self) -> usize {
         match self.difficulty() {
             Difficulty::Hard => DEPTH + 2,
-            Difficulty::Easy => DEPTH.max(1),
-            Difficulty::Medium => (DEPTH - 2).max(1),
+            Difficulty::Medium => DEPTH.max(1),
+            Difficulty::Easy => (DEPTH - 2).max(1),
         }
     }
 

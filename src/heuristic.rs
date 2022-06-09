@@ -157,7 +157,7 @@ impl Heuristic {
                                 patterns.push(Category::KillFour);
                                 continue;
                             }
-                            patterns.push(Category::BlockedCapture);
+                            patterns.push(Category::CreateCapture);
                         }
                         // ? Downgrade KillFour that are under capture
                         // ? -- Not necessary since OpenFour under capture
@@ -228,7 +228,7 @@ impl Heuristic {
                 (patterns.total_captures.max(patterns.inc_captures) - patterns.inc_captures).into();
             score += 10000 + total_bonus * 10000;
         }
-        if patterns.blocked_capture > 0 {
+        if patterns.blocked_capture > 0 || patterns.created_captures > 0 {
             score += 10000;
         }
         if patterns.captured_five_in_row > 0 {
