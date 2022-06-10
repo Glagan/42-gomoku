@@ -118,7 +118,7 @@ impl Computer {
         };
 
         // Iterate each neighbor moves
-        let mut moves: BinaryHeap<SortedMove> = action
+        let mut moves: Vec<SortedMove> = action
             .board
             .intersections_legal_moves(rules, player)
             .iter()
@@ -151,7 +151,8 @@ impl Computer {
             }
         }
 
-        while let Some(sorted_movement) = moves.pop() {
+        moves.sort_by(|a, b| b.cmp(a));
+        for sorted_movement in moves.iter() {
             action.board.set_move(rules, &sorted_movement.movement);
             let eval = self.negamax_alpha_beta(
                 rules,

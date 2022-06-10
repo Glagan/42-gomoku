@@ -18,4 +18,4 @@ pub const OPPOSITE_DIRECTIONS: [((i16, i16), (i16, i16)); 4] = [
     ((-1, 1), (1, -1)),
     ((0, -1), (0, 1)),
 ];
-pub const DEPTH: usize = 4;
+pub const DEPTH: usize = 6;
