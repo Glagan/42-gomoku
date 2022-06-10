@@ -68,7 +68,8 @@ pub struct PlayerState {
 #[derive(Clone)]
 pub struct Board {
     pub pieces: [[Rock; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
-    pub player_pieces: [[[PlayerRock; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
+    // 0: black, 1; white
+    pub bitboards: [[[bool; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
     // Number of moves executed to reach the current Board state
     pub moves: u16,
     pub black: PlayerState,
@@ -84,7 +85,7 @@ impl Default for Board {
         moves_restore.reserve(BOARD_PIECES_USIZE);
         Board {
             pieces: [[Rock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE],
-            player_pieces: [[[PlayerRock::None; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
+            bitboards: [[[true; BOARD_SIZE_USIZE]; BOARD_SIZE_USIZE]; 2],
             moves: 0,
             black: PlayerState::default(),
             white: PlayerState::default(),
@@ -96,30 +97,25 @@ impl Default for Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (y_index, row) in self.pieces.iter().enumerate() {
-            write!(
-                f,
-                "{: >2} {}",
-                y_index.to_string().dimmed(),
-                row.iter()
-                    .enumerate()
-                    .map(|(x_index, p)| format!(
-                        "{: >3}",
-                        if p == &Rock::Black {
-                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE)
-                                .white()
-                                .on_bright_black()
-                        } else if p == &Rock::White {
-                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE)
-                                .black()
-                                .on_white()
-                        } else {
-                            format!("{}", x_index + y_index * BOARD_SIZE_USIZE).dimmed()
-                        }
-                    ))
-                    .collect::<Vec<String>>()
-                    .join(" ")
-            )?;
+        for y_index in 0..BOARD_SIZE {
+            write!(f, "{: >2}", y_index.to_string().dimmed(),)?;
+            for x_index in 0..BOARD_SIZE {
+                write!(
+                    f,
+                    " {: >3}",
+                    if self.get(x_index, y_index) == Rock::Black {
+                        format!("{}", x_index + y_index * BOARD_SIZE)
+                            .white()
+                            .on_bright_black()
+                    } else if self.get(x_index, y_index) == Rock::White {
+                        format!("{}", x_index + y_index * BOARD_SIZE)
+                            .black()
+                            .on_white()
+                    } else {
+                        format!("{}", x_index + y_index * BOARD_SIZE).dimmed()
+                    }
+                )?;
+            }
             writeln!(f)?;
         }
         Ok(())
@@ -140,13 +136,13 @@ impl Board {
 
     // Helper function to get a Board case for a player with (x, y) coordinates
     #[inline(always)]
-    pub fn get_for_player(&self, x: i16, y: i16, player: Player) -> PlayerRock {
-        self.player_pieces[player as usize][y as usize][x as usize]
+    pub fn get_for_player(&self, x: i16, y: i16, player: Player) -> bool {
+        self.bitboards[player as usize][y as usize][x as usize]
     }
 
     #[inline(always)]
-    pub fn get_for_player_mut(&mut self, x: i16, y: i16, player: Player) -> &mut PlayerRock {
-        &mut self.player_pieces[player as usize][y as usize][x as usize]
+    pub fn get_for_player_mut(&mut self, x: i16, y: i16, player: Player) -> &mut bool {
+        &mut self.bitboards[player as usize][y as usize][x as usize]
     }
 
     pub fn player_can_play(&self, rules: &RuleSet, player: Player) -> bool {
@@ -213,7 +209,14 @@ impl Board {
             if check_x < 0 || check_x >= BOARD_SIZE || check_y < 0 || check_y >= BOARD_SIZE {
                 return false;
             }
-            if &self.get_for_player(check_x, check_y, player) != value {
+            if match value {
+                PlayerRock::Player => self.get_for_player(check_x, check_y, player),
+                PlayerRock::Opponent => self.get_for_player(check_x, check_y, player.opponent()),
+                PlayerRock::None => {
+                    !self.get_for_player(check_x, check_y, player)
+                        || !self.get_for_player(check_x, check_y, player.opponent())
+                }
+            } {
                 return false;
             }
         }
@@ -430,9 +433,7 @@ impl Board {
         } else {
             Rock::White
         };
-        *self.get_for_player_mut(coordinates.x, coordinates.y, player) = PlayerRock::Player;
-        *self.get_for_player_mut(coordinates.x, coordinates.y, player.opponent()) =
-            PlayerRock::Opponent;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, player) = false;
     }
 
     // Apply a movement to the current Board
@@ -455,8 +456,8 @@ impl Board {
     #[inline(always)]
     pub fn remove_from_boards(&mut self, coordinates: &Coordinates) {
         *self.get_mut(coordinates.x, coordinates.y) = Rock::None;
-        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::Black) = PlayerRock::None;
-        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::White) = PlayerRock::None;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::Black) = true;
+        *self.get_for_player_mut(coordinates.x, coordinates.y, Player::White) = true;
     }
 
     pub fn undo_move(&mut self, rules: &RuleSet, movement: &Move) {
