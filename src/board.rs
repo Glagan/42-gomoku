@@ -387,8 +387,10 @@ impl Board {
     }
 
     fn check_capture(&mut self, movement: &Move) -> u8 {
-        // Check captures in all directions and add them to the list
         let mut captures: Vec<Coordinates> = vec![];
+        captures.reserve(10);
+
+        // Check captures in all directions and add them to the list
         for direction in &DIRECTIONS {
             if self.check_pattern(
                 &movement.coordinates,
