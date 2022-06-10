@@ -118,22 +118,20 @@ impl Computer {
         };
 
         // Iterate each neighbor moves
-        let mut moves: BinaryHeap<SortedMove> = action
-            .board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| {
-                let captures = action.board.set_move(rules, &movement);
-                let pattern_count =
-                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
-                action.board.undo_move(rules, &movement);
-                SortedMove {
-                    movement,
-                    best_pattern: pattern_count.best_pattern(),
-                    pattern_count,
-                }
-            })
-            .collect();
+        let intersections = action.board.intersections_legal_moves(rules, player);
+        let mut moves: BinaryHeap<SortedMove> = BinaryHeap::new();
+        moves.reserve(intersections.len());
+        for movement in intersections {
+            let captures = action.board.set_move(rules, &movement);
+            let pattern_count =
+                HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
+            action.board.undo_move(rules, &movement);
+            moves.push(SortedMove {
+                movement,
+                best_pattern: pattern_count.best_pattern(),
+                pattern_count,
+            });
+        }
 
         // Check if there is no moves remaining
         if moves.is_empty() {
@@ -219,22 +217,20 @@ impl Computer {
         }
 
         // Generate moves
-        let mut moves: BinaryHeap<SortedMove> = action
-            .board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| {
-                let captures = action.board.set_move(rules, &movement);
-                let pattern_count =
-                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
-                action.board.undo_move(rules, &movement);
-                SortedMove {
-                    movement,
-                    best_pattern: pattern_count.best_pattern(),
-                    pattern_count,
-                }
-            })
-            .collect();
+        let intersections = action.board.intersections_legal_moves(rules, player);
+        let mut moves: BinaryHeap<SortedMove> = BinaryHeap::new();
+        moves.reserve(intersections.len());
+        for movement in intersections {
+            let captures = action.board.set_move(rules, &movement);
+            let pattern_count =
+                HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
+            action.board.undo_move(rules, &movement);
+            moves.push(SortedMove {
+                movement,
+                best_pattern: pattern_count.best_pattern(),
+                pattern_count,
+            });
+        }
 
         // Check if there is no moves remaining
         if moves.is_empty() {
@@ -361,22 +357,20 @@ impl Computer {
         }
 
         // Generate moves
-        let mut moves: BinaryHeap<SortedMove> = action
-            .board
-            .intersections_legal_moves(rules, player)
-            .iter()
-            .map(|&movement| {
-                let captures = action.board.set_move(rules, &movement);
-                let pattern_count =
-                    HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
-                action.board.undo_move(rules, &movement);
-                SortedMove {
-                    movement,
-                    best_pattern: pattern_count.best_pattern(),
-                    pattern_count,
-                }
-            })
-            .collect();
+        let intersections = action.board.intersections_legal_moves(rules, player);
+        let mut moves: BinaryHeap<SortedMove> = BinaryHeap::new();
+        moves.reserve(intersections.len());
+        for movement in intersections {
+            let captures = action.board.set_move(rules, &movement);
+            let pattern_count =
+                HEURISTIC.count_movement_patterns(rules, action.board, &movement, captures);
+            action.board.undo_move(rules, &movement);
+            moves.push(SortedMove {
+                movement,
+                best_pattern: pattern_count.best_pattern(),
+                pattern_count,
+            });
+        }
 
         // Check if there is no moves remaining
         if moves.is_empty() {

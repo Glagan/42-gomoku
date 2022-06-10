@@ -351,6 +351,7 @@ impl Board {
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
+        moves.reserve(self.all_rocks.len());
         for coordinates in intersections.iter() {
             let movement = Move {
                 player,
