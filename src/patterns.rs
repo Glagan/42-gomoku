@@ -154,6 +154,8 @@ pub enum Category {
     BlockedCapture,
     // Create a possible capture
     CreateCapture,
+    // Create a capture for the opponent
+    RevealCapture,
     // Create a captured five in a row
     // Interesting since it might be upgradable with BlockedCapture
     CapturedFiveInRow,
@@ -183,6 +185,7 @@ pub struct PatternCount {
     pub reduce_two: u8,
     pub close_two: u8,
     pub created_captures: u8,
+    pub reveal_capture: u8,
     pub total_captures: u8,
     pub inc_captures: u8,
 }
@@ -203,7 +206,7 @@ impl PatternCount {
             11
         } else if self.open_three > 0 {
             8
-        } else if self.kill_three > 0 || self.created_captures > 0 {
+        } else if self.kill_three > 0 || self.inc_captures > 0 || self.created_captures > 0 {
             7
         } else if self.blocked_capture > 0 {
             6
@@ -229,34 +232,22 @@ impl PatternCount {
     pub fn from_patterns(patterns: &Vec<Category>) -> Self {
         let mut pattern_count = PatternCount::default();
         for &pattern in patterns {
-            if pattern == Category::FiveInRow {
-                pattern_count.five_in_row += 1;
-            } else if pattern == Category::KillFour {
-                pattern_count.kill_four += 1;
-            } else if pattern == Category::OpenFour {
-                pattern_count.open_four += 1;
-            } else if pattern == Category::ReduceThree {
-                pattern_count.reduce_three += 1;
-            } else if pattern == Category::CloseFour {
-                pattern_count.close_four += 1;
-            } else if pattern == Category::OpenThree {
-                pattern_count.open_three += 1;
-            } else if pattern == Category::KillThree {
-                pattern_count.kill_three += 1;
-            } else if pattern == Category::BlockedCapture {
-                pattern_count.blocked_capture += 1;
-            } else if pattern == Category::CapturedFiveInRow {
-                pattern_count.captured_five_in_row += 1;
-            } else if pattern == Category::CloseThree {
-                pattern_count.close_three += 1;
-            } else if pattern == Category::OpenTwo {
-                pattern_count.open_two += 1;
-            } else if pattern == Category::ReduceTwo {
-                pattern_count.reduce_two += 1;
-            } else if pattern == Category::CreateCapture {
-                pattern_count.created_captures += 1;
-            } else if pattern == Category::CloseTwo {
-                pattern_count.close_two += 1;
+            match pattern {
+                Category::FiveInRow => pattern_count.five_in_row += 1,
+                Category::KillFour => pattern_count.kill_four += 1,
+                Category::OpenFour => pattern_count.open_four += 1,
+                Category::ReduceThree => pattern_count.reduce_three += 1,
+                Category::CloseFour => pattern_count.close_four += 1,
+                Category::OpenThree => pattern_count.open_three += 1,
+                Category::KillThree => pattern_count.kill_three += 1,
+                Category::BlockedCapture => pattern_count.blocked_capture += 1,
+                Category::RevealCapture => pattern_count.reveal_capture += 1,
+                Category::CapturedFiveInRow => pattern_count.captured_five_in_row += 1,
+                Category::CloseThree => pattern_count.close_three += 1,
+                Category::OpenTwo => pattern_count.open_two += 1,
+                Category::ReduceTwo => pattern_count.reduce_two += 1,
+                Category::CreateCapture => pattern_count.created_captures += 1,
+                Category::CloseTwo => pattern_count.close_two += 1,
             }
         }
         pattern_count
@@ -424,6 +415,11 @@ lazy_static! {
         // -- [{1}, 2, 2, 0]
         // -+ [0, 2, 2, {1}]
         (vec![(1, 2), (2, 2), (3, 0)], Category::CreateCapture),
+        // * RevealCapture
+        // -- [2, {1}, {1}, 0]
+        // -+ [0, {1}, {1}, 2]
+        (vec![(-1, 2), (1, 1), (2, 0)], Category::RevealCapture),
+        (vec![(-2, 2), (-1, 1), (1, 0)], Category::RevealCapture),
         // * CapturedFiveInRow
         // > Computed after five in a row
         // * CloseThree

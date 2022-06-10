@@ -214,7 +214,7 @@ impl Heuristic {
         // Count good patterns that were created
         let mut score: i32 = 0;
         if patterns.reduce_three > 0 {
-            score += 100001;
+            score += 500001;
         }
         if patterns.inc_captures > 2 {
             let total_bonus: i32 =

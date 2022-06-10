@@ -171,7 +171,8 @@ impl Board {
         if self.moves == 0 {
             return vec![coord!(BOARD_SIZE / 2, BOARD_SIZE / 2)];
         }
-        let mut intersections: Vec<Coordinates> = vec![];
+        /*let mut intersections: Vec<Coordinates> = vec![];
+        intersections.reserve(self.all_rocks.len() * 8);
         for existing_rock in self.all_rocks.iter() {
             for (mov_x, mov_y) in DIRECTIONS {
                 let new_coords = (existing_rock.x + mov_x, existing_rock.y + mov_y);
@@ -180,17 +181,35 @@ impl Board {
                     && new_coords.1 >= 0
                     && new_coords.0 < BOARD_SIZE
                     && new_coords.1 < BOARD_SIZE
+                    && self.get(new_coords.0, new_coords.1) == Rock::None
                 {
                     let new_coords = coord!(new_coords.0, new_coords.1);
-                    if self.get(new_coords.x, new_coords.y) == Rock::None
-                        && !intersections.contains(&new_coords)
-                    {
+                    if !intersections.contains(&new_coords) {
                         intersections.push(new_coords);
                     }
                 }
             }
         }
-        intersections
+        intersections*/
+        let mut intersections: BTreeSet<Coordinates> = BTreeSet::new();
+        for existing_rock in self.all_rocks.iter() {
+            for (mov_x, mov_y) in DIRECTIONS {
+                let new_coords = (existing_rock.x + mov_x, existing_rock.y + mov_y);
+                // Check Board boundaries
+                if new_coords.0 >= 0
+                    && new_coords.1 >= 0
+                    && new_coords.0 < BOARD_SIZE
+                    && new_coords.1 < BOARD_SIZE
+                    && self.get(new_coords.0, new_coords.1) == Rock::None
+                {
+                    let new_coords = coord!(new_coords.0, new_coords.1);
+                    if !intersections.contains(&new_coords) {
+                        intersections.insert(new_coords);
+                    }
+                }
+            }
+        }
+        Vec::from_iter(intersections.into_iter())
     }
 
     #[allow(clippy::manual_range_contains)]
@@ -354,7 +373,7 @@ impl Board {
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<Move> = vec![];
-        moves.reserve(self.all_rocks.len());
+        moves.reserve(intersections.len());
         for coordinates in intersections.iter() {
             let movement = Move {
                 player,
@@ -373,6 +392,7 @@ impl Board {
         // -- for the current player according to the rules
         let intersections = self.open_intersections();
         let mut moves: Vec<PossibleMove> = vec![];
+        moves.reserve(intersections.len());
         for coordinates in intersections.iter() {
             let movement = Move {
                 player,
