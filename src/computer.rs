@@ -96,6 +96,7 @@ impl Computer {
         let is_leaf = iteration.depth == 0
             || if let Some(movement) = action.movement {
                 action.board.is_winning(rules, movement.player)
+                    || action.board.is_winning(rules, movement.player.opponent())
             } else {
                 false
             };
@@ -202,6 +203,7 @@ impl Computer {
         let is_leaf = iteration.depth == 0
             || if let Some(movement) = action.movement {
                 action.board.is_winning(rules, movement.player)
+                    || action.board.is_winning(rules, movement.player.opponent())
             } else {
                 false
             };
@@ -343,6 +345,7 @@ impl Computer {
         let is_leaf = depth == 0
             || if let Some(movement) = action.movement {
                 action.board.is_winning(rules, movement.player)
+                    || action.board.is_winning(rules, movement.player.opponent())
             } else {
                 false
             };
