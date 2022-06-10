@@ -152,7 +152,6 @@ impl Game {
             if self.opening() == Opening::Swap2 {
                 self.random_swap2_opening();
                 self.ask_player_choice = true;
-                self.placed_three_stones = true;
             }
         }
     }
@@ -256,11 +255,14 @@ impl Game {
                     if self.mode == GameMode::PvA {
                         let mut rng = rand::thread_rng();
                         // Computer choose to play as black or white
-                        if self.computer_play_as == Player::Black && self.placed_three_stones {
+                        if self.computer_play_as == Player::Black {
+                            self.placed_three_stones = true;
                             let rand = rng.gen_range(1..=2);
                             if rand == 1 {
+                                println!("Computer will play as Black");
                                 self.computer_play_as = Player::Black;
                             } else {
+                                println!("Computer will play as White");
                                 self.computer_play_as = Player::White;
                             }
                             self.completed_opening = true;
