@@ -244,7 +244,6 @@ impl Game {
                 coordinates,
                 player: self.current_player,
             };
-            // TODO is_move_legal_for_opening
             if self.board.is_move_legal(&self.rules, &movement) {
                 self.board.set_move(&self.rules, &movement);
                 self.rock_move.push(coordinates);
@@ -281,25 +280,7 @@ impl Game {
                             }
                             // Option 3, place more stone and ask the player
                             else {
-                                // These stones are randomly generated
-                                let coordinates = coord!(8, 8);
-                                self.board.set_move(
-                                    &self.rules,
-                                    &Move {
-                                        coordinates,
-                                        player: Player::White,
-                                    },
-                                );
-                                self.rock_move.push(coordinates);
-                                let coordinates = coord!(10, 10);
-                                self.board.set_move(
-                                    &self.rules,
-                                    &Move {
-                                        coordinates,
-                                        player: Player::Black,
-                                    },
-                                );
-                                self.rock_move.push(coordinates);
+                                self.place_random_stones(Player::White, 2);
                                 self.placed_three_stones = true;
                                 self.ask_player_choice = true;
                             }
@@ -308,11 +289,7 @@ impl Game {
                     // In PvP, the first 3 placed stones then ask the second player
                     // -- if he choose to place 2 stones again, it will then limit to select black or white
                     else if self.mode == GameMode::PvP {
-                        if self.placed_three_stones {
-                            self.completed_opening = true;
-                        } else {
-                            self.ask_player_choice = true;
-                        }
+                        self.ask_player_choice = true;
                     }
                 }
             }
@@ -397,39 +374,35 @@ impl Game {
         self.computer_generated_moves = true;
     }
 
+    pub fn random_opening_coordinates(&self) -> Coordinates {
+        let mut rng = rand::thread_rng();
+        let (mut x, mut y) = (rng.gen_range(7..=11), rng.gen_range(7..=11));
+        while self.board.get(x, y) != Rock::None {
+            x = rng.gen_range(7..=11);
+            y = rng.gen_range(7..=11);
+        }
+        coord!(x, y)
+    }
+
+    pub fn place_random_stones(&mut self, starts_with: Player, amount: u8) {
+        let mut player = starts_with;
+        for _ in 0..amount {
+            let coordinates = self.random_opening_coordinates();
+            self.board.set_move(
+                &self.rules,
+                &Move {
+                    coordinates,
+                    player,
+                },
+            );
+            self.rock_move.push(coordinates);
+            player = player.opponent();
+        }
+    }
+
     pub fn random_swap2_opening(&mut self) {
-        // Randomly generated number
-        let _random = 2;
-        // First stone
-        let coordinates = coord!(9, 9);
-        self.board.set_move(
-            &self.rules,
-            &Move {
-                coordinates,
-                player: Player::Black,
-            },
-        );
-        self.rock_move.push(coordinates);
-        // Second stone
-        let coordinates = coord!(9, 8);
-        self.board.set_move(
-            &self.rules,
-            &Move {
-                coordinates,
-                player: Player::White,
-            },
-        );
-        self.rock_move.push(coordinates);
-        // Third stone
-        let coordinates = coord!(8, 9);
-        self.board.set_move(
-            &self.rules,
-            &Move {
-                coordinates,
-                player: Player::Black,
-            },
-        );
-        self.rock_move.push(coordinates);
+        // Place 3 randoms stone, 2 Black and 1 White
+        self.place_random_stones(Player::Black, 3);
         // Pass the choice to the other player
         self.current_player = Player::White;
         self.ask_player_choice = true;
