@@ -4,7 +4,7 @@ use gomoku::{
     board::{Board, Coordinates, Move},
     constants::{BOARD_SIZE, BOARD_SIZE_USIZE, DIRECTIONS},
     player::Player,
-    rock::{PlayerRock, Rock},
+    rock::Rock,
     rules::RuleSet,
 };
 
@@ -62,11 +62,11 @@ fn player_boards_set_move_black() {
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::Black),
-        PlayerRock::Player
+        false
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::White),
-        PlayerRock::Opponent
+        true
     );
 }
 
@@ -82,11 +82,11 @@ fn player_boards_set_move_white() {
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::White),
-        PlayerRock::Player
+        false
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::Black),
-        PlayerRock::Opponent
+        true
     );
 }
 
@@ -109,27 +109,27 @@ fn player_boards_set_move_both() {
     );
     assert_eq!(
         board.get_for_player(CENTER.x - 1, CENTER.y, Player::Black),
-        PlayerRock::Player
+        false
     );
     assert_eq!(
         board.get_for_player(CENTER.x - 1, CENTER.y, Player::White),
-        PlayerRock::Opponent
+        true
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::Black),
-        PlayerRock::None
+        true
     );
     assert_eq!(
         board.get_for_player(CENTER.x, CENTER.y, Player::White),
-        PlayerRock::None
+        true
     );
     assert_eq!(
         board.get_for_player(CENTER.x + 1, CENTER.y, Player::Black),
-        PlayerRock::Opponent
+        true
     );
     assert_eq!(
         board.get_for_player(CENTER.x + 1, CENTER.y, Player::White),
-        PlayerRock::Player
+        false
     );
 }
 
@@ -210,32 +210,14 @@ fn undo_capture() {
     set_many!(mut board, Player::Black, (0, 0));
     set_many!(mut board, Player::White, (1, 0), (2, 0));
     assert_eq!(board.get(0, 0), Rock::Black);
-    assert_eq!(
-        board.get_for_player(0, 0, Player::Black),
-        PlayerRock::Player
-    );
-    assert_eq!(
-        board.get_for_player(0, 0, Player::White),
-        PlayerRock::Opponent
-    );
+    assert_eq!(board.get_for_player(0, 0, Player::Black), false);
+    assert_eq!(board.get_for_player(0, 0, Player::White), true);
     assert_eq!(board.get(1, 0), Rock::White);
-    assert_eq!(
-        board.get_for_player(1, 0, Player::Black),
-        PlayerRock::Opponent
-    );
-    assert_eq!(
-        board.get_for_player(1, 0, Player::White),
-        PlayerRock::Player
-    );
+    assert_eq!(board.get_for_player(1, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(1, 0, Player::White), false);
     assert_eq!(board.get(2, 0), Rock::White);
-    assert_eq!(
-        board.get_for_player(2, 0, Player::Black),
-        PlayerRock::Opponent
-    );
-    assert_eq!(
-        board.get_for_player(2, 0, Player::White),
-        PlayerRock::Player
-    );
+    assert_eq!(board.get_for_player(2, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(2, 0, Player::White), false);
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
     assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);
@@ -256,29 +238,17 @@ fn undo_capture() {
     };
     board.set_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::Black);
-    assert_eq!(
-        board.get_for_player(0, 0, Player::Black),
-        PlayerRock::Player
-    );
-    assert_eq!(
-        board.get_for_player(0, 0, Player::White),
-        PlayerRock::Opponent
-    );
+    assert_eq!(board.get_for_player(0, 0, Player::Black), false);
+    assert_eq!(board.get_for_player(0, 0, Player::White), true);
     assert_eq!(board.get(1, 0), Rock::None);
-    assert_eq!(board.get_for_player(1, 0, Player::Black), PlayerRock::None);
-    assert_eq!(board.get_for_player(1, 0, Player::White), PlayerRock::None);
+    assert_eq!(board.get_for_player(1, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(1, 0, Player::White), true);
     assert_eq!(board.get(2, 0), Rock::None);
-    assert_eq!(board.get_for_player(2, 0, Player::Black), PlayerRock::None);
-    assert_eq!(board.get_for_player(2, 0, Player::White), PlayerRock::None);
+    assert_eq!(board.get_for_player(2, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(2, 0, Player::White), true);
     assert_eq!(board.get(3, 0), Rock::Black);
-    assert_eq!(
-        board.get_for_player(0, 0, Player::Black),
-        PlayerRock::Player
-    );
-    assert_eq!(
-        board.get_for_player(0, 0, Player::White),
-        PlayerRock::Opponent
-    );
+    assert_eq!(board.get_for_player(0, 0, Player::Black), false);
+    assert_eq!(board.get_for_player(0, 0, Player::White), true);
     assert_eq!(
         board.moves_restore,
         vec![vec![], vec![], vec![], vec![coord!(2, 0), coord!(1, 0)]]
@@ -298,32 +268,14 @@ fn undo_capture() {
     // Undo capture
     board.undo_move(&RuleSet::default(), &movement);
     assert_eq!(board.get(0, 0), Rock::Black);
-    assert_eq!(
-        board.get_for_player(0, 0, Player::Black),
-        PlayerRock::Player
-    );
-    assert_eq!(
-        board.get_for_player(0, 0, Player::White),
-        PlayerRock::Opponent
-    );
+    assert_eq!(board.get_for_player(0, 0, Player::Black), false);
+    assert_eq!(board.get_for_player(0, 0, Player::White), true);
     assert_eq!(board.get(1, 0), Rock::White);
-    assert_eq!(
-        board.get_for_player(1, 0, Player::Black),
-        PlayerRock::Opponent
-    );
-    assert_eq!(
-        board.get_for_player(1, 0, Player::White),
-        PlayerRock::Player
-    );
+    assert_eq!(board.get_for_player(1, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(1, 0, Player::White), false);
     assert_eq!(board.get(2, 0), Rock::White);
-    assert_eq!(
-        board.get_for_player(2, 0, Player::Black),
-        PlayerRock::Opponent
-    );
-    assert_eq!(
-        board.get_for_player(2, 0, Player::White),
-        PlayerRock::Player
-    );
+    assert_eq!(board.get_for_player(2, 0, Player::Black), true);
+    assert_eq!(board.get_for_player(2, 0, Player::White), false);
     assert_eq!(board.moves_restore, vec![vec![], vec![], vec![]]);
     assert_eq!(board.black.rocks, BTreeSet::from([coord!(0, 0)]));
     assert_eq!(board.black.captures, 0);

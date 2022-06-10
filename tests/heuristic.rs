@@ -324,6 +324,7 @@ fn pattern_category_increase_count(category: Category) -> bool {
                         Category::OpenTwo => patterns.open_two,
                         Category::ReduceTwo => patterns.reduce_two,
                         Category::CreateCapture => patterns.created_captures,
+                        Category::RevealCapture => patterns.reveal_capture,
                         Category::CloseTwo => patterns.close_two,
                     }) >= 1
                     {
@@ -424,6 +425,11 @@ fn find_all_close_two() {
 #[test]
 fn find_create_capture() {
     assert!(pattern_category_increase_count(Category::CreateCapture));
+}
+
+#[test]
+fn find_reveal_capture() {
+    assert!(pattern_category_increase_count(Category::RevealCapture));
 }
 
 // * Check that all patterns under capture are downgraded
