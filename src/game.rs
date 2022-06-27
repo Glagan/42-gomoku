@@ -61,6 +61,7 @@ pub struct Game {
     pub current_player: Player,
     pub winner: Winner,
     pub rock_move: Vec<Coordinates>,
+    pub computer_moves: f64,
     pub undone_moves: Vec<Move>,
     pub show_computer_generated_moves: bool,
     pub algorithm_index: Option<usize>,
@@ -94,6 +95,7 @@ impl Default for Game {
             current_player: Player::Black,
             winner: Winner::None,
             rock_move: vec![],
+            computer_moves: 0.,
             undone_moves: vec![],
             show_computer_generated_moves: true,
             algorithm_index: Some(0),
@@ -126,6 +128,7 @@ impl Game {
         self.current_player = Player::Black;
         self.winner = Winner::None;
         self.rock_move = vec![];
+        self.computer_moves = 0.;
         self.undone_moves = vec![];
         self.difficulty_index = Some(1);
         self.completed_opening = false;
@@ -447,8 +450,7 @@ impl Game {
             if self.computer_average_play_time == 0. {
                 self.computer_average_play_time = play_time.as_millis() as f64;
             } else {
-                self.computer_average_play_time =
-                    (self.computer_average_play_time + play_time.as_millis() as f64) / 2.;
+                self.computer_average_play_time += play_time.as_millis() as f64;
             }
             if play_time > self.computer_highest_play_time {
                 self.computer_highest_play_time = play_time;
@@ -477,6 +479,7 @@ impl Game {
                     play_time.as_millis()
                 );
                 self.rock_move.push(movement.coordinates);
+                self.computer_moves += 1.;
                 if self.board.is_winning(&self.rules, movement.player) {
                     self.player_won();
                 } else {

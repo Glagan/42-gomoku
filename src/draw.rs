@@ -459,11 +459,12 @@ pub fn display_panel_text(game: &mut Game) {
         );
 
         y_offset += TEXT_OFFSET;
+        let computer_average_play_time = game.computer_average_play_time / game.computer_moves;
         draw_text(
-            if game.computer_average_play_time > 1000. {
-                format!("Average: {:.2}s", game.computer_average_play_time / 1000.)
+            if computer_average_play_time > 1000. {
+                format!("Average: {:.2}s", computer_average_play_time / 1000.)
             } else {
-                format!("Average: {:.0}ms", game.computer_average_play_time)
+                format!("Average: {:.0}ms", computer_average_play_time)
             }
             .as_str(),
             GRID_WINDOW_SIZE as f32 + TEXT_OFFSET,
