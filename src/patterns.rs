@@ -144,11 +144,11 @@ pub enum Category {
     OpenFour,
     // Kills an opponent open three in a row (reduce to closed three in a row)
     ReduceThree,
-    // Four in a row that can be upgraded only by a single move
+    // Four in a row that can be upgraded on a single side
     CloseFour,
     // Three in a row that can be upgraded to open four with multiple moves
     OpenThree,
-    // Kills an opponent closed three in a row
+    // Kills an opponent closed three in a row (no moves on any sides)
     KillThree,
     // Block a capture
     BlockedCapture,
@@ -468,15 +468,21 @@ lazy_static! {
             Category::OpenTwo,
         ),
         // * ReduceTwo
-        // -- [{1}, 2, 2]
-        // -+ [2, 2, {1}]
+        // -- [{1}, 2, 2, 0]
+        // -+ [0, 2, 2, {1}]
         (
-            vec![(1, 2), (2, 2)],
+            vec![(1, 2), (2, 2), (3, 0)],
             Category::ReduceTwo,
         ),
         // -- [2, {1}, 2]
         (
             vec![(-1, 2), (1, 2)],
+            Category::ReduceTwo,
+        ),
+        // -- [0, 2, 0, {1}, 2, 0]
+        // -+ [0, 2, {1}, 0, 2, 0]
+        (
+            vec![(-3, 0), (-2, 2), (-1, 0), (1, 2), (2, 0)],
             Category::ReduceTwo,
         ),
         // * CloseTwo

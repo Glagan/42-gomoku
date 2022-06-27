@@ -183,9 +183,7 @@ impl Board {
                     && self.get(new_coords.0, new_coords.1) == Rock::None
                 {
                     let new_coords = coord!(new_coords.0, new_coords.1);
-                    if !intersections.contains(&new_coords) {
-                        intersections.insert(new_coords);
-                    }
+                    intersections.insert(new_coords);
                 }
             }
         }
