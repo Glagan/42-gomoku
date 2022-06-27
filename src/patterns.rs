@@ -166,7 +166,7 @@ pub enum Category {
     // Kills an opponent open two (reduce to closed two in a row)
     ReduceTwo,
     // Two in a row that can only be upgraded by a single move
-    CloseTwo,
+    // CloseTwo,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -247,7 +247,7 @@ impl PatternCount {
                 Category::OpenTwo => pattern_count.open_two += 1,
                 Category::ReduceTwo => pattern_count.reduce_two += 1,
                 Category::CreateCapture => pattern_count.created_captures += 1,
-                Category::CloseTwo => pattern_count.close_two += 1,
+                // Category::CloseTwo => pattern_count.close_two += 1,
             }
         }
         pattern_count
@@ -488,23 +488,23 @@ lazy_static! {
         // * CloseTwo
         // -- [2, {1}, {1}, 0, 0]
         // -+ [0, 0, {1}, {1}, 2]
-        (
-            vec![(-1, 2), (1, 1), (2, 0), (3, 0)],
-            Category::CloseTwo,
-        ),
-        (
-            vec![(-2, 2),(-1, 1), (1, 0), (2, 0)],
-            Category::CloseTwo,
-        ),
+        // (
+        //     vec![(-1, 2), (1, 1), (2, 0), (3, 0)],
+        //     Category::CloseTwo,
+        // ),
+        // (
+        //     vec![(-2, 2),(-1, 1), (1, 0), (2, 0)],
+        //     Category::CloseTwo,
+        // ),
         // -- [2, {1}, 0, {1}, 0, 0]
         // -+ [0, 0, {1}, 0, {1}, 2]
-        (
-            vec![(-1, 2), (1, 0), (2, 1), (3, 0), (4, 0)],
-            Category::CloseTwo,
-        ),
-        (
-            vec![(-3, 2), (-2, 1), (-1, 0), (1, 0), (2, 0)],
-            Category::CloseTwo,
-        ),
+        // (
+        //     vec![(-1, 2), (1, 0), (2, 1), (3, 0), (4, 0)],
+        //     Category::CloseTwo,
+        // ),
+        // (
+        //     vec![(-3, 2), (-2, 1), (-1, 0), (1, 0), (2, 0)],
+        //     Category::CloseTwo,
+        // ),
     ];
 }

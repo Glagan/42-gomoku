@@ -325,7 +325,7 @@ fn pattern_category_increase_count(category: Category) -> bool {
                         Category::ReduceTwo => patterns.reduce_two,
                         Category::CreateCapture => patterns.created_captures,
                         Category::RevealCapture => patterns.reveal_capture,
-                        Category::CloseTwo => patterns.close_two,
+                        // Category::CloseTwo => patterns.close_two,
                     }) >= 1
                     {
                         true
@@ -417,10 +417,10 @@ fn find_all_reduce_two() {
     assert!(pattern_category_increase_count(Category::ReduceTwo));
 }
 
-#[test]
-fn find_all_close_two() {
-    assert!(pattern_category_increase_count(Category::CloseTwo));
-}
+// #[test]
+// fn find_all_close_two() {
+//     assert!(pattern_category_increase_count(Category::CloseTwo));
+// }
 
 #[test]
 fn find_create_capture() {
