@@ -1,12 +1,13 @@
 use crate::{
     board::{Board, Move},
+    constants::DEPTH,
     heuristic::HEURISTIC,
     patterns::PatternCount,
     player::Player,
     rules::RuleSet,
 };
 use colored::Colorize;
-use std::{cmp::Ordering, collections::BinaryHeap, fmt};
+use std::{cmp::Ordering, collections::BinaryHeap, fmt, time::Instant};
 
 #[derive(Debug, Clone)]
 pub enum Algorithm {
@@ -88,6 +89,7 @@ impl Computer {
         iteration: AlphaBetaIteration,
         player: Player,
         color: i32,
+        start_time: Instant,
     ) -> Result<Evaluation, String> {
         let mut alpha = iteration.alpha;
         let beta = iteration.beta;
@@ -111,7 +113,7 @@ impl Computer {
             });
         }
 
-        // Only the best evaluation is returned
+        // Only the best evaluation is returned0
         let mut best_eval = Evaluation {
             score: i32::min_value() + 1,
             movements: vec![],
@@ -165,6 +167,7 @@ impl Computer {
                 },
                 player.opponent(),
                 -color,
+                start_time,
             )?;
             action.board.undo_move(rules, &sorted_movement.movement);
             let score = -eval.score;
@@ -176,6 +179,9 @@ impl Computer {
                 if alpha >= beta {
                     return Ok(best_eval);
                 }
+            }
+            if start_time.elapsed().as_millis() > 480 && iteration.depth == DEPTH {
+                break;
             }
         }
 
@@ -191,6 +197,7 @@ impl Computer {
         iteration: AlphaBetaIteration,
         player: Player,
         maximize: bool,
+        start_time: Instant,
     ) -> Result<Evaluation, String> {
         let mut alpha = iteration.alpha;
         let mut beta = iteration.beta;
@@ -270,6 +277,7 @@ impl Computer {
                     },
                     player.opponent(),
                     !maximize,
+                    start_time,
                 )?;
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score > best_eval.score {
@@ -282,6 +290,9 @@ impl Computer {
                 }
                 if eval.score >= beta {
                     return Ok(best_eval);
+                }
+                if start_time.elapsed().as_millis() > 480 && iteration.depth == DEPTH {
+                    break;
                 }
             }
             Ok(best_eval)
@@ -308,6 +319,7 @@ impl Computer {
                     },
                     player.opponent(),
                     !maximize,
+                    start_time,
                 )?;
                 action.board.undo_move(rules, &sorted_movement.movement);
                 if eval.score < best_eval.score {
@@ -320,6 +332,9 @@ impl Computer {
                 }
                 if eval.score <= alpha {
                     return Ok(best_eval);
+                }
+                if start_time.elapsed().as_millis() > 480 && iteration.depth == DEPTH {
+                    break;
                 }
             }
             Ok(best_eval)
@@ -434,6 +449,7 @@ impl Computer {
                 },
                 player,
                 1,
+                Instant::now(),
             )?,
             // Use the minimax algorithm with alpha beta prunning to get the next best move
             Algorithm::Minimax => self.minimax_alpha_beta(
@@ -450,6 +466,7 @@ impl Computer {
                 },
                 player,
                 true,
+                Instant::now(),
             )?,
             // Select only the next move from the heuristic
             Algorithm::Greedy => self.greedy(
