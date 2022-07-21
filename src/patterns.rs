@@ -187,6 +187,7 @@ pub struct PatternCount {
     pub created_captures: u8,
     pub reveal_capture: u8,
     pub total_captures: u8,
+    pub opponent_captures: u8,
     pub inc_captures: u8,
 }
 

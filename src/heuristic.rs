@@ -92,10 +92,39 @@ impl Heuristic {
                                 patterns.push(Category::KillFour);
                                 continue;
                             }
+                            // Upgrade CreateCapture to CloseFour if captures >= 8
+                            // -- it's a forced move for the opponent
+                            let captures = if movement.player == Player::White {
+                                board.white.captures
+                            } else {
+                                board.black.captures
+                            };
+                            if captures >= 8 {
+                                patterns.push(Category::CloseFour);
+                                continue;
+                            }
                             patterns.push(Category::CreateCapture);
                         }
                         // Upgrade blocked captures to check if it unblock an open four or a five in a row
                         else if category == &Category::BlockedCapture {
+                            // Check if the opponent has already 8 or more captures
+                            // -- Update to KillFour since ignoring it result in a loss
+                            let captures = if movement.player == Player::White {
+                                board.black.captures
+                            } else {
+                                board.white.captures
+                            };
+                            if captures >= 8 {
+                                // println!(
+                                //     "movement on {}x{} for {:#?} upgraded to KillFour\n{}",
+                                //     movement.coordinates.x,
+                                //     movement.coordinates.y,
+                                //     movement.player,
+                                //     board
+                                // );
+                                patterns.push(Category::KillFour);
+                                continue;
+                            }
                             // Check if either of the [1] that are unblocked are five in a row
                             // ? Check that no other rocks in the pattern are under capture
                             // First rock
@@ -126,16 +155,6 @@ impl Heuristic {
                                 } else {
                                     Category::OpenFour
                                 });
-                                continue;
-                            }
-                            // Check if the opponent has already 8 or more captures
-                            let captures = if movement.player == Player::White {
-                                board.black.captures
-                            } else {
-                                board.white.captures
-                            };
-                            if captures >= 8 {
-                                patterns.push(Category::KillFour);
                                 continue;
                             }
                             patterns.push(Category::BlockedCapture);
@@ -202,11 +221,13 @@ impl Heuristic {
     ) -> PatternCount {
         let patterns = self.get_patterns_for_movement(rules, board, movement);
         let mut pattern_count = PatternCount::from_patterns(&patterns);
-        pattern_count.total_captures = if movement.player == Player::Black {
-            board.black.captures
+        if movement.player == Player::Black {
+            pattern_count.total_captures = board.black.captures;
+            pattern_count.opponent_captures = board.white.captures;
         } else {
-            board.white.captures
-        };
+            pattern_count.total_captures = board.white.captures;
+            pattern_count.opponent_captures = board.black.captures;
+        }
         pattern_count.inc_captures = captures;
         pattern_count
     }
@@ -219,6 +240,8 @@ impl Heuristic {
             return i32::max_value() - 1;
         } else if patterns.open_four > 0 {
             return i32::max_value() - 2;
+        } else if patterns.reveal_capture > 0 && patterns.opponent_captures >= 8 {
+            return 0;
         }
         // Count good patterns that were created
         let mut score: i32 = 0;
